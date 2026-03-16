@@ -129,10 +129,9 @@ export class Town extends Scene {
           this.currentZone = zoneId
           EventBus.emit('zone:entered', { zoneId, zoneName })
         }
-        return // found active zone, stop checking
+        return
       }
     }
-    // Outside all zones
     if (this.currentZone !== null) {
       this.currentZone = null
     }
