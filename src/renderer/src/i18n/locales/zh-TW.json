@@ -1,0 +1,36 @@
+{
+  "game": {
+    "title": "Claude RPG"
+  },
+  "interaction": {
+    "hint": "按 Space 對話",
+    "close": "按 Escape 關閉"
+  },
+  "dialogue": {
+    "placeholder": "......",
+    "thinking": "思考中..."
+  },
+  "locations": {
+    "townSquare": "城鎮廣場",
+    "guildHall": "公會大廳",
+    "library": "圖書館",
+    "scribeWorkshop": "書記工坊",
+    "market": "市場",
+    "artisanStudio": "匠師工坊",
+    "messengerPost": "傳令站",
+    "tavern": "酒館",
+    "tower": "高塔"
+  },
+  "npcs": {
+    "elder": "長老",
+    "guildMaster": "會長",
+    "scholar": "學者",
+    "scribe": "書記官",
+    "merchant": "商人",
+    "commander": "指揮官",
+    "artisan": "匠師",
+    "herald": "傳令使",
+    "wizard": "巫師",
+    "bartender": "酒保"
+  }
+}
