@@ -31,7 +31,17 @@ export class Preloader extends Scene {
       progressBar.destroy()
     })
 
-    // Assets will be loaded here once they exist (Task 4)
+    // Load assets
+    this.load.tilemapTiledJSON('town-map', 'assets/tilemaps/town.json')
+    this.load.image('town-tileset', 'assets/tilesets/town-tileset.png')
+    this.load.spritesheet('player', 'assets/sprites/player.png', {
+      frameWidth: 16,
+      frameHeight: 16
+    })
+    this.load.spritesheet('npcs', 'assets/sprites/npcs.png', {
+      frameWidth: 16,
+      frameHeight: 16
+    })
   }
 
   create(): void {
