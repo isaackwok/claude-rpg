@@ -27,39 +27,88 @@ The primary audience is non-technical users (designers, PMs) who want to leverag
 | i18n | JSON locale files | `locales/zh-TW.json`, `locales/en.json` |
 | Language | TypeScript | Throughout the entire codebase |
 
+## Implementation Phases
+
+The spec describes the full v1 vision. Implementation is split into phases, each producing a working deliverable:
+
+| Phase | Deliverable | Dependencies |
+|---|---|---|
+| **Phase 1: Shell & World** | Electron app with Phaser tilemap, character movement, NPC sprites with collision zones. React overlay scaffold. No AI yet. | None |
+| **Phase 2: Agent Conversations** | Single-agent NPC dialogue via Anthropic SDK. Talk to any built-in NPC, get responses. Conversation persistence. | Phase 1 |
+| **Phase 3: Progression** | XP tracking, leveling, title computation, quest board. Organic quest detection. Skill tree UI. | Phase 2 |
+| **Phase 4: Guild Hall** | Custom agent creation flow via Guild Master NPC. Sprite selection, personality, placement. | Phase 2 |
+| **Phase 5: Party System** | Multi-agent party formation and orchestrated quests via Agent SDK. | Phase 2, Phase 4 |
+| **Phase 6: Onboarding & Polish** | Title screen, API key wizard, character creation, tutorial, i18n pass, sound/animation polish. | All above |
+
+Each phase can be planned and implemented independently.
+
 ## Architecture
 
 ```
 ┌─────────────────────────────────────────────────┐
-│                   Electron Shell                 │
-│  ┌─────────────────────────────────────────────┐│
-│  │              React App Layer                 ││
-│  │  ┌───────────────┐  ┌────────────────────┐  ││
-│  │  │  Phaser Game   │  │   React UI Panels  │  ││
-│  │  │  ─────────────│  │  ──────────────────│  ││
-│  │  │  • World map   │  │  • Chat/dialogue   │  ││
-│  │  │  • Character   │  │  • Inventory       │  ││
-│  │  │  • NPCs/Agents │  │  • Guild Hall UI   │  ││
-│  │  │  • Collision   │  │  • Skill tree      │  ││
-│  │  │  • Animation   │  │  • Settings/Auth   │  ││
-│  │  └───────────────┘  └────────────────────┘  ││
-│  │              ↕ Event Bus (shared state)       ││
-│  │  ┌─────────────────────────────────────────┐ ││
-│  │  │           Core Services                  │ ││
-│  │  │  • Agent Manager (Anthropic SDK)         │ ││
-│  │  │  • Progression Engine (XP/levels)        │ ││
-│  │  │  • i18n Service (zh-TW primary)          │ ││
-│  │  │  • Persistence (SQLite, repository pattern)│││
-│  │  └─────────────────────────────────────────┘ ││
-│  └─────────────────────────────────────────────┘│
+│                 Electron Main Process             │
+│  • API key storage (safeStorage)                 │
+│  • IPC bridge to renderer                        │
+│  • Anthropic SDK calls (keeps key in main proc)  │
+└──────────────────────┬──────────────────────────┘
+                       │ IPC (contextBridge)
+┌──────────────────────▼──────────────────────────┐
+│              Electron Renderer Process            │
+│  ┌─────────────────────────────────────────────┐ │
+│  │              React App Layer                 │ │
+│  │  ┌───────────────┐  ┌────────────────────┐  │ │
+│  │  │  Phaser Game   │  │   React UI Panels  │  │ │
+│  │  │  ─────────────│  │  ──────────────────│  │ │
+│  │  │  • World map   │  │  • Chat/dialogue   │  │ │
+│  │  │  • Character   │  │  • Inventory       │  │ │
+│  │  │  • NPCs/Agents │  │  • Guild Hall UI   │  │ │
+│  │  │  • Collision   │  │  • Skill tree      │  │ │
+│  │  │  • Animation   │  │  • Settings/Auth   │  │ │
+│  │  └───────────────┘  └────────────────────┘  │ │
+│  │              ↕ Event Bus (typed EventEmitter) │ │
+│  │  ┌─────────────────────────────────────────┐ │ │
+│  │  │           Core Services                  │ │ │
+│  │  │  • Agent Manager (via IPC to main proc)  │ │ │
+│  │  │  • Progression Engine (XP/levels)        │ │ │
+│  │  │  • i18n Service (zh-TW primary)          │ │ │
+│  │  │  • Persistence (SQLite, repositories)    │ │ │
+│  │  └─────────────────────────────────────────┘ │ │
+│  └─────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────┘
 ```
 
-### Communication Between Layers
+### Event Bus Contract
 
-- **Phaser → React**: Phaser emits events (e.g., `npc:interact`) on a shared event bus. React listens and opens the appropriate UI panel.
-- **React → Phaser**: React dispatches commands (e.g., `player:moveTo`, `npc:spawn`) that Phaser executes.
-- **Core Services**: Framework-agnostic. Both Phaser and React access them through a shared service layer, not directly.
+The event bus is a typed `EventEmitter` shared between Phaser and React within the renderer process. All events have typed payloads.
+
+```typescript
+interface GameEvents {
+  // Phaser → React
+  "npc:interact": { agentId: string; npcPosition: { x: number; y: number } }
+  "npc:proximity": { agentId: string; inRange: boolean }
+  "player:moved": { x: number; y: number; map: string }
+  "zone:entered": { zoneId: string; zoneName: string }
+
+  // React → Phaser
+  "dialogue:closed": { agentId: string }
+  "npc:spawn": { agent: Agent }
+  "npc:remove": { agentId: string }
+  "camera:focus": { x: number; y: number }
+
+  // Core Services → Both
+  "xp:gained": { category: SkillCategory; amount: number; newTotal: number }
+  "level:up": { category: SkillCategory; newLevel: number }
+  "quest:completed": { questId: string; title: LocalizedString }
+  "title:changed": { newTitle: LocalizedString }
+}
+```
+
+### Communication Flow
+
+- **Phaser → React**: Phaser emits typed events (e.g., `npc:interact`). React listens and opens the appropriate UI panel.
+- **React → Phaser**: React dispatches typed commands (e.g., `npc:spawn`). Phaser executes them.
+- **Core Services**: Framework-agnostic. Both Phaser and React access them through a shared service container. Services emit events for state changes (XP gained, level up).
+- **Renderer → Main (IPC)**: All Anthropic API calls go through Electron IPC to the main process, which holds the API key and makes SDK calls. The renderer never sees the raw API key.
 
 ## The RPG World
 
@@ -77,7 +126,7 @@ The world is a tile-based map built with Tiled Map Editor, exported as JSON, and
 | Scribe's Workshop | Writing tasks | 書記官 (The Scribe) |
 | Market | Data & organization tasks | 商人 (The Merchant), 指揮官 (The Commander) |
 | Artisan's Studio | Visual/design tasks | 匠師 (The Artisan) |
-| Town Square | Communication tasks | 傳令使 (The Herald) |
+| Messenger's Post | Communication tasks | 傳令使 (The Herald) |
 | Tavern | Party management, quest board | 酒保 (Bartender) — party/quest UI |
 | Tower (unlockable) | Code/automation tasks | 巫師 (The Wizard) |
 
@@ -90,10 +139,12 @@ The world is a tile-based map built with Tiled Map Editor, exported as JSON, and
 
 ## Agent System
 
-### Agent Definition Schema
+### Agent Schema
+
+A single `Agent` type is used for both built-in and custom NPCs:
 
 ```typescript
-interface AgentDefinition {
+interface Agent {
   id: string
   name: LocalizedString        // { "zh-TW": "書記官", "en": "The Scribe" }
   personality: string           // Free-form personality description
@@ -141,14 +192,54 @@ The player walks into the Guild Hall and interacts with the Guild Master NPC, wh
 
 ### Agent Party System
 
-- At the Tavern, players form a party (up to 4 agents)
-- Give the party a quest — a complex task requiring multiple skills
-- The system orchestrates a multi-agent workflow via Claude Agent SDK with tool handoffs
-- Example: "幫我用這份數據做一份簡報" (Help me make a presentation from this data)
-  - 商人 analyzes the data
-  - 書記官 writes the narrative
-  - 匠師 designs the visuals
-  - Results assembled and presented in the dialogue UI
+#### Formation
+
+At the Tavern, the player talks to the Bartender to form a party:
+- Select up to 4 agents (built-in or custom) from a list
+- Name the party
+- Party is saved and can be reused
+
+#### Orchestration Architecture
+
+Party quests use a **sequential pipeline with a coordinator**:
+
+```
+Player gives quest to party
+        ↓
+  Coordinator (main process)
+  ├── 1. Analyzes the quest and creates a plan
+  │      (Which agents handle which sub-tasks, in what order)
+  ├── 2. Executes sub-tasks sequentially:
+  │      Agent A works → output passed to Agent B → output passed to Agent C
+  ├── 3. Each agent receives:
+  │      - Their personality/system prompt
+  │      - The quest context
+  │      - Outputs from previous agents in the chain
+  └── 4. Final output assembled and presented to player
+```
+
+- **Orchestration runs in Electron main process** via the Agent SDK
+- Each agent call is an independent Anthropic API call with the agent's system prompt + quest context + prior outputs
+- The coordinator is not an LLM — it's deterministic logic that routes based on agent skill tags matching quest requirements
+
+#### Progress & Failure Handling
+
+- Player sees a dialogue UI showing which agent is currently working (with their sprite and a "thinking" animation)
+- If an agent call fails (API error, timeout), the coordinator:
+  1. Retries once
+  2. If still failing, reports to the player: "商人 encountered a problem. Retry or skip?"
+  3. Player can retry, skip that agent's step, or cancel the quest
+- Partial results are preserved — if 2 of 3 agents complete before a failure, those results are shown
+
+#### Example Flow
+
+Quest: "幫我用這份數據做一份簡報" (Make a presentation from this data)
+
+1. Coordinator plan: Merchant (analyze data) → Scribe (write narrative) → Artisan (design layout)
+2. Merchant receives: raw data + quest prompt → outputs: data summary + key insights
+3. Scribe receives: data summary + key insights + quest prompt → outputs: presentation narrative
+4. Artisan receives: narrative + data summary + quest prompt → outputs: presentation structure with visual suggestions
+5. Player receives assembled result in dialogue UI
 
 ## Progression System
 
@@ -166,17 +257,97 @@ The player walks into the Guild Hall and interacts with the Guild Master NPC, wh
 
 ### XP & Leveling
 
-- Every agent interaction earns XP in the agent's skill categories
-- XP is awarded per conversation completion, categorized by the agent's skill tags
-- XP thresholds trigger level-ups with pixel-art celebration animation + sound
-- Every 5 levels in a category → unlock a new title fragment
-- Overall title is composed from top 2 categories (e.g., Lv12 Writing + Lv8 Research = "博學文匠" / Scholarly Wordsmith)
+#### XP Award Rules
+
+- XP is awarded when a conversation with an NPC reaches a natural completion (player closes dialogue after receiving a substantive response)
+- Base XP per completed interaction: **10 XP**
+- XP is distributed across the agent's skill categories equally (e.g., an agent with `["writing", "communication"]` awards 5 XP to each)
+- Party quest bonus: **+50% XP** for each agent in the party (encourages party usage)
+
+#### Level Thresholds
+
+Leveling uses a standard quadratic curve per skill category:
+
+```
+XP required for level N = 50 * N^2
+
+Level 1:   50 XP  (5 interactions)
+Level 2:  200 XP  (15 more interactions)
+Level 3:  450 XP
+Level 5: 1250 XP
+Level 10: 5000 XP
+```
+
+#### Title Computation
+
+The player's title is computed from their top 2 skill categories:
+
+```typescript
+function computeTitle(skills: Record<SkillCategory, number>): LocalizedString {
+  const sorted = Object.entries(skills)
+    .sort(([, a], [, b]) => b - a)
+  const [primary] = sorted[0]
+  const [secondary] = sorted[1]
+  // Title = secondary adjective + primary noun
+  // e.g., Research (博學) + Writing (文匠) = "博學文匠"
+  return {
+    "zh-TW": titleAdjectives["zh-TW"][secondary] + titleNouns["zh-TW"][primary],
+    "en": titleAdjectives["en"][secondary] + " " + titleNouns["en"][primary]
+  }
+}
+```
+
+Each category has both an adjective form (used as secondary) and a noun form (used as primary), stored in locale files.
+
+#### Title Fragment Unlocks
+
+Every 5 levels in a category unlocks a new tier of that category's title word:
+
+| Level | Writing Title (zh-TW) | Writing Title (en) |
+|---|---|---|
+| 5 | 抄寫員 | Scribbler |
+| 10 | 文匠 | Wordsmith |
+| 15 | 文豪 | Literary Master |
+| 20 | 傳奇作家 | Legendary Author |
 
 ### Quest System
 
-- **Organic quests**: System detects completed patterns and frames them as quests retroactively ("You summarized 3 documents — Quest Complete: 知識收集者!")
-- **Quest board** (Tavern): Suggested tasks based on weakest skills to encourage exploration
-- **Party quests**: Multi-agent collaborative tasks assigned at the Tavern
+#### Organic Quest Detection
+
+Organic quests are triggered by **counters on conversation metadata**, not by analyzing message content:
+
+```typescript
+interface QuestTrigger {
+  id: string
+  name: LocalizedString
+  condition: {
+    type: "conversation_count"     // Count completed conversations
+    skillCategory: SkillCategory   // In this category
+    threshold: number              // Reaching this count
+    period?: "all_time" | "daily"  // Timeframe (default: all_time)
+  }
+  xpReward: number
+  repeatable: boolean              // Can trigger again after reset?
+}
+```
+
+**v1 organic quests (examples):**
+
+| Quest | Trigger | Reward |
+|---|---|---|
+| 初次接觸 (First Contact) | 1 conversation in any category | 20 XP |
+| 知識收集者 (Knowledge Collector) | 3 conversations in Research | 50 XP |
+| 多才多藝 (Renaissance) | 1 conversation in each of 5 different categories | 100 XP |
+| 勤奮學徒 (Diligent Apprentice) | 10 conversations in any single category | 80 XP |
+| 日常冒險者 (Daily Adventurer) | 3 conversations in one day (daily, repeatable) | 30 XP |
+
+The Progression Engine checks triggers after each conversation completion. When a trigger fires, the quest is created with `status: "completed"` and the player sees a celebration notification.
+
+#### Quest Board
+
+The Tavern quest board suggests tasks based on the player's weakest skill category:
+- "Your Visual skill is your lowest — try asking the Artisan to help you with a design task"
+- These are suggestions, not mandatory — no penalty for ignoring them
 
 ### Rewards
 
@@ -198,15 +369,23 @@ The player walks into the Guild Hall and interacts with the Guild Master NPC, wh
 4. **Character Creation**:
    - Pick sprite appearance from options
    - Enter character name
-   - Brief personality quiz (3 questions) to seed initial skill weights
+   - Personality quiz deferred — v1 starts all skills at 0 (quiz can be added in a polish phase)
 5. Opening cutscene → wake up in Town Square
 6. Tutorial NPC (長老 / The Elder) gives gentle introduction
 
 ### API Key Security
 
-- Stored via Electron's `safeStorage` API (encrypted at OS level)
-- Never exposed in logs, UI, or sent anywhere except Anthropic's API
-- User can update/remove key in Settings
+- API key is stored exclusively in the **Electron main process** via `safeStorage` API (encrypted at OS level)
+- The key **never enters the renderer process** — all API calls go through IPC to main
+- The key is **not stored in SQLite** or any user-accessible file
+- User can update/remove key via Settings (which sends an IPC call to main)
+
+### Mid-Session Key Errors
+
+If the API key becomes invalid during gameplay (revoked, rate-limited, expired):
+- The agent conversation shows an in-game error: "通訊中斷..." (Connection lost...)
+- Player is prompted to check/update their key in Settings
+- No data is lost — the conversation is preserved and can be resumed after key is fixed
 
 ## Data Model
 
@@ -230,6 +409,19 @@ Game Logic / Services
    └── CloudSyncAdapter (future — cloud save)
 ```
 
+```typescript
+interface IAgentRepository {
+  findById(id: string): Agent | null
+  findByLocation(map: string, x: number, y: number): Agent[]
+  findByPlayer(playerId: string): Agent[]
+  findBuiltIn(): Agent[]
+  save(agent: Agent): void
+  delete(id: string): void
+}
+
+// Other repositories follow the same pattern with domain-specific queries
+```
+
 ### Core Entities
 
 ```typescript
@@ -237,32 +429,20 @@ interface Player {
   id: string
   name: string
   sprite: string
-  apiKey: string               // Encrypted via safeStorage
   locale: "zh-TW" | "en"
   skills: Record<SkillCategory, number>  // XP per category
   level: number                // Overall level
   title: LocalizedString       // Computed from top skills
   createdAt: Date
   totalPlayTime: number        // Seconds
-}
-
-interface Agent {
-  id: string
-  name: LocalizedString
-  personality: string
-  systemPrompt: string
-  skills: SkillCategory[]
-  sprite: string
-  location: { map: string; x: number; y: number }
-  isBuiltIn: boolean
-  createdBy?: string
+  // Note: API key is NOT stored here — it lives in Electron main process via safeStorage
 }
 
 interface Conversation {
   id: string
   agentId: string
   playerId: string
-  messages: { role: string; content: string; timestamp: Date }[]
+  messages: { role: "user" | "assistant" | "system"; content: string; timestamp: Date }[]
   skillCategory: SkillCategory
   xpEarned: number
   status: "active" | "completed"
@@ -302,7 +482,7 @@ interface Progression {
 - Shared `t()` function used by both React components and Phaser dialogue system
 - NPC names, quest titles, achievement descriptions — all localized via `LocalizedString` type
 - Language defaults to system locale, toggleable in settings
-- CJK typography considerations: line-break rules, font sizing, text wrapping
+- CJK typography: use a CJK-compatible pixel/bitmap font; line-break handling deferred to the rendering layer (Phaser's bitmap text + React's CSS `word-break: break-all` for CJK)
 
 ## v1 Scope
 
@@ -311,9 +491,9 @@ interface Progression {
 - Single town map with all key locations
 - 7 built-in NPC agents with full dialogue/conversation capability
 - Custom agent creation via Guild Hall
-- Agent party system (up to 4 agents, multi-agent workflows)
-- Full progression system: 7 skill categories, XP, levels, emergent titles
-- Organic quest detection + quest board
+- Agent party system (up to 4 agents, sequential pipeline orchestration)
+- Progression system: 7 skill categories, XP (10 base per interaction, quadratic leveling), emergent titles
+- Organic quest detection (counter-based triggers) + quest board
 - API key authentication with in-game onboarding
 - Local SQLite persistence with repository pattern
 - i18n: zh-TW and en
@@ -327,3 +507,4 @@ interface Progression {
 - OAuth / managed API key service
 - Voice interaction with NPCs
 - Plugin system for community-created NPCs/maps
+- Onboarding personality quiz
