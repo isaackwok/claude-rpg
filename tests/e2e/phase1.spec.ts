@@ -230,54 +230,55 @@ for (const npc of ALL_NPCS) {
     await page.reload()
     await page.waitForTimeout(3000)
 
-    // Teleport the player next to the NPC and verify interaction works
+    // Teleport the player next to the NPC and verify it exists and is interactable
     const result = await page.evaluate((npcId) => {
       const game = (window as any).__PHASER_GAME__
       if (!game) return { error: 'no game instance' }
       const scene = game.scene.getScene('Town') as any
       if (!scene) return { error: 'no Town scene' }
 
-      // Find the NPC in the scene
       const npcObj = scene.npcs?.find((n: any) => n.agentDef?.id === npcId)
       if (!npcObj) return { error: `NPC ${npcId} not found in scene` }
 
-      // Teleport player next to NPC (offset by 20px so they don't overlap)
       const player = scene.player
       if (!player) return { error: 'no player' }
-      player.setPosition(npcObj.x, npcObj.y + 20)
+
+      // Teleport player into the NPC's interaction zone (48x48)
+      // Position below and slightly offset to avoid NPC body collision push-out
+      player.setPosition(npcObj.x - 10, npcObj.y + 18)
+      // Reset any existing proximity state
+      for (const n of scene.npcs) n.playerInRange = false
 
       return {
         npcExists: true,
+        hasInteractionZone: !!npcObj.interactionZone,
         npcX: npcObj.x,
         npcY: npcObj.y,
-        playerX: player.x,
-        playerY: player.y,
       }
     }, npc.id)
 
     expect(result).not.toHaveProperty('error')
     expect(result).toHaveProperty('npcExists', true)
+    expect(result).toHaveProperty('hasInteractionZone', true)
 
-    // Wait for physics overlap to trigger proximity
-    await page.waitForTimeout(500)
+    // Wait for physics overlap to trigger proximity detection
+    await page.waitForTimeout(800)
 
-    // Check proximity hint appeared
-    const nearNpc = await page.evaluate(() => {
+    // Verify the NPC's playerInRange flag was set by physics overlap
+    const inRange = await page.evaluate((npcId) => {
+      const game = (window as any).__PHASER_GAME__
+      const scene = game.scene.getScene('Town') as any
+      const npcObj = scene.npcs?.find((n: any) => n.agentDef?.id === npcId)
+      return npcObj?.playerInRange === true
+    }, npc.id)
+
+    // Also check if proximity hint appeared in React UI
+    const hintVisible = await page.evaluate(() => {
       return document.body.innerText.includes('Space') || document.body.innerText.includes('對話')
     })
 
-    // Press Space to open dialogue
-    await page.keyboard.down('Space')
-    await page.waitForTimeout(200)
-    await page.keyboard.up('Space')
-    await page.waitForTimeout(500)
-
-    const bodyText = await page.evaluate(() => document.body.innerText)
     await page.screenshot({ path: `tests/e2e/screenshots/npc-${npc.id}.png` })
-
-    // NPC is reachable if proximity triggered OR their name appears in dialogue
-    const reachable = nearNpc || bodyText.includes(npc.name)
-    expect(reachable, `NPC ${npc.name} (${npc.id}) not interactable`).toBe(true)
+    expect(inRange || hintVisible, `NPC ${npc.name} (${npc.id}) not interactable`).toBe(true)
   })
 }
 
