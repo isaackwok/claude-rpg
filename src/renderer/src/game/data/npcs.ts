@@ -45,7 +45,7 @@ export const BUILT_IN_NPCS: AgentDef[] = [
     name: { 'zh-TW': '指揮官', en: 'The Commander' },
     sprite: 'npcs',
     spriteFrame: 5,
-    location: { map: 'town', x: 36 * 16 + 8, y: 26 * 16 + 8 },
+    location: { map: 'town', x: 35 * 16 + 8, y: 26 * 16 + 8 },
     skills: ['organization'],
   },
   {

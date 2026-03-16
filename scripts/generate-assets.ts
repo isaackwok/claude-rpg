@@ -171,7 +171,7 @@ function generateTilemap(): void {
     }
   }
 
-  function makeBuilding(x: number, y: number, w: number, h: number): void {
+  function makeBuilding(x: number, y: number, w: number, h: number, doorSide: 'top' | 'bottom' = 'bottom'): void {
     // Walls around the perimeter
     for (let py = y; py < y + h; py++) {
       for (let px = x; px < x + w; px++) {
@@ -184,10 +184,13 @@ function generateTilemap(): void {
     }
     // Floor inside
     fillArea(ground, x + 1, y + 1, w - 2, h - 2, PATH)
-    // Door (remove wall at bottom center)
+    // Door (2-tile wide opening)
     const doorX = x + Math.floor(w / 2)
-    setTile(buildings, doorX, y + h - 1, 0)
-    setTile(collision, doorX, y + h - 1, 0)
+    const doorY = doorSide === 'bottom' ? y + h - 1 : y
+    setTile(buildings, doorX - 1, doorY, 0)
+    setTile(collision, doorX - 1, doorY, 0)
+    setTile(buildings, doorX, doorY, 0)
+    setTile(collision, doorX, doorY, 0)
   }
 
   // --- Layout locations ---
@@ -217,15 +220,15 @@ function generateTilemap(): void {
   fillArea(collision, 0, MAP_H - 3, 3, 3, WALL)
   fillArea(collision, MAP_W - 3, MAP_H - 3, 3, 3, WALL)
 
-  // Buildings
-  makeBuilding(3, 3, 7, 6)     // Guild Hall (NW)
-  makeBuilding(30, 3, 7, 6)    // Library (NE)
-  makeBuilding(32, 17, 6, 6)   // Scribe's Workshop (E)
-  makeBuilding(32, 24, 6, 5)   // Market (SE)
-  makeBuilding(2, 17, 6, 6)    // Artisan's Studio (W)
-  makeBuilding(2, 24, 6, 5)    // Messenger's Post (SW)
-  makeBuilding(15, 23, 10, 6)  // Tavern (S)
-  makeBuilding(17, 1, 6, 5)    // Tower (far N)
+  // Buildings — above main road (y<14): door at bottom; below: door at top
+  makeBuilding(3, 3, 7, 6)                // Guild Hall (NW) — door bottom
+  makeBuilding(30, 3, 7, 6)               // Library (NE) — door bottom
+  makeBuilding(17, 1, 6, 5)               // Tower (far N) — door bottom
+  makeBuilding(32, 17, 6, 6, 'top')       // Scribe's Workshop (E) — door top
+  makeBuilding(32, 24, 6, 5, 'top')       // Market (SE) — door top
+  makeBuilding(2, 17, 6, 6, 'top')        // Artisan's Studio (W) — door top
+  makeBuilding(2, 24, 6, 5, 'top')        // Messenger's Post (SW) — door top
+  makeBuilding(15, 23, 10, 6, 'top')      // Tavern (S) — door top
 
   // Map border collision
   for (let x = 0; x < MAP_W; x++) {
@@ -248,7 +251,7 @@ function generateTilemap(): void {
     { npcId: 'scholar', x: 33, y: 6 },       // Library
     { npcId: 'scribe', x: 34, y: 20 },       // Scribe's Workshop
     { npcId: 'merchant', x: 34, y: 26 },     // Market
-    { npcId: 'commander', x: 36, y: 26 },    // Market
+    { npcId: 'commander', x: 35, y: 26 },    // Market
     { npcId: 'artisan', x: 4, y: 20 },       // Artisan's Studio
     { npcId: 'herald', x: 4, y: 26 },        // Messenger's Post
     { npcId: 'wizard', x: 19, y: 3 },        // Tower
