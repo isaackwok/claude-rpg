@@ -22,16 +22,21 @@ Claude RPG is an Electron desktop app presenting a pixel-art RPG world where NPC
 ```bash
 npm run dev          # Start Electron dev server with hot reload
 npm run build        # Production build (output in out/)
-npx tsc --noEmit     # TypeScript type check
+npm run typecheck    # TypeScript type check (node + web)
+npm run test:unit    # Run unit tests (vitest)
+npm run test:e2e     # Run e2e tests (Playwright + Electron)
+npm run lint         # ESLint
+npm run format       # Prettier
 ```
 
 ## Architecture
 
 ### Process Model (Electron 3-process)
 
-- **Main process** (`src/main/`) — Window management, API key storage (safeStorage), Anthropic SDK calls. The renderer never sees the raw API key.
+- **Main process** (`src/main/`) — Window management, API key storage (safeStorage), Anthropic SDK calls, NPC tool execution, folder approval management. The renderer never sees the raw API key.
 - **Preload** (`src/preload/`) — contextBridge exposing safe IPC channels
 - **Renderer** (`src/renderer/`) — Phaser game + React UI overlays
+- **Shared** (`src/shared/`) — Type definitions shared across all processes (AgentId, ToolName, IPC payloads)
 
 ### Renderer Architecture
 
@@ -66,5 +71,7 @@ The project is built in 6 phases, each producing a working deliverable:
 5. **Party System** — Multi-agent orchestration via Agent SDK
 6. **Onboarding & Polish** — Title screen, API key wizard, character creation, i18n pass
 
-Current plan: `docs/superpowers/plans/2026-03-16-phase1-shell-and-world.md`
+Completed: Phase 1 (Shell & World), Phase 2 (Agent Conversations), Phase 2.5 (NPC Tool Use)
+Next up: Phase 3 (Progression)
 Full spec: `docs/superpowers/specs/2026-03-16-claude-rpg-design.md`
+Plans & specs: `docs/superpowers/plans/` and `docs/superpowers/specs/`
