@@ -66,7 +66,8 @@ The project is built in 6 phases, each producing a working deliverable:
 
 1. **Shell & World** — Electron + Phaser tilemap + player movement + NPC sprites + React overlay scaffold (no AI)
 2. **Agent Conversations** — Single-agent NPC dialogue via Anthropic SDK
-3. **Progression** — XP, leveling, titles, quest board
+   2.5. **NPC Tool Use** — File operations, web search, command execution with folder approval system
+3. **Progression** — XP, leveling, titles, quest board. Introduces SQLite (better-sqlite3) persistence via repository pattern.
 4. **Guild Hall** — Custom agent creation
 5. **Party System** — Multi-agent orchestration via Agent SDK
 6. **Onboarding & Polish** — Title screen, API key wizard, character creation, i18n pass
