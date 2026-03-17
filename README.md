@@ -99,15 +99,13 @@ NPCs can use tools (read/write files, search the web, run commands) with an appr
 
 ## Implementation Phases
 
-1. **Shell & World** — Electron + Phaser tilemap + player movement + NPC sprites + React overlay scaffold
-2. **Agent Conversations** — Single-agent NPC dialogue via Anthropic SDK
-3. **NPC Tool Use** (2.5) — File operations, web search, command execution with folder approval system
-4. **Progression** — XP, leveling, titles, quest board
-5. **Guild Hall** — Custom agent creation
-6. **Party System** — Multi-agent orchestration via Agent SDK
-7. **Onboarding & Polish** — Title screen, API key wizard, character creation, i18n pass
-
-Phases 1–2.5 are complete. Next up: Phase 3 (Progression).
+- [x] **Phase 1: Shell & World** — Electron + Phaser tilemap + player movement + NPC sprites + React overlay scaffold
+- [x] **Phase 2: Agent Conversations** — Single-agent NPC dialogue via Anthropic SDK
+- [x] **Phase 2.5: NPC Tool Use** — File operations, web search, command execution with folder approval system
+- [ ] **Phase 3: Progression** — XP, leveling, titles, quest board, SQLite persistence
+- [ ] **Phase 4: Guild Hall** — Custom agent creation
+- [ ] **Phase 5: Party System** — Multi-agent orchestration via Agent SDK
+- [ ] **Phase 6: Onboarding & Polish** — Title screen, API key wizard, character creation, i18n pass
 
 ## License
 
