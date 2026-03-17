@@ -31,11 +31,14 @@ describe('ConversationManager', () => {
     })
 
     it('returns existing conversation on second call', () => {
-      const first = conversationManager.getOrCreateConversation('agent-create-2')
-      first.messages.push({ role: 'user', content: 'hello', timestamp: 1 })
+      conversationManager.getOrCreateConversation('agent-create-2')
+      conversationManager.appendMessage('agent-create-2', {
+        role: 'user',
+        content: 'hello',
+        timestamp: 1
+      })
       const second = conversationManager.getOrCreateConversation('agent-create-2')
       expect(second.messages).toHaveLength(1)
-      expect(second).toBe(first)
     })
   })
 

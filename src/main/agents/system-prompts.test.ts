@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getAgentConfig, getAllAgentConfigs, AgentConfig } from './system-prompts'
+import { getAgentConfig, getAllAgentConfigs } from './system-prompts'
 
 describe('getAgentConfig', () => {
   it('returns correct config for known IDs', () => {

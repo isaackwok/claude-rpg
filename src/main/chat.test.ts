@@ -33,6 +33,12 @@ const MockAnthropic = vi.mocked(Anthropic)
 const mockedGetApiKey = vi.mocked(getApiKey)
 const mockedGetAgentConfig = vi.mocked(getAgentConfig)
 
+/** Helper to extract SDK call args from mockStream — avoids TS tuple indexing errors */
+function getStreamCallMessages(callIndex: number): Array<{ role: string; content: string }> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (mockStream.mock.calls as any[][])[callIndex][0].messages
+}
+
 function createMockWebContents() {
   return {
     send: vi.fn(),
@@ -212,11 +218,7 @@ describe('chat', () => {
         expect(mockStream).toHaveBeenCalledTimes(2)
       })
       // The messages sent to SDK should only contain the new user message
-      const messages = mockStream.mock.calls[1][0].messages as Array<{
-        role: string
-        content: string
-      }>
-      expect(messages).toEqual([{ role: 'user', content: 'retry' }])
+      expect(getStreamCallMessages(1)).toEqual([{ role: 'user', content: 'retry' }])
     })
 
     it('sends stream-end (not error) when stream is aborted', async () => {
@@ -304,11 +306,7 @@ describe('chat', () => {
       })
 
       // History should be: user "hello", assistant "response", user "hello" (not duplicated)
-      const messages = mockStream.mock.calls[1][0].messages as Array<{
-        role: string
-        content: string
-      }>
-      expect(messages).toEqual([
+      expect(getStreamCallMessages(1)).toEqual([
         { role: 'user', content: 'hello' },
         { role: 'assistant', content: 'response' },
         { role: 'user', content: 'hello' }
@@ -339,7 +337,8 @@ describe('chat', () => {
       })
 
       // The signal passed to stream should not yet be aborted
-      const signal = mockStream.mock.calls[0][1].signal as AbortSignal
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const signal = (mockStream.mock.calls as any[][])[0][1].signal as AbortSignal
       expect(signal.aborted).toBe(false)
 
       cancelStream('scribe')
@@ -432,12 +431,8 @@ describe('chat', () => {
       })
 
       // History should contain: user "question", assistant "partial response", user "retry"
-      // (fullResponse was non-empty so the user message was NOT popped)
-      const messages = mockStream.mock.calls[1][0].messages as Array<{
-        role: string
-        content: string
-      }>
-      expect(messages).toEqual([
+      // (fullResponse was non-empty so partial was committed as assistant message)
+      expect(getStreamCallMessages(1)).toEqual([
         { role: 'user', content: 'question' },
         { role: 'assistant', content: 'partial response' },
         { role: 'user', content: 'retry' }
@@ -474,8 +469,7 @@ describe('chat', () => {
 
       // After 30 exchanges: 60 messages in history.
       // trimHistory should slice to <= 50 messages, starting on a user boundary.
-      const lastCall = mockStream.mock.calls[29]
-      const messages = lastCall[0].messages as Array<{ role: string }>
+      const messages = getStreamCallMessages(29)
       expect(messages.length).toBeLessThanOrEqual(50)
       expect(messages[0].role).toBe('user')
     })
