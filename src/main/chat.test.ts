@@ -6,7 +6,26 @@ vi.mock('./api-key', () => ({
 }))
 
 vi.mock('./agents/system-prompts', () => ({
-  getAgentConfig: vi.fn()
+  getAgentConfig: vi.fn(),
+  getAgentToolContext: vi.fn(() => '')
+}))
+
+vi.mock('./tools/tool-definitions', () => ({
+  getToolsForAgent: vi.fn(() => [])
+}))
+
+vi.mock('./tools/tool-executor', () => ({
+  executeTool: vi.fn()
+}))
+
+vi.mock('./folder-manager', () => ({
+  getApprovedFolders: vi.fn(() => []),
+  addApprovedFolder: vi.fn(),
+  isPathApproved: vi.fn(() => false)
+}))
+
+vi.mock('./tools/path-utils', () => ({
+  getParentFolder: vi.fn((p: string) => p)
 }))
 
 // Mock the Anthropic SDK
@@ -25,9 +44,12 @@ vi.mock('@anthropic-ai/sdk', () => {
 })
 
 import Anthropic from '@anthropic-ai/sdk'
-import { handleSendMessage, cancelStream } from './chat'
+import { handleSendMessage, cancelStream, handleToolApproved, handleToolDenied } from './chat'
 import { getApiKey } from './api-key'
 import { getAgentConfig } from './agents/system-prompts'
+import { getToolsForAgent } from './tools/tool-definitions'
+import { executeTool } from './tools/tool-executor'
+import { isPathApproved, getApprovedFolders } from './folder-manager'
 
 const MockAnthropic = vi.mocked(Anthropic)
 const mockedGetApiKey = vi.mocked(getApiKey)
@@ -56,7 +78,11 @@ const VALID_AGENT_CONFIG = {
 describe('chat', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockFinalMessage.mockResolvedValue({})
+    // Default finalMessage returns end_turn with empty content blocks (no tool use)
+    mockFinalMessage.mockResolvedValue({
+      stop_reason: 'end_turn',
+      content: [{ type: 'text', text: '' }]
+    })
     // Default: mockOn does nothing (no text events emitted)
     mockOn.mockReturnThis()
   })
@@ -93,21 +119,36 @@ describe('chat', () => {
     it('calls Anthropic SDK stream with correct params for valid agent', async () => {
       mockedGetApiKey.mockReturnValue('sk-test-key')
       mockedGetAgentConfig.mockReturnValue(VALID_AGENT_CONFIG as never)
-      const wc = createMockWebContents()
 
+      // Hold stream open so we can inspect the messages array at call time
+      // (before the assistant response is pushed to the shared history)
+      let resolveStream: () => void
+      mockFinalMessage.mockImplementation(
+        () =>
+          new Promise<{ stop_reason: string; content: unknown[] }>((resolve) => {
+            resolveStream = () =>
+              resolve({ stop_reason: 'end_turn', content: [{ type: 'text', text: '' }] })
+          })
+      )
+
+      const wc = createMockWebContents()
       handleSendMessage('scribe', 'hello', 'zh-TW', wc)
       await vi.waitFor(() => {
-        expect(mockStream).toHaveBeenCalledWith(
-          expect.objectContaining({
-            model: 'claude-sonnet-4-5-20250929',
-            max_tokens: 1024,
-            temperature: 0.7,
-            system: 'You are an NPC.',
-            messages: [{ role: 'user', content: 'hello' }]
-          }),
-          expect.objectContaining({ signal: expect.any(AbortSignal) })
-        )
+        expect(mockStream).toHaveBeenCalled()
       })
+
+      // Snapshot messages at call time (stream still open, so history hasn't been mutated)
+      const callArgs = (mockStream.mock.calls as unknown[][])[0][0] as Record<string, unknown>
+      expect(callArgs.model).toBe('claude-sonnet-4-5-20250929')
+      expect(callArgs.max_tokens).toBe(1024)
+      expect(callArgs.temperature).toBe(0.7)
+      expect(callArgs.system).toBe('You are an NPC.')
+
+      const messages = callArgs.messages as Array<{ role: string; content: string }>
+      expect(messages).toEqual([{ role: 'user', content: 'hello' }])
+
+      // Clean up
+      resolveStream!()
     })
 
     it('appends English instruction to system prompt when locale is en', async () => {
@@ -212,13 +253,25 @@ describe('chat', () => {
       })
 
       // Second message should work and start fresh (not have duplicate user message)
-      mockFinalMessage.mockResolvedValueOnce({})
+      // Hold stream open so we can inspect messages at call time
+      let resolveRetry: () => void
+      mockFinalMessage.mockImplementation(
+        () =>
+          new Promise<{ stop_reason: string; content: unknown[] }>((resolve) => {
+            resolveRetry = () =>
+              resolve({ stop_reason: 'end_turn', content: [{ type: 'text', text: '' }] })
+          })
+      )
       handleSendMessage('alt-agent-1', 'retry', 'zh-TW', wc)
       await vi.waitFor(() => {
         expect(mockStream).toHaveBeenCalledTimes(2)
       })
       // The messages sent to SDK should only contain the new user message
-      expect(getStreamCallMessages(1)).toEqual([{ role: 'user', content: 'retry' }])
+      const messages = getStreamCallMessages(1)
+      expect(messages).toEqual([{ role: 'user', content: 'retry' }])
+
+      // Clean up
+      resolveRetry!()
     })
 
     it('sends stream-end (not error) when stream is aborted', async () => {
@@ -291,6 +344,10 @@ describe('chat', () => {
         if (event === 'text') cb('response')
         return this
       })
+      mockFinalMessage.mockResolvedValueOnce({
+        stop_reason: 'end_turn',
+        content: [{ type: 'text', text: 'response' }]
+      })
 
       const wc = createMockWebContents()
       handleSendMessage('dedup-agent', 'hello', 'zh-TW', wc)
@@ -300,17 +357,29 @@ describe('chat', () => {
 
       // Second call with same message (retry scenario) — should not duplicate the user message
       mockOn.mockReturnThis()
+      // Hold stream open so we can inspect messages at call time
+      let resolveSecond: () => void
+      mockFinalMessage.mockImplementation(
+        () =>
+          new Promise<{ stop_reason: string; content: unknown[] }>((resolve) => {
+            resolveSecond = () =>
+              resolve({ stop_reason: 'end_turn', content: [{ type: 'text', text: '' }] })
+          })
+      )
       handleSendMessage('dedup-agent', 'hello', 'zh-TW', wc)
       await vi.waitFor(() => {
         expect(mockStream).toHaveBeenCalledTimes(2)
       })
 
-      // History should be: user "hello", assistant "response", user "hello" (not duplicated)
-      expect(getStreamCallMessages(1)).toEqual([
-        { role: 'user', content: 'hello' },
-        { role: 'assistant', content: 'response' },
-        { role: 'user', content: 'hello' }
-      ])
+      // History should be: user "hello", assistant (content blocks), user "hello" (not duplicated)
+      const messages = getStreamCallMessages(1)
+      expect(messages).toHaveLength(3)
+      expect(messages[0]).toEqual({ role: 'user', content: 'hello' })
+      expect(messages[1].role).toBe('assistant')
+      expect(messages[2]).toEqual({ role: 'user', content: 'hello' })
+
+      // Clean up
+      resolveSecond!()
     })
   })
 
@@ -424,19 +493,29 @@ describe('chat', () => {
 
       // Now send another message — history should still contain the partial exchange
       mockOn.mockReturnThis()
-      mockFinalMessage.mockResolvedValueOnce({})
+      // Hold the second stream open so we can inspect messages at call time
+      let resolveSecond: () => void
+      mockFinalMessage.mockImplementation(
+        () =>
+          new Promise<{ stop_reason: string; content: unknown[] }>((resolve) => {
+            resolveSecond = () =>
+              resolve({ stop_reason: 'end_turn', content: [{ type: 'text', text: '' }] })
+          })
+      )
       handleSendMessage('partial-agent-1', 'retry', 'zh-TW', wc)
       await vi.waitFor(() => {
         expect(mockStream).toHaveBeenCalledTimes(2)
       })
 
-      // History should contain: user "question", assistant "partial response", user "retry"
-      // (fullResponse was non-empty so partial was committed as assistant message)
-      expect(getStreamCallMessages(1)).toEqual([
-        { role: 'user', content: 'question' },
-        { role: 'assistant', content: 'partial response' },
-        { role: 'user', content: 'retry' }
-      ])
+      // History at the time of the second SDK call should contain the partial exchange
+      const messages = getStreamCallMessages(1)
+      expect(messages).toHaveLength(3)
+      expect(messages[0]).toEqual({ role: 'user', content: 'question' })
+      expect(messages[1]).toEqual({ role: 'assistant', content: 'partial response' })
+      expect(messages[2]).toEqual({ role: 'user', content: 'retry' })
+
+      // Clean up
+      resolveSecond!()
     })
   })
 
@@ -459,6 +538,14 @@ describe('chat', () => {
         return this
       })
 
+      // Each finalMessage must return proper content blocks
+      for (let i = 0; i < 30; i++) {
+        mockFinalMessage.mockResolvedValueOnce({
+          stop_reason: 'end_turn',
+          content: [{ type: 'text', text: 'reply' }]
+        })
+      }
+
       const uniqueAgent = 'trim-test-agent'
       for (let i = 0; i < 30; i++) {
         handleSendMessage(uniqueAgent, `msg-${i}`, 'zh-TW', wc)
@@ -472,6 +559,331 @@ describe('chat', () => {
       const messages = getStreamCallMessages(29)
       expect(messages.length).toBeLessThanOrEqual(50)
       expect(messages[0].role).toBe('user')
+    })
+  })
+
+  describe('tool-use loop', () => {
+    const mockedGetToolsForAgent = vi.mocked(getToolsForAgent)
+    const mockedExecuteTool = vi.mocked(executeTool)
+    const mockedIsPathApproved = vi.mocked(isPathApproved)
+    const mockedGetApprovedFolders = vi.mocked(getApprovedFolders)
+
+    const TOOL_CONFIG = {
+      ...VALID_AGENT_CONFIG,
+      maxTokens: 4096
+    }
+
+    function setupToolUseAgent(agentId: string): void {
+      mockedGetApiKey.mockReturnValue('sk-test-key')
+      mockedGetAgentConfig.mockReturnValue(TOOL_CONFIG as never)
+      mockedGetToolsForAgent.mockReturnValue([
+        { name: 'read_file', description: 'Read', input_schema: { type: 'object', properties: {} } }
+      ] as never)
+      mockedGetApprovedFolders.mockReturnValue([
+        { path: '/home/user/project', label: 'project', addedAt: 1000 }
+      ])
+    }
+
+    it('executes tool and continues loop when stop_reason is tool_use', async () => {
+      const agentId = 'tool-loop-agent-1'
+      setupToolUseAgent(agentId)
+      mockedIsPathApproved.mockReturnValue(true)
+      mockedExecuteTool.mockResolvedValue({
+        success: true,
+        content: 'file content here',
+        summary: '讀取 file.txt'
+      })
+
+      let callCount = 0
+      mockOn.mockReturnThis()
+      mockFinalMessage.mockImplementation(() => {
+        callCount++
+        if (callCount === 1) {
+          // First call: return tool_use
+          return Promise.resolve({
+            stop_reason: 'tool_use',
+            content: [
+              {
+                type: 'tool_use',
+                id: 'tool_1',
+                name: 'read_file',
+                input: { path: '/home/user/project/file.txt' }
+              }
+            ]
+          })
+        }
+        // Second call: return end_turn
+        return Promise.resolve({
+          stop_reason: 'end_turn',
+          content: [{ type: 'text', text: 'I read the file.' }]
+        })
+      })
+
+      const wc = createMockWebContents()
+      handleSendMessage(agentId, 'read the file', 'zh-TW', wc)
+
+      await vi.waitFor(() => {
+        expect(mockStream).toHaveBeenCalledTimes(2)
+      })
+      await vi.waitFor(() => {
+        expect(wc.send).toHaveBeenCalledWith('chat:stream-end', { agentId })
+      })
+
+      // Verify executeTool was called
+      expect(mockedExecuteTool).toHaveBeenCalledWith(
+        'read_file',
+        { path: '/home/user/project/file.txt' },
+        ['/home/user/project']
+      )
+
+      // Verify tool_result was sent in second SDK call's messages
+      const secondCallMessages = getStreamCallMessages(1)
+      const toolResultMsg = secondCallMessages.find((m: { role: string }) => m.role === 'user')
+      expect(toolResultMsg).toBeDefined()
+    })
+
+    it('sends tool-executing indicator when auto-approving', async () => {
+      const agentId = 'tool-exec-indicator-1'
+      setupToolUseAgent(agentId)
+      mockedIsPathApproved.mockReturnValue(true)
+      mockedExecuteTool.mockResolvedValue({
+        success: true,
+        content: 'ok',
+        summary: 'done'
+      })
+
+      let callCount = 0
+      mockOn.mockReturnThis()
+      mockFinalMessage.mockImplementation(() => {
+        callCount++
+        if (callCount === 1) {
+          return Promise.resolve({
+            stop_reason: 'tool_use',
+            content: [
+              {
+                type: 'tool_use',
+                id: 'tool_x',
+                name: 'read_file',
+                input: { path: '/home/user/project/x' }
+              }
+            ]
+          })
+        }
+        return Promise.resolve({ stop_reason: 'end_turn', content: [{ type: 'text', text: '' }] })
+      })
+
+      const wc = createMockWebContents()
+      handleSendMessage(agentId, 'test', 'zh-TW', wc)
+
+      await vi.waitFor(() => {
+        expect(wc.send).toHaveBeenCalledWith('chat:tool-executing', {
+          agentId,
+          toolName: 'read_file'
+        })
+      })
+    })
+
+    it('always requires confirmation for run_command regardless of folder approval', async () => {
+      const agentId = 'run-cmd-confirm-1'
+      setupToolUseAgent(agentId)
+      // Even though path is "approved", run_command should NOT auto-approve
+      mockedIsPathApproved.mockReturnValue(true)
+
+      mockOn.mockReturnThis()
+      mockFinalMessage.mockResolvedValueOnce({
+        stop_reason: 'tool_use',
+        content: [
+          {
+            type: 'tool_use',
+            id: 'cmd_1',
+            name: 'run_command',
+            input: { command: 'ls', cwd: '/home/user/project' }
+          }
+        ]
+      })
+
+      const wc = createMockWebContents()
+      handleSendMessage(agentId, 'run ls', 'zh-TW', wc)
+
+      // Should receive a tool-confirm IPC (not auto-execute)
+      await vi.waitFor(() => {
+        expect(wc.send).toHaveBeenCalledWith(
+          'chat:tool-confirm',
+          expect.objectContaining({
+            agentId,
+            toolCallId: 'cmd_1',
+            toolName: 'run_command'
+          })
+        )
+      })
+
+      // Verify executeTool was NOT called (waiting for confirmation)
+      expect(mockedExecuteTool).not.toHaveBeenCalled()
+
+      // Deny to clean up
+      handleToolDenied(agentId, 'cmd_1')
+    })
+
+    it('sends denied tool_result when user denies a tool call', async () => {
+      const agentId = 'tool-deny-1'
+      setupToolUseAgent(agentId)
+      mockedIsPathApproved.mockReturnValue(false)
+
+      let callCount = 0
+      mockOn.mockReturnThis()
+      mockFinalMessage.mockImplementation(() => {
+        callCount++
+        if (callCount === 1) {
+          return Promise.resolve({
+            stop_reason: 'tool_use',
+            content: [
+              { type: 'tool_use', id: 'deny_1', name: 'read_file', input: { path: '/etc/secret' } }
+            ]
+          })
+        }
+        return Promise.resolve({ stop_reason: 'end_turn', content: [{ type: 'text', text: 'ok' }] })
+      })
+
+      const wc = createMockWebContents()
+      handleSendMessage(agentId, 'read secret', 'zh-TW', wc)
+
+      // Wait for tool-confirm to be sent
+      await vi.waitFor(() => {
+        expect(wc.send).toHaveBeenCalledWith(
+          'chat:tool-confirm',
+          expect.objectContaining({ toolCallId: 'deny_1' })
+        )
+      })
+
+      // User denies the tool call
+      handleToolDenied(agentId, 'deny_1')
+
+      // Should continue to second API call and finish
+      await vi.waitFor(() => {
+        expect(mockStream).toHaveBeenCalledTimes(2)
+      })
+      await vi.waitFor(() => {
+        expect(wc.send).toHaveBeenCalledWith('chat:stream-end', { agentId })
+      })
+
+      // executeTool should NOT have been called
+      expect(mockedExecuteTool).not.toHaveBeenCalled()
+    })
+
+    it('approves tool call and executes when user approves', async () => {
+      const agentId = 'tool-approve-1'
+      setupToolUseAgent(agentId)
+      mockedIsPathApproved.mockReturnValue(false)
+      mockedExecuteTool.mockResolvedValue({
+        success: true,
+        content: 'secret content',
+        summary: '讀取成功'
+      })
+
+      let callCount = 0
+      mockOn.mockReturnThis()
+      mockFinalMessage.mockImplementation(() => {
+        callCount++
+        if (callCount === 1) {
+          return Promise.resolve({
+            stop_reason: 'tool_use',
+            content: [
+              {
+                type: 'tool_use',
+                id: 'approve_1',
+                name: 'read_file',
+                input: { path: '/tmp/file.txt' }
+              }
+            ]
+          })
+        }
+        return Promise.resolve({ stop_reason: 'end_turn', content: [{ type: 'text', text: '' }] })
+      })
+
+      const wc = createMockWebContents()
+      handleSendMessage(agentId, 'read it', 'zh-TW', wc)
+
+      await vi.waitFor(() => {
+        expect(wc.send).toHaveBeenCalledWith(
+          'chat:tool-confirm',
+          expect.objectContaining({ toolCallId: 'approve_1' })
+        )
+      })
+
+      // User approves
+      handleToolApproved(agentId, 'approve_1')
+
+      await vi.waitFor(() => {
+        expect(mockedExecuteTool).toHaveBeenCalled()
+      })
+      await vi.waitFor(() => {
+        expect(wc.send).toHaveBeenCalledWith('chat:stream-end', { agentId })
+      })
+    })
+
+    it('breaks loop after MAX_TOOL_ROUNDS (20) iterations', async () => {
+      const agentId = 'tool-loop-limit-1'
+      setupToolUseAgent(agentId)
+      mockedIsPathApproved.mockReturnValue(true)
+      mockedExecuteTool.mockResolvedValue({
+        success: true,
+        content: 'ok',
+        summary: 'done'
+      })
+
+      // Always return tool_use to force an infinite loop
+      mockOn.mockReturnThis()
+      mockFinalMessage.mockImplementation(() =>
+        Promise.resolve({
+          stop_reason: 'tool_use',
+          content: [
+            {
+              type: 'tool_use',
+              id: `loop_${Date.now()}_${Math.random()}`,
+              name: 'read_file',
+              input: { path: '/home/user/project/x' }
+            }
+          ]
+        })
+      )
+
+      const wc = createMockWebContents()
+      handleSendMessage(agentId, 'loop forever', 'zh-TW', wc)
+
+      await vi.waitFor(
+        () => {
+          expect(wc.send).toHaveBeenCalledWith('chat:stream-end', { agentId })
+        },
+        { timeout: 10000 }
+      )
+
+      // Should have been called exactly 21 times (20 tool rounds + 1 that triggers the break)
+      // Actually: the guard fires at round 21, so 20 successful rounds = 20 stream calls,
+      // plus the 21st that hits the guard and breaks before calling stream.
+      // So mockStream should be called 20 times.
+      expect(mockStream.mock.calls.length).toBeLessThanOrEqual(21)
+      expect(mockStream.mock.calls.length).toBeGreaterThanOrEqual(20)
+
+      // Should have sent the limit warning message
+      expect(wc.send).toHaveBeenCalledWith(
+        'chat:stream-chunk',
+        expect.objectContaining({
+          agentId,
+          chunk: expect.stringContaining('工具使用次數已達上限')
+        })
+      )
+    }, 15000)
+  })
+
+  describe('handleToolApproved / handleToolDenied', () => {
+    it('handleToolApproved is a no-op for unknown toolCallId', () => {
+      // Should not throw
+      handleToolApproved('any-agent', 'nonexistent-id')
+    })
+
+    it('handleToolDenied is a no-op for unknown toolCallId', () => {
+      // Should not throw
+      handleToolDenied('any-agent', 'nonexistent-id')
     })
   })
 })

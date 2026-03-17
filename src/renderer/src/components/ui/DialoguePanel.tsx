@@ -5,7 +5,8 @@ import {
   useCallback,
   useRef,
   useMemo,
-  useSyncExternalStore
+  useSyncExternalStore,
+  type CSSProperties
 } from 'react'
 import { EventBus } from '../../game/EventBus'
 import { useTranslation } from '../../i18n'
@@ -14,6 +15,7 @@ import { conversationManager } from '../../services/ConversationManager'
 import type { Conversation, Message } from '../../services/ConversationManager'
 import type { AgentId } from '../../game/types'
 import { renderMarkdown } from '../../utils/renderMarkdown'
+import { ToolConfirmDialog } from './ToolConfirmDialog'
 
 interface DialogueState {
   agentId: AgentId
@@ -32,6 +34,18 @@ const dialogueStyles = (
     .dialogue-messages ::-moz-selection { background: rgba(196, 164, 108, 0.4); color: #fff; }
     @keyframes blink { 50% { opacity: 0; } }
     @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+    @keyframes approvalSlideIn {
+      from { opacity: 0; transform: translateY(6px); max-height: 0; }
+      to   { opacity: 1; transform: translateY(0); max-height: 300px; }
+    }
+    @keyframes attachMenuIn {
+      from { opacity: 0; transform: translateY(4px) scale(0.95); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes attachMenuOut {
+      from { opacity: 1; transform: translateY(0) scale(1); }
+      to   { opacity: 0; transform: translateY(4px) scale(0.95); }
+    }
     .md-content { word-wrap: break-word; }
     .md-content p { margin: 0 0 0.5em; }
     .md-content p:last-child { margin-bottom: 0; }
@@ -181,6 +195,219 @@ function MessageBubble({
   )
 }
 
+/** "+" attach button with popup menu */
+function InputArea({
+  input,
+  setInput,
+  inputRef,
+  isBusy,
+  send,
+  t
+}: {
+  input: string
+  setInput: (v: string | ((prev: string) => string)) => void
+  inputRef: React.RefObject<HTMLInputElement | null>
+  isBusy: boolean
+  send: () => void
+  t: (key: string, params?: Record<string, string>) => string
+}) {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [closing, setClosing] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!menuOpen) return
+    const handler = (e: MouseEvent): void => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        triggerClose()
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [menuOpen])
+
+  const triggerClose = useCallback(() => {
+    setClosing(true)
+    setTimeout(() => {
+      setMenuOpen(false)
+      setClosing(false)
+    }, 120)
+  }, [])
+
+  const handlePickFiles = useCallback(async () => {
+    triggerClose()
+    const paths = await window.api.pickFiles()
+    if (paths.length === 0) return
+    const formatted = paths.map((p) => `\`${p}\``).join(' ')
+    setInput((prev) => {
+      const separator = prev.length > 0 && !prev.endsWith(' ') ? ' ' : ''
+      return prev + separator + formatted
+    })
+    setTimeout(() => inputRef.current?.focus(), 50)
+  }, [triggerClose, setInput, inputRef])
+
+  const inputHeight = 30
+
+  const plusBtnStyle: CSSProperties = {
+    width: inputHeight,
+    height: inputHeight,
+    boxSizing: 'border-box',
+    padding: 0,
+    fontFamily: 'monospace',
+    fontSize: 18,
+    lineHeight: `${inputHeight - 2}px`,
+    textAlign: 'center',
+    background: menuOpen ? 'rgba(200,180,140,0.35)' : 'rgba(200,180,140,0.15)',
+    border: '1px solid rgba(200,180,140,0.4)',
+    color: '#c4a46c',
+    cursor: isBusy ? 'not-allowed' : 'pointer',
+    borderRadius: 3,
+    flexShrink: 0,
+    transition: 'background 0.15s'
+  }
+
+  return (
+    <div
+      style={{
+        padding: '8px 16px',
+        borderTop: '1px solid rgba(200, 180, 140, 0.3)',
+        display: 'flex',
+        gap: 8,
+        flexShrink: 0,
+        alignItems: 'flex-end'
+      }}
+    >
+      <input
+        ref={inputRef}
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && !e.shiftKey) send()
+        }}
+        placeholder={t('dialogue.inputPlaceholder')}
+        disabled={isBusy}
+        style={{
+          flex: 1,
+          height: inputHeight,
+          boxSizing: 'border-box',
+          padding: '0 8px',
+          fontFamily: 'monospace',
+          fontSize: 14,
+          background: 'rgba(255,255,255,0.08)',
+          border: '1px solid rgba(200,180,140,0.3)',
+          color: '#fff',
+          outline: 'none'
+        }}
+      />
+      {/* Attach menu */}
+      <div ref={containerRef} style={{ position: 'relative', flexShrink: 0 }}>
+        {menuOpen && (
+          <div
+            style={{
+              position: 'absolute',
+              bottom: 34,
+              right: 0,
+              minWidth: 160,
+              background: 'rgba(20, 20, 40, 0.96)',
+              border: '1px solid rgba(200, 180, 140, 0.4)',
+              borderRadius: 4,
+              padding: '4px 0',
+              animation: closing
+                ? 'attachMenuOut 0.12s ease-in forwards'
+                : 'attachMenuIn 0.15s ease-out',
+              zIndex: 10
+            }}
+          >
+            <button
+              onMouseDown={handlePickFiles}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                width: '100%',
+                padding: '7px 12px',
+                background: 'none',
+                border: 'none',
+                color: '#ddd',
+                fontFamily: 'monospace',
+                fontSize: 13,
+                cursor: 'pointer',
+                textAlign: 'left'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(200, 180, 140, 0.15)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'none'
+              }}
+            >
+              <span style={{ fontSize: 14 }}>+</span>
+              {t('dialogue.attachFiles')}
+            </button>
+          </div>
+        )}
+        <button
+          onClick={() => {
+            if (menuOpen) triggerClose()
+            else setMenuOpen(true)
+          }}
+          disabled={isBusy}
+          style={plusBtnStyle}
+          title={t('dialogue.attachFiles')}
+        >
+          +
+        </button>
+      </div>
+      <button
+        onClick={send}
+        disabled={isBusy || !input.trim()}
+        style={{
+          height: inputHeight,
+          boxSizing: 'border-box',
+          padding: '0 16px',
+          fontFamily: 'monospace',
+          fontSize: 14,
+          background: isBusy ? 'rgba(100,100,100,0.3)' : 'rgba(200,180,140,0.3)',
+          border: '1px solid rgba(200,180,140,0.6)',
+          color: '#c4a46c',
+          cursor: isBusy ? 'wait' : 'pointer'
+        }}
+      >
+        {t('dialogue.send')}
+      </button>
+    </div>
+  )
+}
+
+function ApprovalBtn({
+  onClick,
+  primary,
+  children
+}: {
+  onClick: () => void
+  primary?: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        padding: '4px 10px',
+        fontFamily: 'monospace',
+        fontSize: 13,
+        background: primary ? 'rgba(200,180,140,0.25)' : 'rgba(100,100,100,0.25)',
+        border: `1px solid ${primary ? 'rgba(200,180,140,0.5)' : 'rgba(150,150,150,0.3)'}`,
+        color: primary ? '#c4a46c' : 'rgba(255,255,255,0.65)',
+        cursor: 'pointer',
+        borderRadius: 3,
+        whiteSpace: 'nowrap'
+      }}
+    >
+      {children}
+    </button>
+  )
+}
+
 export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelProps) {
   const { t, locale } = useTranslation()
   const [dialogue, setDialogue] = useState<DialogueState | null>(null)
@@ -308,7 +535,10 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
 
   const isWaiting = conversation?.status.state === 'waiting'
   const isStreaming = conversation?.status.state === 'streaming'
-  const isBusy = isWaiting || isStreaming
+  const isToolConfirm = conversation?.status.state === 'tool-confirm'
+  const isToolExecuting = conversation?.status.state === 'tool-executing'
+  const isPathApproval = conversation?.status.state === 'path-approval'
+  const isBusy = isWaiting || isStreaming || isToolConfirm || isToolExecuting || isPathApproval
   const messages = conversation?.messages ?? []
 
   return (
@@ -432,6 +662,91 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
             </div>
           </div>
         )}
+        {/* Tool confirmation dialog */}
+        {isToolConfirm && conversation?.status.state === 'tool-confirm' && (
+          <ToolConfirmDialog
+            agentId={dialogue.agentId}
+            toolCallId={conversation.status.toolCallId}
+            toolName={conversation.status.toolName}
+            args={conversation.status.args}
+            folderApproved={conversation.status.folderApproved}
+          />
+        )}
+        {/* Tool executing indicator */}
+        {isToolExecuting && conversation?.status.state === 'tool-executing' && (
+          <div style={{ marginBottom: 8 }}>
+            <div
+              style={{
+                display: 'inline-block',
+                padding: '6px 10px',
+                borderRadius: 4,
+                fontSize: 14,
+                background: 'rgba(200, 180, 140, 0.15)',
+                border: '1px solid rgba(200, 180, 140, 0.2)',
+                color: 'rgba(200, 180, 140, 0.7)'
+              }}
+            >
+              <span style={{ animation: 'pulse 1.5s ease-in-out infinite' }}>
+                ⚙{' '}
+                {t('tool.executing', { toolName: t(`tool.name.${conversation.status.toolName}`) })}
+              </span>
+            </div>
+          </div>
+        )}
+        {/* Path approval — shown under NPC response when paths need user authorization */}
+        {isPathApproval && conversation?.status.state === 'path-approval' && (
+          <div
+            style={{
+              margin: '8px 0',
+              padding: '10px 12px',
+              background: 'rgba(200, 180, 140, 0.1)',
+              border: '1px solid rgba(200, 180, 140, 0.25)',
+              borderRadius: 4,
+              animation: 'approvalSlideIn 0.25s ease-out',
+              overflow: 'hidden'
+            }}
+          >
+            {conversation.status.paths.map((path) => (
+              <div
+                key={path}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  marginBottom: 6
+                }}
+              >
+                <code
+                  style={{
+                    flex: 1,
+                    color: 'rgba(255,255,255,0.7)',
+                    background: 'rgba(255,255,255,0.06)',
+                    padding: '4px 8px',
+                    borderRadius: 3,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    fontSize: 13
+                  }}
+                >
+                  {path}
+                </code>
+                <ApprovalBtn
+                  primary
+                  onClick={() => window.api.approvePath(dialogue.agentId, path, path)}
+                >
+                  {t('tool.postScroll')}
+                </ApprovalBtn>
+                <ApprovalBtn onClick={() => window.api.approvePath(dialogue.agentId, path)}>
+                  {t('tool.allowOnce')}
+                </ApprovalBtn>
+                <ApprovalBtn onClick={() => window.api.denyPath(dialogue.agentId, path)}>
+                  {t('tool.deny')}
+                </ApprovalBtn>
+              </div>
+            ))}
+          </div>
+        )}
         {/* Error state */}
         {conversation?.status.state === 'error' && (
           <div style={{ padding: '6px 10px', color: '#ff6b6b', fontSize: 13 }}>
@@ -490,49 +805,14 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
           </button>
         </div>
       ) : (
-        <div
-          style={{
-            padding: '8px 16px',
-            borderTop: '1px solid rgba(200, 180, 140, 0.3)',
-            display: 'flex',
-            gap: 8,
-            flexShrink: 0
-          }}
-        >
-          <input
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && send()}
-            placeholder={t('dialogue.inputPlaceholder')}
-            disabled={isBusy}
-            style={{
-              flex: 1,
-              padding: '6px 8px',
-              fontFamily: 'monospace',
-              fontSize: 14,
-              background: 'rgba(255,255,255,0.08)',
-              border: '1px solid rgba(200,180,140,0.3)',
-              color: '#fff',
-              outline: 'none'
-            }}
-          />
-          <button
-            onClick={send}
-            disabled={isBusy || !input.trim()}
-            style={{
-              padding: '6px 16px',
-              fontFamily: 'monospace',
-              fontSize: 14,
-              background: isBusy ? 'rgba(100,100,100,0.3)' : 'rgba(200,180,140,0.3)',
-              border: '1px solid rgba(200,180,140,0.6)',
-              color: '#c4a46c',
-              cursor: isBusy ? 'wait' : 'pointer'
-            }}
-          >
-            {t('dialogue.send')}
-          </button>
-        </div>
+        <InputArea
+          input={input}
+          setInput={setInput}
+          inputRef={inputRef}
+          isBusy={isBusy}
+          send={send}
+          t={t}
+        />
       )}
 
       {dialogueStyles}

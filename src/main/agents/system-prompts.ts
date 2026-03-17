@@ -1,4 +1,5 @@
-import type { AgentId } from '../../shared/types'
+import type { AgentId, ApprovedFolder } from '../../shared/types'
+import { AGENT_TOOLS } from '../tools/tool-definitions'
 
 export interface AgentConfig {
   readonly id: AgentId
@@ -178,7 +179,55 @@ const BUILT_IN_AGENTS: AgentConfig[] = [
   }
 ]
 
-const agentMap = new Map<string, AgentConfig>(BUILT_IN_AGENTS.map((a) => [a.id, a]))
+const TOOL_CAPABLE_MAX_TOKENS = 4096
+
+const agentMap = new Map<string, AgentConfig>(
+  BUILT_IN_AGENTS.map((a) => {
+    const hasTools = (AGENT_TOOLS[a.id]?.length ?? 0) > 0
+    if (hasTools && a.maxTokens < TOOL_CAPABLE_MAX_TOKENS) {
+      return [a.id, { ...a, maxTokens: TOOL_CAPABLE_MAX_TOKENS }]
+    }
+    return [a.id, a]
+  })
+)
+
+const TOOL_DESCRIPTIONS: Record<string, string> = {
+  read_file: '讀取檔案內容',
+  write_file: '寫入或建立檔案',
+  edit_file: '搜尋與取代檔案中的文字',
+  list_files: '列出目錄內容',
+  run_command: '在 shell 中執行指令',
+  web_search: '搜尋網路'
+}
+
+/**
+ * Generates tool-awareness context to append to an NPC's system prompt.
+ * Lists available tools and currently approved folders.
+ */
+export function getAgentToolContext(agentId: AgentId, approvedFolders: ApprovedFolder[]): string {
+  const tools = AGENT_TOOLS[agentId]
+  if (!tools || tools.length === 0) return ''
+
+  let context = '\n\n## 可用工具\n\n'
+  context += '你擁有以下工具能力（每次使用都需要冒險者批准）：\n'
+  for (const tool of tools) {
+    context += `- ${tool}: ${TOOL_DESCRIPTIONS[tool] ?? tool}\n`
+  }
+
+  if (approvedFolders.length > 0) {
+    context += '\n## 已探索的領地\n\n'
+    context += '冒險者已在公告欄核發以下通行令，你可以存取這些路徑：\n'
+    for (const f of approvedFolders) {
+      context += `- ${f.path} (${f.label})\n`
+    }
+    context += '\n建議先使用 list_files 了解專案結構，再進行其他操作。\n'
+  } else {
+    context +=
+      '\n目前公告欄上沒有任何通行令。請告訴冒險者到城鎮廣場的公告欄核發通行令，這樣你才能幫助他們處理檔案。\n'
+  }
+
+  return context
+}
 
 export function getAgentConfig(agentId: AgentId): Readonly<AgentConfig> | undefined {
   return agentMap.get(agentId)

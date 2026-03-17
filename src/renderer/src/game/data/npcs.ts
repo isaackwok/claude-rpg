@@ -6,7 +6,7 @@ export const BUILT_IN_NPCS: readonly AgentDef[] = [
     name: { 'zh-TW': '長老 艾德蒙', en: 'Elder Edmond' },
     sprite: 'npcs',
     spriteFrame: 0,
-    location: { map: 'town', x: 39 * 16 + 8, y: 28 * 16 + 8 },
+    location: { map: 'town', x: 41 * 16 + 8, y: 28 * 16 + 8 },
     skills: ['research']
   },
   {

@@ -1,9 +1,23 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { storeApiKey, hasApiKey, clearApiKey } from './api-key'
-import { handleSendMessage, cancelStream } from './chat'
+import {
+  handleSendMessage,
+  cancelStream,
+  handleToolApproved,
+  handleToolDenied,
+  handlePathApproved,
+  handlePathDenied
+} from './chat'
+import {
+  getApprovedFolders,
+  addApprovedFolder,
+  removeApprovedFolder,
+  selectAndAddFolder,
+  isPathApproved
+} from './folder-manager'
 
 function createWindow(): void {
   // Create the browser window.
@@ -109,6 +123,88 @@ app.whenReady().then(() => {
       return
     }
     cancelStream((data as { agentId: string }).agentId)
+  })
+
+  // Tool confirmation responses
+  ipcMain.on('chat:tool-approved', (_event, data: unknown) => {
+    if (
+      !data ||
+      typeof data !== 'object' ||
+      typeof (data as Record<string, unknown>).agentId !== 'string' ||
+      typeof (data as Record<string, unknown>).toolCallId !== 'string'
+    ) {
+      return
+    }
+    const { agentId, toolCallId, addToApproved } = data as {
+      agentId: string
+      toolCallId: string
+      addToApproved?: string
+    }
+    handleToolApproved(agentId, toolCallId, addToApproved)
+  })
+
+  ipcMain.on('chat:tool-denied', (_event, data: unknown) => {
+    if (
+      !data ||
+      typeof data !== 'object' ||
+      typeof (data as Record<string, unknown>).agentId !== 'string' ||
+      typeof (data as Record<string, unknown>).toolCallId !== 'string'
+    ) {
+      return
+    }
+    const { agentId, toolCallId } = data as { agentId: string; toolCallId: string }
+    handleToolDenied(agentId, toolCallId)
+  })
+
+  // Path approval responses
+  ipcMain.on('chat:path-approved', (_event, data: unknown) => {
+    if (
+      !data ||
+      typeof data !== 'object' ||
+      typeof (data as Record<string, unknown>).agentId !== 'string' ||
+      typeof (data as Record<string, unknown>).path !== 'string'
+    ) {
+      return
+    }
+    const { agentId, path, addToApproved } = data as {
+      agentId: string
+      path: string
+      addToApproved?: string
+    }
+    handlePathApproved(agentId, path, addToApproved)
+  })
+
+  ipcMain.on('chat:path-denied', (_event, data: unknown) => {
+    if (
+      !data ||
+      typeof data !== 'object' ||
+      typeof (data as Record<string, unknown>).agentId !== 'string' ||
+      typeof (data as Record<string, unknown>).path !== 'string'
+    ) {
+      return
+    }
+    const { agentId, path } = data as { agentId: string; path: string }
+    handlePathDenied(agentId, path)
+  })
+
+  // Folder management (Notice Board)
+  ipcMain.handle('folders:get-all', () => getApprovedFolders())
+  ipcMain.handle('folders:add', (_event, path: string) => addApprovedFolder(path))
+  ipcMain.handle('folders:remove', (_event, path: string) => removeApprovedFolder(path))
+  ipcMain.handle('folders:select-add', () => selectAndAddFolder())
+
+  // Check which paths are approved
+  ipcMain.handle('folders:check-paths', (_event, paths: string[]) => {
+    return paths.map((p) => ({ path: p, approved: isPathApproved(p) }))
+  })
+
+  // File/folder picker (returns paths without adding to approved list)
+  ipcMain.handle('dialog:pick-files', async () => {
+    const result = await dialog.showOpenDialog({
+      properties: ['openFile', 'openDirectory', 'multiSelections']
+    })
+    if (result.canceled) return []
+    return result.filePaths
   })
 
   createWindow()

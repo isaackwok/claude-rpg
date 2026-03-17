@@ -2,7 +2,7 @@ import Phaser from 'phaser'
 import type { AgentDef } from '../types'
 import { EventBus } from '../EventBus'
 
-type BubbleStyle = 'streaming' | 'ready'
+type BubbleStyle = 'streaming' | 'ready' | 'permission'
 
 export class NPC extends Phaser.Physics.Arcade.Sprite {
   public readonly agentDef: AgentDef
@@ -76,6 +76,8 @@ export class NPC extends Phaser.Physics.Arcade.Sprite {
 
     if (style === 'streaming') {
       this.drawStreamingDots()
+    } else if (style === 'permission') {
+      this.drawPermissionExclamation()
     } else {
       this.drawReadyCheck()
     }
@@ -124,6 +126,37 @@ export class NPC extends Phaser.Physics.Arcade.Sprite {
     check.lineTo(3, -4)
     check.strokePath()
     this.bubbleContainer.add(check)
+  }
+
+  private drawPermissionExclamation(): void {
+    if (!this.bubbleContainer) return
+
+    // Yellow background instead of white
+    const bg = this.bubbleContainer.getAt(0) as Phaser.GameObjects.Graphics
+    bg.clear()
+    bg.fillStyle(0xffd54f, 0.95) // warm yellow
+    bg.fillRoundedRect(-8, -8, 16, 12, 3)
+    bg.fillTriangle(-2, 4, 2, 4, 0, 7)
+
+    // Draw exclamation mark in dark color
+    const mark = this.scene.add.graphics()
+    mark.fillStyle(0x5d4037, 1) // dark brown for contrast
+    // Stem of !
+    mark.fillRect(-1, -6, 2, 5)
+    // Dot of !
+    mark.fillRect(-1, 0, 2, 2)
+    this.bubbleContainer.add(mark)
+
+    // Pulse animation to draw attention
+    this.dotTween = this.scene.tweens.add({
+      targets: this.bubbleContainer,
+      scaleX: 1.15,
+      scaleY: 1.15,
+      duration: 600,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    })
   }
 
   private updateBubblePosition(): void {

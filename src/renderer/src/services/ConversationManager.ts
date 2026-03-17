@@ -16,6 +16,15 @@ export interface IConversationRepository {
   prepareRetry(agentId: AgentId): void
   getStreamingState(agentId: AgentId): StreamingState
   clearUnreadMarker(agentId: AgentId): void
+  markToolConfirm(
+    agentId: AgentId,
+    toolName: string,
+    toolCallId: string,
+    args: Record<string, unknown>,
+    folderApproved: boolean
+  ): void
+  markToolExecuting(agentId: AgentId, toolName: string): void
+  markPathApproval(agentId: AgentId, paths: string[]): void
 }
 
 export type ConversationStatus =
@@ -23,6 +32,15 @@ export type ConversationStatus =
   | { readonly state: 'waiting' }
   | { readonly state: 'streaming' }
   | { readonly state: 'error'; readonly error: string }
+  | {
+      readonly state: 'tool-confirm'
+      readonly toolName: string
+      readonly toolCallId: string
+      readonly args: Record<string, unknown>
+      readonly folderApproved: boolean
+    }
+  | { readonly state: 'tool-executing'; readonly toolName: string }
+  | { readonly state: 'path-approval'; readonly paths: string[] }
 
 export interface Conversation {
   readonly agentId: AgentId
@@ -193,6 +211,35 @@ class InMemoryConversationRepository implements IConversationRepository {
 
   getStreamingState(agentId: AgentId): StreamingState {
     return this.conversations.get(agentId)?.status.state ?? 'idle'
+  }
+
+  markToolConfirm(
+    agentId: AgentId,
+    toolName: string,
+    toolCallId: string,
+    args: Record<string, unknown>,
+    folderApproved: boolean
+  ): void {
+    const conv = this.getMutableConversation(agentId)
+    conv.status = { state: 'tool-confirm', toolName, toolCallId, args, folderApproved }
+    // Show yellow exclamation bubble if this NPC's dialogue isn't open
+    if (this.activeDialogueAgentId !== agentId) {
+      conv.hasUnread = true
+      EventBus.emit('npc:speech-bubble', { agentId, style: 'permission' })
+    }
+    this.notify()
+  }
+
+  markToolExecuting(agentId: AgentId, toolName: string): void {
+    const conv = this.getMutableConversation(agentId)
+    conv.status = { state: 'tool-executing', toolName }
+    this.notify()
+  }
+
+  markPathApproval(agentId: AgentId, paths: string[]): void {
+    const conv = this.getMutableConversation(agentId)
+    conv.status = { state: 'path-approval', paths }
+    this.notify()
   }
 }
 

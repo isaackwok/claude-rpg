@@ -4,11 +4,14 @@ import { ProximityHint } from './components/ui/ProximityHint'
 import { DialoguePanel } from './components/ui/DialoguePanel'
 import { HUD } from './components/ui/HUD'
 import { ApiKeyModal } from './components/ui/ApiKeyModal'
+import { NoticeBoardPanel } from './components/ui/NoticeBoardPanel'
 import { conversationManager } from './services/ConversationManager'
+import { EventBus } from './game/EventBus'
 
 function App(): React.JSX.Element {
   const phaserRef = useRef<PhaserGameRef>(null)
   const [showApiKeyModal, setShowApiKeyModal] = useState(false)
+  const [showNoticeBoard, setShowNoticeBoard] = useState(false)
   const [apiKeyVersion, setApiKeyVersion] = useState(0)
 
   // Wire IPC stream events to ConversationManager
@@ -23,10 +26,39 @@ function App(): React.JSX.Element {
       conversationManager.markStreamError(agentId, error)
     })
 
+    // Tool IPC listeners
+    const cleanupToolConfirm = window.api.onToolConfirm((data) => {
+      conversationManager.markToolConfirm(
+        data.agentId,
+        data.toolName,
+        data.toolCallId,
+        data.args,
+        data.folderApproved
+      )
+    })
+    const cleanupToolExecuting = window.api.onToolExecuting((data) => {
+      conversationManager.markToolExecuting(data.agentId, data.toolName)
+    })
+    const cleanupPathApproval = window.api.onPathApproval((data) => {
+      conversationManager.markPathApproval(data.agentId, data.paths)
+    })
+
     return () => {
       cleanupChunk()
       cleanupEnd()
       cleanupError()
+      cleanupToolConfirm()
+      cleanupToolExecuting()
+      cleanupPathApproval()
+    }
+  }, [])
+
+  // Notice Board interaction from Phaser
+  useEffect(() => {
+    const handler = () => setShowNoticeBoard(true)
+    EventBus.on('noticeboard:interact', handler)
+    return () => {
+      EventBus.off('noticeboard:interact', handler)
     }
   }, [])
 
@@ -50,6 +82,7 @@ function App(): React.JSX.Element {
           onRequestApiKey={() => setShowApiKeyModal(true)}
           apiKeyVersion={apiKeyVersion}
         />
+        {showNoticeBoard && <NoticeBoardPanel onClose={() => setShowNoticeBoard(false)} />}
         {showApiKeyModal && (
           <ApiKeyModal
             onClose={() => setShowApiKeyModal(false)}
