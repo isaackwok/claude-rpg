@@ -144,7 +144,9 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
       {/* Message list */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '8px 16px' }}>
         {messages.length === 0 && !isStreaming && (
-          <div style={{ opacity: 0.4, fontSize: 14 }}>{t('dialogue.placeholder')}</div>
+          <div style={{ opacity: 0.5, fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+            {t(`npcIntro.${dialogue.agentId}`)}
+          </div>
         )}
         {messages.map((msg, i) => (
           <div
