@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback, useRef, useSyncExternalStore } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo, useSyncExternalStore } from 'react'
 import { EventBus } from '../../game/EventBus'
 import { useTranslation } from '../../i18n'
 import { BUILT_IN_NPCS } from '../../game/data/npcs'
 import { conversationManager } from '../../services/ConversationManager'
 import type { Conversation } from '../../services/ConversationManager'
+import { renderMarkdown } from '../../utils/renderMarkdown'
 
 interface DialogueState {
   agentId: string
@@ -13,6 +14,89 @@ interface DialogueState {
 interface DialoguePanelProps {
   onRequestApiKey: () => void
   apiKeyVersion: number
+}
+
+/** Renders a single message bubble with markdown (assistant) or plain text (user) */
+function MessageBubble({
+  msg,
+  isLastAssistant,
+  isStreaming,
+  t
+}: {
+  msg: { role: string; content: string }
+  isLastAssistant: boolean
+  isStreaming: boolean
+  t: (key: string) => string
+}) {
+  const [copied, setCopied] = useState(false)
+  const isAssistant = msg.role === 'assistant'
+
+  const html = useMemo(() => {
+    if (!isAssistant) return ''
+    return renderMarkdown(msg.content)
+  }, [isAssistant, msg.content])
+
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(msg.content).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    })
+  }, [msg.content])
+
+  return (
+    <div
+      style={{
+        marginBottom: 8,
+        textAlign: isAssistant ? 'left' : 'right'
+      }}
+    >
+      <div
+        style={{
+          display: 'inline-block',
+          maxWidth: '80%',
+          padding: '6px 10px',
+          borderRadius: 4,
+          fontSize: 14,
+          lineHeight: 1.6,
+          background: isAssistant ? 'rgba(200, 180, 140, 0.15)' : 'rgba(100, 140, 200, 0.25)',
+          border: isAssistant
+            ? '1px solid rgba(200, 180, 140, 0.2)'
+            : '1px solid rgba(100, 140, 200, 0.3)',
+          position: 'relative'
+        }}
+      >
+        {isAssistant ? (
+          <div className="md-content" dangerouslySetInnerHTML={{ __html: html }} />
+        ) : (
+          <span style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</span>
+        )}
+        {/* Blinking cursor for streaming */}
+        {isLastAssistant && isStreaming && (
+          <span style={{ animation: 'blink 1s step-end infinite' }}>▌</span>
+        )}
+      </div>
+      {/* Copy button for assistant messages (hide while streaming this message) */}
+      {isAssistant && !(isLastAssistant && isStreaming) && msg.content && (
+        <div style={{ marginTop: 2 }}>
+          <button
+            onClick={handleCopy}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: copied ? 'rgba(140, 200, 140, 0.8)' : 'rgba(200, 180, 140, 0.4)',
+              cursor: 'pointer',
+              fontFamily: 'monospace',
+              fontSize: 11,
+              padding: '2px 4px',
+              transition: 'color 0.2s'
+            }}
+          >
+            {copied ? `✓ ${t('dialogue.copied')}` : t('dialogue.copy')}
+          </button>
+        </div>
+      )}
+    </div>
+  )
 }
 
 export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelProps) {
@@ -179,37 +263,13 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
           </div>
         )}
         {messages.map((msg, i) => (
-          <div
+          <MessageBubble
             key={i}
-            style={{
-              marginBottom: 8,
-              textAlign: msg.role === 'user' ? 'right' : 'left'
-            }}
-          >
-            <div
-              style={{
-                display: 'inline-block',
-                maxWidth: '80%',
-                padding: '6px 10px',
-                borderRadius: 4,
-                fontSize: 14,
-                lineHeight: 1.6,
-                whiteSpace: 'pre-wrap',
-                background:
-                  msg.role === 'user' ? 'rgba(100, 140, 200, 0.25)' : 'rgba(200, 180, 140, 0.15)',
-                border:
-                  msg.role === 'user'
-                    ? '1px solid rgba(100, 140, 200, 0.3)'
-                    : '1px solid rgba(200, 180, 140, 0.2)'
-              }}
-            >
-              {msg.content}
-              {/* Blinking cursor for streaming */}
-              {msg.role === 'assistant' && i === messages.length - 1 && isStreaming && (
-                <span style={{ animation: 'blink 1s step-end infinite' }}>▌</span>
-              )}
-            </div>
-          </div>
+            msg={msg}
+            isLastAssistant={msg.role === 'assistant' && i === messages.length - 1}
+            isStreaming={isStreaming}
+            t={t}
+          />
         ))}
         {/* Thinking indicator — shows after send, before first chunk */}
         {isWaiting && (
@@ -329,10 +389,55 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
         </div>
       )}
 
-      {/* Animations */}
+      {/* Animations + Markdown styles */}
       <style>{`
         @keyframes blink { 50% { opacity: 0; } }
         @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+        .md-content { word-wrap: break-word; }
+        .md-content p { margin: 0 0 0.5em; }
+        .md-content p:last-child { margin-bottom: 0; }
+        .md-content ul, .md-content ol { margin: 0.3em 0; padding-left: 1.4em; }
+        .md-content li { margin: 0.15em 0; }
+        .md-content strong { color: #e0c888; }
+        .md-content em { color: #c4b8a0; }
+        .md-content code {
+          background: rgba(255,255,255,0.08);
+          padding: 1px 4px;
+          border-radius: 3px;
+          font-size: 13px;
+        }
+        .md-content pre {
+          background: rgba(0,0,0,0.4);
+          padding: 8px;
+          border-radius: 4px;
+          overflow-x: auto;
+          margin: 0.4em 0;
+        }
+        .md-content pre code {
+          background: none;
+          padding: 0;
+        }
+        .md-content h1, .md-content h2, .md-content h3 {
+          color: #c4a46c;
+          margin: 0.5em 0 0.3em;
+          font-size: 14px;
+          font-weight: bold;
+        }
+        .md-content blockquote {
+          border-left: 2px solid rgba(200,180,140,0.4);
+          margin: 0.4em 0;
+          padding: 2px 8px;
+          opacity: 0.85;
+        }
+        .md-content a { color: #7eb8da; text-decoration: underline; }
+        .md-content hr { border: none; border-top: 1px solid rgba(200,180,140,0.2); margin: 0.5em 0; }
+        .md-content table { border-collapse: collapse; margin: 0.4em 0; }
+        .md-content th, .md-content td {
+          border: 1px solid rgba(200,180,140,0.3);
+          padding: 3px 8px;
+          font-size: 13px;
+        }
+        .md-content th { background: rgba(200,180,140,0.1); color: #c4a46c; }
       `}</style>
     </div>
   )

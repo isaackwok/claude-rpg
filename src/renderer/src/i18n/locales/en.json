@@ -34,7 +34,9 @@
     "setApiKey": "Set API Key",
     "apiKeySet": "API key saved",
     "apiKeyInvalid": "Invalid API key format",
-    "retry": "Retry"
+    "retry": "Retry",
+    "copied": "Copied",
+    "copy": "Copy"
   },
   "locations": {
     "townSquare": "Town Square",
