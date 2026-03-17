@@ -13,7 +13,6 @@ export class NPC extends Phaser.Physics.Arcade.Sprite {
     scene.add.existing(this)
     scene.physics.add.existing(this)
 
-    this.setDepth(10)
     this.setImmovable(true)
     const body = this.body as Phaser.Physics.Arcade.Body
     body.setSize(14, 14)

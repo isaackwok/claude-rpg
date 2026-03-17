@@ -97,6 +97,12 @@ export class Town extends Scene {
 
     this.player.update()
 
+    // Y-based depth sorting: entities lower on screen render in front
+    this.player.setDepth(this.player.y)
+    for (const npc of this.npcs) {
+      npc.setDepth(npc.y)
+    }
+
     // Check NPC proximity exit
     for (const npc of this.npcs) {
       if (npc.playerInRange) {
