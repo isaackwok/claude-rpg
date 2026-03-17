@@ -65,13 +65,14 @@ export class NPC extends Phaser.Physics.Arcade.Sprite {
     this.bubbleContainer = this.scene.add.container(this.x, this.y - 16)
     this.bubbleContainer.setDepth(9999)
 
-    // Draw bubble background
+    // Draw bubble background — rect centered at (0, -2), pointer below
     const bg = this.scene.add.graphics()
     bg.fillStyle(0xffffff, 0.92)
     bg.fillRoundedRect(-8, -8, 16, 12, 3)
-    // Triangle pointer
+    // Triangle pointer at bottom center of rect (y=4)
     bg.fillTriangle(-2, 4, 2, 4, 0, 7)
     this.bubbleContainer.add(bg)
+    // Content center is at (0, -2) — midpoint of the rect body
 
     if (style === 'streaming') {
       this.drawStreamingDots()
@@ -89,7 +90,7 @@ export class NPC extends Phaser.Physics.Arcade.Sprite {
     for (let i = 0; i < 3; i++) {
       const dot = this.scene.add.graphics()
       dot.fillStyle(0x666666, 1)
-      dot.fillCircle(-4 + i * 4, 0, 1)
+      dot.fillCircle(-4 + i * 4, -2, 1)
       dot.setAlpha(0.3)
       this.bubbleContainer.add(dot)
       dots.push(dot)
@@ -118,9 +119,9 @@ export class NPC extends Phaser.Physics.Arcade.Sprite {
     const check = this.scene.add.graphics()
     check.lineStyle(1.5, 0x4caf50, 1) // green
     check.beginPath()
-    check.moveTo(-3, 0)
-    check.lineTo(-1, 2)
-    check.lineTo(3, -2)
+    check.moveTo(-3, -2)
+    check.lineTo(-1, 0)
+    check.lineTo(3, -4)
     check.strokePath()
     this.bubbleContainer.add(check)
   }
