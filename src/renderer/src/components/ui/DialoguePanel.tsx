@@ -20,7 +20,9 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
   const [dialogue, setDialogue] = useState<DialogueState | null>(null)
   const [input, setInput] = useState('')
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null)
+  const [expanded, setExpanded] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   // Subscribe to ConversationManager changes — version counter ensures React detects mutations
   useSyncExternalStore(
@@ -46,6 +48,8 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
       conversationManager.getOrCreateConversation(data.agentId)
       // Re-check API key each time
       window.api.checkApiKey().then(setHasApiKey)
+      // Auto-focus input after a tick (wait for render)
+      setTimeout(() => inputRef.current?.focus(), 50)
     }
     EventBus.on('npc:interact', handler)
     return () => {
@@ -60,6 +64,7 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
       conversationManager.setActiveDialogue(null)
       setDialogue(null)
       setInput('')
+      setExpanded(false)
     }
   }, [dialogue])
 
@@ -113,7 +118,7 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
         bottom: 0,
         left: 0,
         right: 0,
-        height: '35%',
+        height: expanded ? '100%' : '35%',
         background: 'rgba(10, 10, 30, 0.93)',
         border: '3px solid rgba(200, 180, 140, 0.6)',
         borderBottom: 'none',
@@ -121,7 +126,8 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
         flexDirection: 'column',
         fontFamily: 'monospace',
         color: '#ffffff',
-        pointerEvents: 'auto'
+        pointerEvents: 'auto',
+        transition: 'height 0.3s ease-in-out'
       }}
     >
       {/* Header */}
@@ -139,9 +145,24 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
         }}
       >
         <span>{dialogue.npcName}</span>
-        <span onClick={close} style={{ cursor: 'pointer', opacity: 0.6, fontSize: 12 }}>
-          {t('interaction.close')}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span
+            onClick={() => setExpanded((v) => !v)}
+            style={{
+              cursor: 'pointer',
+              opacity: 0.6,
+              fontSize: 14,
+              transition: 'transform 0.3s ease',
+              display: 'inline-block',
+              transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)'
+            }}
+          >
+            ▲
+          </span>
+          <span onClick={close} style={{ cursor: 'pointer', opacity: 0.6, fontSize: 12 }}>
+            {t('interaction.close')}
+          </span>
+        </div>
       </div>
 
       {/* Message list */}
@@ -267,6 +288,7 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
           }}
         >
           <input
+            ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && send()}
@@ -301,7 +323,7 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
         </div>
       )}
 
-      {/* Blink animation */}
+      {/* Animations */}
       <style>{`
         @keyframes blink { 50% { opacity: 0; } }
         @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
