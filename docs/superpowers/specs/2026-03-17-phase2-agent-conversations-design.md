@@ -29,7 +29,7 @@ Phase 2 adds real AI-powered dialogue to Claude RPG. Players can talk to any bui
 **Preload** (`src/preload/`)
 
 - Exposes typed API on `window.api` via `contextBridge` (flat namespace, typed in `src/preload/index.d.ts`):
-  - `sendMessage(agentId: string, message: string): void`
+  - `sendMessage(agentId: string, message: string, locale: string): void`
   - `cancelStream(agentId: string): void`
   - `onStreamChunk(callback: (data: { agentId: string; chunk: string }) => void): () => void`
   - `onStreamEnd(callback: (data: { agentId: string }) => void): () => void`
