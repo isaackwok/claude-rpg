@@ -22,7 +22,7 @@ export function DialoguePanel({ onRequestApiKey }: DialoguePanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // Subscribe to ConversationManager changes — version counter ensures React detects mutations
-  const _version = useSyncExternalStore(
+  useSyncExternalStore(
     (cb) => conversationManager.subscribe(cb),
     () => conversationManager.getVersion()
   )
