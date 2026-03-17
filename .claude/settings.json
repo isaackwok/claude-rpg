@@ -4,6 +4,10 @@
       {
         "matcher": "Edit|Write",
         "command": "npx prettier --write \"$CLAUDE_FILE_PATH\" 2>/dev/null || true"
+      },
+      {
+        "matcher": "Edit|Write",
+        "command": "echo \"$CLAUDE_FILE_PATH\" | grep -qE '\\.tsx?$' && npx tsc --noEmit -p tsconfig.web.json 2>&1 | head -20 || true"
       }
     ],
     "PreToolUse": [
