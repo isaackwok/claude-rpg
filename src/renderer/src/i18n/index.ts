@@ -34,9 +34,16 @@ function getNestedValue(obj: Record<string, unknown>, path: string): string | un
   return typeof current === 'string' ? current : undefined
 }
 
+function interpolate(template: string, params?: Record<string, string>): string {
+  if (!params) return template
+  return template.replace(/\{\{(\w+)\}\}/g, (_, key) => params[key] ?? `{{${key}}}`)
+}
+
 /** Translate a dot-notated key. Falls back to zh-TW, then returns the key itself. */
-export function t(key: string): string {
-  return getNestedValue(locales[currentLocale], key) ?? getNestedValue(locales['zh-TW'], key) ?? key
+export function t(key: string, params?: Record<string, string>): string {
+  const raw =
+    getNestedValue(locales[currentLocale], key) ?? getNestedValue(locales['zh-TW'], key) ?? key
+  return interpolate(raw, params)
 }
 
 export function getLocale(): Locale {
@@ -51,7 +58,7 @@ export function setLocale(locale: Locale): void {
 
 interface I18nContextValue {
   locale: Locale
-  t: (key: string) => string
+  t: (key: string, params?: Record<string, string>) => string
   setLocale: (locale: Locale) => void
 }
 
@@ -70,9 +77,10 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const translate = useCallback(
-    (key: string) => {
-      // Re-read from locales using the current locale state to trigger re-renders
-      return getNestedValue(locales[locale], key) ?? getNestedValue(locales['zh-TW'], key) ?? key
+    (key: string, params?: Record<string, string>) => {
+      const raw =
+        getNestedValue(locales[locale], key) ?? getNestedValue(locales['zh-TW'], key) ?? key
+      return interpolate(raw, params)
     },
     [locale]
   )

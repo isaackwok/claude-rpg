@@ -6,7 +6,26 @@ vi.mock('./api-key', () => ({
 }))
 
 vi.mock('./agents/system-prompts', () => ({
-  getAgentConfig: vi.fn()
+  getAgentConfig: vi.fn(),
+  getAgentToolContext: vi.fn(() => '')
+}))
+
+vi.mock('./tools/tool-definitions', () => ({
+  getToolsForAgent: vi.fn(() => [])
+}))
+
+vi.mock('./tools/tool-executor', () => ({
+  executeTool: vi.fn()
+}))
+
+vi.mock('./folder-manager', () => ({
+  getApprovedFolders: vi.fn(() => []),
+  addApprovedFolder: vi.fn(),
+  isPathApproved: vi.fn(() => false)
+}))
+
+vi.mock('./tools/path-utils', () => ({
+  getParentFolder: vi.fn((p: string) => p)
 }))
 
 // Mock the Anthropic SDK
@@ -56,7 +75,11 @@ const VALID_AGENT_CONFIG = {
 describe('chat', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockFinalMessage.mockResolvedValue({})
+    // Default finalMessage returns end_turn with empty content blocks (no tool use)
+    mockFinalMessage.mockResolvedValue({
+      stop_reason: 'end_turn',
+      content: [{ type: 'text', text: '' }]
+    })
     // Default: mockOn does nothing (no text events emitted)
     mockOn.mockReturnThis()
   })
@@ -212,13 +235,25 @@ describe('chat', () => {
       })
 
       // Second message should work and start fresh (not have duplicate user message)
-      mockFinalMessage.mockResolvedValueOnce({})
+      // Hold stream open so we can inspect messages at call time
+      let resolveRetry: () => void
+      mockFinalMessage.mockImplementation(
+        () =>
+          new Promise<{ stop_reason: string; content: unknown[] }>((resolve) => {
+            resolveRetry = () =>
+              resolve({ stop_reason: 'end_turn', content: [{ type: 'text', text: '' }] })
+          })
+      )
       handleSendMessage('alt-agent-1', 'retry', 'zh-TW', wc)
       await vi.waitFor(() => {
         expect(mockStream).toHaveBeenCalledTimes(2)
       })
       // The messages sent to SDK should only contain the new user message
-      expect(getStreamCallMessages(1)).toEqual([{ role: 'user', content: 'retry' }])
+      const messages = getStreamCallMessages(1)
+      expect(messages).toEqual([{ role: 'user', content: 'retry' }])
+
+      // Clean up
+      resolveRetry!()
     })
 
     it('sends stream-end (not error) when stream is aborted', async () => {
@@ -291,6 +326,10 @@ describe('chat', () => {
         if (event === 'text') cb('response')
         return this
       })
+      mockFinalMessage.mockResolvedValueOnce({
+        stop_reason: 'end_turn',
+        content: [{ type: 'text', text: 'response' }]
+      })
 
       const wc = createMockWebContents()
       handleSendMessage('dedup-agent', 'hello', 'zh-TW', wc)
@@ -300,17 +339,29 @@ describe('chat', () => {
 
       // Second call with same message (retry scenario) — should not duplicate the user message
       mockOn.mockReturnThis()
+      // Hold stream open so we can inspect messages at call time
+      let resolveSecond: () => void
+      mockFinalMessage.mockImplementation(
+        () =>
+          new Promise<{ stop_reason: string; content: unknown[] }>((resolve) => {
+            resolveSecond = () =>
+              resolve({ stop_reason: 'end_turn', content: [{ type: 'text', text: '' }] })
+          })
+      )
       handleSendMessage('dedup-agent', 'hello', 'zh-TW', wc)
       await vi.waitFor(() => {
         expect(mockStream).toHaveBeenCalledTimes(2)
       })
 
-      // History should be: user "hello", assistant "response", user "hello" (not duplicated)
-      expect(getStreamCallMessages(1)).toEqual([
-        { role: 'user', content: 'hello' },
-        { role: 'assistant', content: 'response' },
-        { role: 'user', content: 'hello' }
-      ])
+      // History should be: user "hello", assistant (content blocks), user "hello" (not duplicated)
+      const messages = getStreamCallMessages(1)
+      expect(messages).toHaveLength(3)
+      expect(messages[0]).toEqual({ role: 'user', content: 'hello' })
+      expect(messages[1].role).toBe('assistant')
+      expect(messages[2]).toEqual({ role: 'user', content: 'hello' })
+
+      // Clean up
+      resolveSecond!()
     })
   })
 
@@ -424,19 +475,29 @@ describe('chat', () => {
 
       // Now send another message — history should still contain the partial exchange
       mockOn.mockReturnThis()
-      mockFinalMessage.mockResolvedValueOnce({})
+      // Hold the second stream open so we can inspect messages at call time
+      let resolveSecond: () => void
+      mockFinalMessage.mockImplementation(
+        () =>
+          new Promise<{ stop_reason: string; content: unknown[] }>((resolve) => {
+            resolveSecond = () =>
+              resolve({ stop_reason: 'end_turn', content: [{ type: 'text', text: '' }] })
+          })
+      )
       handleSendMessage('partial-agent-1', 'retry', 'zh-TW', wc)
       await vi.waitFor(() => {
         expect(mockStream).toHaveBeenCalledTimes(2)
       })
 
-      // History should contain: user "question", assistant "partial response", user "retry"
-      // (fullResponse was non-empty so partial was committed as assistant message)
-      expect(getStreamCallMessages(1)).toEqual([
-        { role: 'user', content: 'question' },
-        { role: 'assistant', content: 'partial response' },
-        { role: 'user', content: 'retry' }
-      ])
+      // History at the time of the second SDK call should contain the partial exchange
+      const messages = getStreamCallMessages(1)
+      expect(messages).toHaveLength(3)
+      expect(messages[0]).toEqual({ role: 'user', content: 'question' })
+      expect(messages[1]).toEqual({ role: 'assistant', content: 'partial response' })
+      expect(messages[2]).toEqual({ role: 'user', content: 'retry' })
+
+      // Clean up
+      resolveSecond!()
     })
   })
 
@@ -458,6 +519,14 @@ describe('chat', () => {
         if (event === 'text') cb('reply')
         return this
       })
+
+      // Each finalMessage must return proper content blocks
+      for (let i = 0; i < 30; i++) {
+        mockFinalMessage.mockResolvedValueOnce({
+          stop_reason: 'end_turn',
+          content: [{ type: 'text', text: 'reply' }]
+        })
+      }
 
       const uniqueAgent = 'trim-test-agent'
       for (let i = 0; i < 30; i++) {

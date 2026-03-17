@@ -27,7 +27,7 @@ export interface GameEvents {
   'player:moved': { x: number; y: number; map: string }
   'zone:entered': { zoneId: string; zoneName: string }
   'dialogue:closed': { agentId: AgentId }
-  'npc:speech-bubble': { agentId: AgentId; style: 'streaming' | 'ready' | false }
+  'npc:speech-bubble': { agentId: AgentId; style: 'streaming' | 'ready' | 'permission' | false }
   'npc:spawn': { agent: AgentDef }
   'npc:remove': { agentId: AgentId }
   'camera:focus': { x: number; y: number }
@@ -35,4 +35,5 @@ export interface GameEvents {
   'level:up': { category: SkillCategory; newLevel: number }
   'quest:completed': { questId: string; title: LocalizedString }
   'title:changed': { newTitle: LocalizedString }
+  'noticeboard:interact': Record<string, never>
 }

@@ -13,6 +13,8 @@ export class Town extends Scene {
   private currentZone: string | null = null
   private zones: { zone: Phaser.GameObjects.Zone; zoneId: string; zoneName: string }[] = []
   private onDialogueClosed!: () => void
+  private noticeBoardZone!: Phaser.GameObjects.Zone
+  private playerNearNoticeBoard = false
 
   constructor() {
     super('Town')
@@ -55,6 +57,11 @@ export class Town extends Scene {
       })
     }
 
+    // Notice Board — interactable object at the center of the town square
+    const nbX = 39 * 16 + 8 // same X as player spawn (center)
+    const nbY = 28 * 16 + 8 // one tile above player spawn
+    this.createNoticeBoard(nbX, nbY)
+
     // Parse zone objects from tilemap
     const objectLayer = map.getObjectLayer('Objects')
     if (objectLayer) {
@@ -95,6 +102,52 @@ export class Town extends Scene {
     this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels)
     this.cameras.main.setBackgroundColor('#1a1a2e')
     this.cameras.main.setZoom(2)
+  }
+
+  private createNoticeBoard(x: number, y: number): void {
+    const g = this.add.graphics()
+    g.setDepth(y)
+
+    // Two wooden posts (dark brown)
+    g.fillStyle(0x5c3a1e)
+    g.fillRect(x - 6, y - 2, 2, 10) // left post
+    g.fillRect(x + 4, y - 2, 2, 10) // right post
+
+    // Board panel (lighter wood)
+    g.fillStyle(0x8b6b3d)
+    g.fillRect(x - 7, y - 8, 14, 8)
+
+    // Board border (dark outline)
+    g.lineStyle(1, 0x3e2510)
+    g.strokeRect(x - 7, y - 8, 14, 8)
+
+    // Paper notices pinned to board (white/cream rectangles)
+    g.fillStyle(0xf5e6c8)
+    g.fillRect(x - 5, y - 7, 4, 5) // left note
+    g.fillStyle(0xeadbc0)
+    g.fillRect(x + 1, y - 7, 4, 3) // right note (shorter)
+    g.fillStyle(0xf0dbb5)
+    g.fillRect(x + 1, y - 3, 4, 2) // bottom-right note
+
+    // Tiny pin dots (red)
+    g.fillStyle(0xcc3333)
+    g.fillRect(x - 4, y - 7, 1, 1) // pin on left note
+    g.fillRect(x + 2, y - 7, 1, 1) // pin on right note
+
+    // Collision body — static physics sprite (same pattern as NPCs)
+    const collider = this.add.zone(x, y - 2, 14, 12)
+    this.physics.add.existing(collider, true) // static body
+    this.physics.add.collider(this.player, collider)
+
+    // Interaction zone (larger area around the board for proximity detection)
+    this.noticeBoardZone = this.add.zone(x, y, 48, 48)
+    this.physics.add.existing(this.noticeBoardZone, true)
+    this.physics.add.overlap(this.player, this.noticeBoardZone, () => {
+      if (!this.playerNearNoticeBoard) {
+        this.playerNearNoticeBoard = true
+        EventBus.emit('npc:proximity', { agentId: '__noticeBoard__', inRange: true })
+      }
+    })
   }
 
   /** Toggle Phaser's key capture — release during dialogue so the DOM input receives keystrokes */
@@ -157,8 +210,25 @@ export class Town extends Scene {
       }
     }
 
+    // Notice Board proximity exit
+    if (this.playerNearNoticeBoard) {
+      const nbBody = this.noticeBoardZone.body as Phaser.Physics.Arcade.StaticBody
+      const pBody = this.player.body as Phaser.Physics.Arcade.Body
+      const pRect = new Phaser.Geom.Rectangle(pBody.x, pBody.y, pBody.width, pBody.height)
+      const nbRect = new Phaser.Geom.Rectangle(nbBody.x, nbBody.y, nbBody.width, nbBody.height)
+      if (!Phaser.Geom.Intersects.RectangleToRectangle(pRect, nbRect)) {
+        this.playerNearNoticeBoard = false
+        EventBus.emit('npc:proximity', { agentId: '__noticeBoard__', inRange: false })
+      }
+    }
+
     // Space key interaction
     if (Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
+      // Notice Board takes priority if player is near it
+      if (this.playerNearNoticeBoard && !this.dialogueOpen) {
+        EventBus.emit('noticeboard:interact', {})
+        return
+      }
       const nearbyNpc = this.npcs.find((npc) => npc.playerInRange)
       if (nearbyNpc && !this.dialogueOpen) {
         this.dialogueOpen = true

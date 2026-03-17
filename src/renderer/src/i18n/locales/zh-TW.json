@@ -4,6 +4,7 @@
   },
   "interaction": {
     "hint": "按 Space 對話",
+    "hintWithName": "按 Space 與{{npcName}}對話",
     "close": "按 Escape 關閉"
   },
   "apiKey": {
@@ -41,7 +42,9 @@
     "retry": "重試",
     "copied": "已複製",
     "copy": "複製",
-    "newMessages": "新訊息"
+    "newMessages": "新訊息",
+    "attachFiles": "檔案/資料夾",
+    "pendingApproval": "以下路徑不在已核准的通行令範圍內："
   },
   "locations": {
     "townSquare": "城鎮廣場",
@@ -53,6 +56,35 @@
     "messengerPost": "傳令站",
     "tavern": "酒館",
     "tower": "高塔"
+  },
+  "tool": {
+    "name": {
+      "read_file": "讀取檔案",
+      "write_file": "寫入檔案",
+      "edit_file": "編輯檔案",
+      "list_files": "列出目錄",
+      "run_command": "執行指令",
+      "web_search": "搜尋網路"
+    },
+    "path": "路徑",
+    "command": "指令",
+    "cwd": "工作目錄",
+    "editDesc": "取代 {{oldLen}} 字元 → {{newLen}} 字元",
+    "outsideApproved": "此路徑不在已核准的通行令範圍內",
+    "approve": "允許",
+    "deny": "拒絕",
+    "postScroll": "核發通行令",
+    "allowOnce": "僅此一次",
+    "executing": "執行中: {{toolName}}..."
+  },
+  "noticeBoard": {
+    "title": "公告欄",
+    "postedScrolls": "已核發的通行令:",
+    "empty": "公告欄上尚無任何通行令。\n請點擊下方按鈕核發你的第一份通行令，讓 NPC 能存取你的檔案。",
+    "postNew": "核發新通行令",
+    "remove": "移除",
+    "postedOn": "張貼於",
+    "close": "關閉"
   },
   "npcs": {
     "elder": "長老 艾德蒙",

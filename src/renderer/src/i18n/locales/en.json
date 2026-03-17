@@ -4,6 +4,7 @@
   },
   "interaction": {
     "hint": "Press Space to talk",
+    "hintWithName": "Press Space to talk to {{npcName}}",
     "close": "Press Escape to close"
   },
   "apiKey": {
@@ -41,7 +42,9 @@
     "retry": "Retry",
     "copied": "Copied",
     "copy": "Copy",
-    "newMessages": "New messages"
+    "newMessages": "New messages",
+    "attachFiles": "Files/Folders",
+    "pendingApproval": "The following paths are outside approved permits:"
   },
   "locations": {
     "townSquare": "Town Square",
@@ -53,6 +56,35 @@
     "messengerPost": "Messenger's Post",
     "tavern": "Tavern",
     "tower": "Tower"
+  },
+  "tool": {
+    "name": {
+      "read_file": "Read File",
+      "write_file": "Write File",
+      "edit_file": "Edit File",
+      "list_files": "List Directory",
+      "run_command": "Run Command",
+      "web_search": "Web Search"
+    },
+    "path": "Path",
+    "command": "Command",
+    "cwd": "Working Dir",
+    "editDesc": "Replace {{oldLen}} chars → {{newLen}} chars",
+    "outsideApproved": "This path is outside approved permit boundaries",
+    "approve": "Approve",
+    "deny": "Deny",
+    "postScroll": "Issue Permit",
+    "allowOnce": "Allow Once",
+    "executing": "Executing: {{toolName}}..."
+  },
+  "noticeBoard": {
+    "title": "Notice Board",
+    "postedScrolls": "Issued Permits",
+    "empty": "No permits issued yet.\nClick the button below to issue your first permit, allowing NPCs to access your files.",
+    "postNew": "Issue New Permit",
+    "remove": "Remove",
+    "postedOn": "Posted on",
+    "close": "Close"
   },
   "npcs": {
     "elder": "Elder Edmond",
