@@ -146,6 +146,28 @@ describe('ConversationManager', () => {
 
       expect(conversationManager.getStreamingState('agent-error-1')).toBe('error')
     })
+
+    it('stores the error string when provided', () => {
+      conversationManager.getOrCreateConversation('agent-error-2')
+      conversationManager.markStreamError('agent-error-2', 'rate limit exceeded')
+
+      const conv = conversationManager.getConversation('agent-error-2')!
+      expect(conv.streamError).toBe('rate limit exceeded')
+    })
+
+    it('stores null when no error string is provided', () => {
+      conversationManager.getOrCreateConversation('agent-error-3')
+      conversationManager.markStreamError('agent-error-3')
+
+      const conv = conversationManager.getConversation('agent-error-3')!
+      expect(conv.streamError).toBeNull()
+    })
+
+    it('is a no-op for unknown agentId', () => {
+      const vBefore = conversationManager.getVersion()
+      conversationManager.markStreamError('agent-error-nonexist')
+      expect(conversationManager.getVersion()).toBe(vBefore)
+    })
   })
 
   describe('markWaiting', () => {
@@ -180,6 +202,17 @@ describe('ConversationManager', () => {
       expect(conv.streamingState).toBe('idle')
       expect(conv.messages).toHaveLength(1)
       expect(conv.messages[0].role).toBe('user')
+    })
+
+    it('clears streamError on retry', () => {
+      conversationManager.getOrCreateConversation('agent-retry-3')
+      conversationManager.markStreamError('agent-retry-3', 'network error')
+      expect(conversationManager.getConversation('agent-retry-3')!.streamError).toBe(
+        'network error'
+      )
+
+      conversationManager.prepareRetry('agent-retry-3')
+      expect(conversationManager.getConversation('agent-retry-3')!.streamError).toBeNull()
     })
 
     it('does not remove last message if it is a user message', () => {
@@ -313,6 +346,68 @@ describe('ConversationManager', () => {
   describe('getStreamingState', () => {
     it('returns idle for unknown agent', () => {
       expect(conversationManager.getStreamingState('agent-noexist-999')).toBe('idle')
+    })
+  })
+
+  describe('subscribe (advanced)', () => {
+    it('does not notify unsubscribed listener even when other listeners exist', () => {
+      const listenerA = vi.fn()
+      const listenerB = vi.fn()
+      const unsubA = conversationManager.subscribe(listenerA)
+      conversationManager.subscribe(listenerB)
+
+      unsubA()
+
+      conversationManager.appendMessage('agent-sub-adv-1', {
+        role: 'user',
+        content: 'test',
+        timestamp: 1
+      })
+
+      expect(listenerA).not.toHaveBeenCalled()
+      expect(listenerB).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('finalizeStream (edge cases)', () => {
+    it('is a no-op for unknown agentId', () => {
+      const vBefore = conversationManager.getVersion()
+      conversationManager.finalizeStream('agent-finalize-nonexist')
+      expect(conversationManager.getVersion()).toBe(vBefore)
+    })
+
+    it('calling finalizeStream twice returns to idle both times', () => {
+      conversationManager.getOrCreateConversation('agent-finalize-double')
+      conversationManager.appendStreamChunk('agent-finalize-double', 'data')
+
+      conversationManager.finalizeStream('agent-finalize-double')
+      expect(conversationManager.getStreamingState('agent-finalize-double')).toBe('idle')
+
+      conversationManager.finalizeStream('agent-finalize-double')
+      expect(conversationManager.getStreamingState('agent-finalize-double')).toBe('idle')
+    })
+  })
+
+  describe('hasUnread lifecycle', () => {
+    it('stays true until dialogue is opened for that agent', () => {
+      conversationManager.setActiveDialogue(null)
+      conversationManager.getOrCreateConversation('agent-unread-1')
+
+      // Chunk arrives while no dialogue is active
+      conversationManager.appendStreamChunk('agent-unread-1', 'hello')
+      expect(conversationManager.getConversation('agent-unread-1')!.hasUnread).toBe(true)
+
+      // More chunks don't change it
+      conversationManager.appendStreamChunk('agent-unread-1', ' world')
+      expect(conversationManager.getConversation('agent-unread-1')!.hasUnread).toBe(true)
+
+      // Finalize doesn't clear it
+      conversationManager.finalizeStream('agent-unread-1')
+      expect(conversationManager.getConversation('agent-unread-1')!.hasUnread).toBe(true)
+
+      // Opening dialogue clears it
+      conversationManager.setActiveDialogue('agent-unread-1')
+      expect(conversationManager.getConversation('agent-unread-1')!.hasUnread).toBe(false)
     })
   })
 })

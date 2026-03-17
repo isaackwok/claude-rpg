@@ -24,10 +24,12 @@ vi.mock('@anthropic-ai/sdk', () => {
   return { default: MockAnthropic }
 })
 
+import Anthropic from '@anthropic-ai/sdk'
 import { handleSendMessage, cancelStream } from './chat'
 import { getApiKey } from './api-key'
 import { getAgentConfig } from './agents/system-prompts'
 
+const MockAnthropic = vi.mocked(Anthropic)
 const mockedGetApiKey = vi.mocked(getApiKey)
 const mockedGetAgentConfig = vi.mocked(getAgentConfig)
 
@@ -350,6 +352,96 @@ describe('chat', () => {
     it('is a no-op for unknown agentId', () => {
       // Should not throw
       cancelStream('nonexistent-agent')
+    })
+  })
+
+  describe('client caching', () => {
+    it('reuses the same client when API key is unchanged', async () => {
+      mockedGetApiKey.mockReturnValue('sk-same-key')
+      mockedGetAgentConfig.mockReturnValue(VALID_AGENT_CONFIG as never)
+      const wc = createMockWebContents()
+
+      handleSendMessage('cache-agent-1', 'msg1', 'zh-TW', wc)
+      await vi.waitFor(() => {
+        expect(mockStream).toHaveBeenCalledTimes(1)
+      })
+
+      handleSendMessage('cache-agent-2', 'msg2', 'zh-TW', wc)
+      await vi.waitFor(() => {
+        expect(mockStream).toHaveBeenCalledTimes(2)
+      })
+
+      // Anthropic constructor should only be called once for the same key
+      // (first call creates, second reuses)
+      const constructorCalls = MockAnthropic.mock.calls.filter(
+        (c) => (c[0] as { apiKey: string }).apiKey === 'sk-same-key'
+      )
+      expect(constructorCalls).toHaveLength(1)
+    })
+
+    it('creates a new client when API key changes', async () => {
+      mockedGetAgentConfig.mockReturnValue(VALID_AGENT_CONFIG as never)
+      const wc = createMockWebContents()
+
+      mockedGetApiKey.mockReturnValue('sk-key-A')
+      handleSendMessage('cache-agent-3', 'msg1', 'zh-TW', wc)
+      await vi.waitFor(() => {
+        expect(mockStream).toHaveBeenCalledTimes(1)
+      })
+
+      mockedGetApiKey.mockReturnValue('sk-key-B')
+      handleSendMessage('cache-agent-4', 'msg2', 'zh-TW', wc)
+      await vi.waitFor(() => {
+        expect(mockStream).toHaveBeenCalledTimes(2)
+      })
+
+      // Should have created two different clients
+      expect(MockAnthropic).toHaveBeenCalledWith({ apiKey: 'sk-key-A' })
+      expect(MockAnthropic).toHaveBeenCalledWith({ apiKey: 'sk-key-B' })
+    })
+  })
+
+  describe('error with partial response preserves history', () => {
+    it('keeps both user and partial assistant messages when error occurs mid-stream', async () => {
+      mockedGetApiKey.mockReturnValue('sk-test-key')
+      mockedGetAgentConfig.mockReturnValue(VALID_AGENT_CONFIG as never)
+
+      // Simulate: text chunk arrives, then error
+      mockOn.mockImplementation(function (
+        this: unknown,
+        event: string,
+        cb: (text: string) => void
+      ) {
+        if (event === 'text') cb('partial response')
+        return this
+      })
+      mockFinalMessage.mockRejectedValueOnce(new Error('connection reset'))
+      const wc = createMockWebContents()
+
+      handleSendMessage('partial-agent-1', 'question', 'zh-TW', wc)
+      await vi.waitFor(() => {
+        expect(wc.send).toHaveBeenCalledWith('chat:stream-error', expect.anything())
+      })
+
+      // Now send another message — history should still contain the partial exchange
+      mockOn.mockReturnThis()
+      mockFinalMessage.mockResolvedValueOnce({})
+      handleSendMessage('partial-agent-1', 'retry', 'zh-TW', wc)
+      await vi.waitFor(() => {
+        expect(mockStream).toHaveBeenCalledTimes(2)
+      })
+
+      // History should contain: user "question", assistant "partial response", user "retry"
+      // (fullResponse was non-empty so the user message was NOT popped)
+      const messages = mockStream.mock.calls[1][0].messages as Array<{
+        role: string
+        content: string
+      }>
+      expect(messages).toEqual([
+        { role: 'user', content: 'question' },
+        { role: 'assistant', content: 'partial response' },
+        { role: 'user', content: 'retry' }
+      ])
     })
   })
 

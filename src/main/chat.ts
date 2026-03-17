@@ -128,9 +128,12 @@ async function executeStream(
     const isAbort =
       err instanceof Error && (err.name === 'AbortError' || err.message.includes('aborted'))
 
-    // Clean up orphaned user message if no assistant reply was accumulated
-    // to maintain valid alternating sequence for the Anthropic API
-    if (!fullResponse) {
+    // Maintain valid alternating sequence for the Anthropic API:
+    // - No response received: pop the orphaned user message
+    // - Partial response received: commit it as the assistant message
+    if (fullResponse) {
+      history.push({ role: 'assistant', content: fullResponse })
+    } else {
       const last = history[history.length - 1]
       if (last?.role === 'user') {
         history.pop()
