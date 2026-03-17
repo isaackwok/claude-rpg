@@ -20,8 +20,13 @@ export function getApiKey(): string | null {
   const keyPath = getKeyPath()
   if (!existsSync(keyPath)) return null
   if (!safeStorage.isEncryptionAvailable()) return null
-  const encrypted = readFileSync(keyPath)
-  return safeStorage.decryptString(encrypted)
+  try {
+    const encrypted = readFileSync(keyPath)
+    return safeStorage.decryptString(encrypted)
+  } catch {
+    // Corrupted key file or keyring changed — treat as no key
+    return null
+  }
 }
 
 export function hasApiKey(): boolean {

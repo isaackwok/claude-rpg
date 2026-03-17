@@ -19,8 +19,8 @@ function App(): React.JSX.Element {
     const cleanupEnd = window.api.onStreamEnd(({ agentId }) => {
       conversationManager.finalizeStream(agentId)
     })
-    const cleanupError = window.api.onStreamError(({ agentId }) => {
-      conversationManager.markStreamError(agentId)
+    const cleanupError = window.api.onStreamError(({ agentId, error }) => {
+      conversationManager.markStreamError(agentId, error)
     })
 
     return () => {

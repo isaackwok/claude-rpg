@@ -62,8 +62,12 @@ app.whenReady().then(() => {
   // API key management
   ipcMain.handle('apikey:set', async (_event, key: string) => {
     if (typeof key !== 'string' || !key.startsWith('sk-ant-')) return false
-    storeApiKey(key)
-    return true
+    try {
+      storeApiKey(key)
+      return true
+    } catch {
+      return false
+    }
   })
 
   ipcMain.handle('apikey:check', async () => {
@@ -75,12 +79,33 @@ app.whenReady().then(() => {
   })
 
   // Chat
-  ipcMain.on('chat:send-message', (event, { agentId, message, locale }) => {
+  ipcMain.on('chat:send-message', (event, data: unknown) => {
+    if (
+      !data ||
+      typeof data !== 'object' ||
+      typeof (data as Record<string, unknown>).agentId !== 'string' ||
+      typeof (data as Record<string, unknown>).message !== 'string' ||
+      typeof (data as Record<string, unknown>).locale !== 'string'
+    ) {
+      return
+    }
+    const { agentId, message, locale } = data as {
+      agentId: string
+      message: string
+      locale: string
+    }
     handleSendMessage(agentId, message, locale, event.sender)
   })
 
-  ipcMain.on('chat:cancel-stream', (_event, { agentId }) => {
-    cancelStream(agentId)
+  ipcMain.on('chat:cancel-stream', (_event, data: unknown) => {
+    if (
+      !data ||
+      typeof data !== 'object' ||
+      typeof (data as Record<string, unknown>).agentId !== 'string'
+    ) {
+      return
+    }
+    cancelStream((data as { agentId: string }).agentId)
   })
 
   createWindow()

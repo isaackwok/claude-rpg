@@ -91,13 +91,18 @@ function MessageBubble({
     return renderMarkdown(msg.content)
   }, [isAssistant, msg.content])
 
+  const [copyFailed, setCopyFailed] = useState(false)
+
   const handleCopy = (): void => {
     navigator.clipboard.writeText(msg.content).then(
       () => {
         setCopied(true)
         setTimeout(() => setCopied(false), 1500)
       },
-      () => {} // Clipboard access denied — silently ignore
+      () => {
+        setCopyFailed(true)
+        setTimeout(() => setCopyFailed(false), 1500)
+      }
     )
   }
 
@@ -141,7 +146,11 @@ function MessageBubble({
             style={{
               background: 'none',
               border: 'none',
-              color: copied ? 'rgba(140, 200, 140, 0.8)' : 'rgba(200, 180, 140, 0.4)',
+              color: copied
+                ? 'rgba(140, 200, 140, 0.8)'
+                : copyFailed
+                  ? 'rgba(255, 107, 107, 0.8)'
+                  : 'rgba(200, 180, 140, 0.4)',
               cursor: 'pointer',
               fontFamily: 'monospace',
               fontSize: 11,
@@ -149,7 +158,11 @@ function MessageBubble({
               transition: 'color 0.2s'
             }}
           >
-            {copied ? `✓ ${t('dialogue.copied')}` : t('dialogue.copy')}
+            {copied
+              ? `✓ ${t('dialogue.copied')}`
+              : copyFailed
+                ? t('dialogue.copyFailed')
+                : t('dialogue.copy')}
           </button>
         </div>
       )}
@@ -352,7 +365,11 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
         {/* Error state */}
         {conversation?.streamingState === 'error' && (
           <div style={{ padding: '6px 10px', color: '#ff6b6b', fontSize: 13 }}>
-            {t('dialogue.connectionError')}{' '}
+            {conversation.streamError === 'no-api-key'
+              ? t('dialogue.errorNoApiKey')
+              : conversation.streamError?.includes('rate limit')
+                ? t('dialogue.errorRateLimit')
+                : t('dialogue.connectionError')}{' '}
             <span
               onClick={() => {
                 // Retry: re-send the last user message
@@ -361,6 +378,7 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
                   .find((m) => m.role === 'user')
                 if (lastUserMsg && dialogue) {
                   conversationManager.prepareRetry(dialogue.agentId)
+                  conversationManager.markWaiting(dialogue.agentId)
                   window.api.sendMessage(dialogue.agentId, lastUserMsg.content, locale)
                 }
               }}

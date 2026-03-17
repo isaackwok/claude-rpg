@@ -8,7 +8,7 @@ export interface IConversationRepository {
   appendStreamChunk(agentId: string, chunk: string): void
   finalizeStream(agentId: string): void
   markWaiting(agentId: string): void
-  markStreamError(agentId: string): void
+  markStreamError(agentId: string, error?: string): void
   prepareRetry(agentId: string): void
   getStreamingState(agentId: string): StreamingState
 }
@@ -17,6 +17,7 @@ export interface Conversation {
   agentId: string
   messages: Message[]
   streamingState: StreamingState
+  streamError: string | null
   hasUnread: boolean
   // TODO(phase-3): Add id, playerId, skillCategory, xpEarned, status, timestamps
 }
@@ -76,6 +77,7 @@ class InMemoryConversationRepository implements IConversationRepository {
         agentId,
         messages: [],
         streamingState: 'idle',
+        streamError: null,
         hasUnread: false
       })
     }
@@ -127,10 +129,11 @@ class InMemoryConversationRepository implements IConversationRepository {
     }
   }
 
-  markStreamError(agentId: string): void {
+  markStreamError(agentId: string, error?: string): void {
     const conv = this.conversations.get(agentId)
     if (conv) {
       conv.streamingState = 'error'
+      conv.streamError = error ?? null
       this.notify()
     }
   }
@@ -140,6 +143,7 @@ class InMemoryConversationRepository implements IConversationRepository {
     const conv = this.conversations.get(agentId)
     if (conv) {
       conv.streamingState = 'idle'
+      conv.streamError = null
       // Remove the incomplete assistant message that errored out
       const last = conv.messages[conv.messages.length - 1]
       if (last?.role === 'assistant') {

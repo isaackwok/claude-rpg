@@ -84,6 +84,8 @@ async function executeStream(
       ? config.systemPrompt + '\n\nThe player is using English. Respond in English.'
       : config.systemPrompt
 
+  let fullResponse = ''
+
   try {
     const stream = client.messages.stream(
       {
@@ -95,8 +97,6 @@ async function executeStream(
       },
       { signal: controller.signal }
     )
-
-    let fullResponse = ''
 
     stream.on('text', (text) => {
       fullResponse += text
@@ -113,9 +113,28 @@ async function executeStream(
       webContents.send('chat:stream-end', { agentId })
     }
   } catch (err: unknown) {
-    const error = err instanceof Error ? err.message : String(err)
-    if (!webContents.isDestroyed()) {
-      webContents.send('chat:stream-error', { agentId, error })
+    const isAbort =
+      err instanceof Error && (err.name === 'AbortError' || err.message.includes('aborted'))
+
+    // Clean up orphaned user message if no assistant reply was accumulated
+    // to maintain valid alternating sequence for the Anthropic API
+    if (!fullResponse) {
+      const last = history[history.length - 1]
+      if (last?.role === 'user') {
+        history.pop()
+      }
+    }
+
+    if (isAbort) {
+      // User-initiated cancel — send clean cancellation, not an error
+      if (!webContents.isDestroyed()) {
+        webContents.send('chat:stream-end', { agentId })
+      }
+    } else {
+      const error = err instanceof Error ? err.message : String(err)
+      if (!webContents.isDestroyed()) {
+        webContents.send('chat:stream-error', { agentId, error })
+      }
     }
   } finally {
     activeStreams.delete(agentId)

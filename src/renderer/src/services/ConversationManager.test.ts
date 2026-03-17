@@ -25,6 +25,7 @@ describe('ConversationManager', () => {
         agentId: 'agent-create-1',
         messages: [],
         streamingState: 'idle',
+        streamError: null,
         hasUnread: false
       })
     })

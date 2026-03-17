@@ -182,13 +182,56 @@ describe('chat', () => {
       mockFinalMessage.mockRejectedValueOnce(new Error('rate limit exceeded'))
       const wc = createMockWebContents()
 
-      handleSendMessage('scribe', 'hello', 'zh-TW', wc)
+      handleSendMessage('error-agent-1', 'hello', 'zh-TW', wc)
       await vi.waitFor(() => {
         expect(wc.send).toHaveBeenCalledWith('chat:stream-error', {
-          agentId: 'scribe',
+          agentId: 'error-agent-1',
           error: 'rate limit exceeded'
         })
       })
+    })
+
+    it('pops orphaned user message from history on error (no assistant response)', async () => {
+      mockedGetApiKey.mockReturnValue('sk-test-key')
+      mockedGetAgentConfig.mockReturnValue(VALID_AGENT_CONFIG as never)
+      mockFinalMessage.mockRejectedValueOnce(new Error('network error'))
+      const wc = createMockWebContents()
+
+      // First message errors — user message should be popped
+      handleSendMessage('alt-agent-1', 'hello', 'zh-TW', wc)
+      await vi.waitFor(() => {
+        expect(wc.send).toHaveBeenCalledWith('chat:stream-error', expect.anything())
+      })
+
+      // Second message should work and start fresh (not have duplicate user message)
+      mockFinalMessage.mockResolvedValueOnce({})
+      handleSendMessage('alt-agent-1', 'retry', 'zh-TW', wc)
+      await vi.waitFor(() => {
+        expect(mockStream).toHaveBeenCalledTimes(2)
+      })
+      // The messages sent to SDK should only contain the new user message
+      const messages = mockStream.mock.calls[1][0].messages as Array<{
+        role: string
+        content: string
+      }>
+      expect(messages).toEqual([{ role: 'user', content: 'retry' }])
+    })
+
+    it('sends stream-end (not error) when stream is aborted', async () => {
+      mockedGetApiKey.mockReturnValue('sk-test-key')
+      mockedGetAgentConfig.mockReturnValue(VALID_AGENT_CONFIG as never)
+
+      const abortError = new Error('Request was aborted.')
+      abortError.name = 'AbortError'
+      mockFinalMessage.mockRejectedValueOnce(abortError)
+      const wc = createMockWebContents()
+
+      handleSendMessage('abort-agent-1', 'hello', 'zh-TW', wc)
+      await vi.waitFor(() => {
+        expect(wc.send).toHaveBeenCalledWith('chat:stream-end', { agentId: 'abort-agent-1' })
+      })
+      // Should NOT have sent stream-error
+      expect(wc.send).not.toHaveBeenCalledWith('chat:stream-error', expect.anything())
     })
 
     it('queues requests when MAX_CONCURRENT_STREAMS is reached', async () => {
@@ -227,6 +270,47 @@ describe('chat', () => {
 
       // Clean up remaining
       resolvers.slice(1).forEach((r) => r())
+    })
+  })
+
+  describe('duplicate message prevention on retry', () => {
+    it('does not push duplicate user message when retrying the same text', async () => {
+      mockedGetApiKey.mockReturnValue('sk-test-key')
+      mockedGetAgentConfig.mockReturnValue(VALID_AGENT_CONFIG as never)
+
+      // First call succeeds with a response
+      mockOn.mockImplementation(function (
+        this: unknown,
+        event: string,
+        cb: (text: string) => void
+      ) {
+        if (event === 'text') cb('response')
+        return this
+      })
+
+      const wc = createMockWebContents()
+      handleSendMessage('dedup-agent', 'hello', 'zh-TW', wc)
+      await vi.waitFor(() => {
+        expect(mockStream).toHaveBeenCalledTimes(1)
+      })
+
+      // Second call with same message (retry scenario) — should not duplicate the user message
+      mockOn.mockReturnThis()
+      handleSendMessage('dedup-agent', 'hello', 'zh-TW', wc)
+      await vi.waitFor(() => {
+        expect(mockStream).toHaveBeenCalledTimes(2)
+      })
+
+      // History should be: user "hello", assistant "response", user "hello" (not duplicated)
+      const messages = mockStream.mock.calls[1][0].messages as Array<{
+        role: string
+        content: string
+      }>
+      expect(messages).toEqual([
+        { role: 'user', content: 'hello' },
+        { role: 'assistant', content: 'response' },
+        { role: 'user', content: 'hello' }
+      ])
     })
   })
 
