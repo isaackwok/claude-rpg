@@ -8,7 +8,7 @@ export interface AgentConfig {
   readonly temperature: number
 }
 
-const DEFAULT_MODEL = 'claude-sonnet-4-20250514'
+const DEFAULT_MODEL = 'claude-sonnet-4-5-20250929'
 const DEFAULT_MAX_TOKENS = 1024
 const DEFAULT_TEMPERATURE = 0.7
 

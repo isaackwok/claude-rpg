@@ -48,7 +48,7 @@ function createMockWebContents() {
 
 const VALID_AGENT_CONFIG = {
   systemPrompt: 'You are an NPC.',
-  model: 'claude-sonnet-4-20250514',
+  model: 'claude-sonnet-4-5-20250929',
   maxTokens: 1024,
   temperature: 0.7
 }
@@ -99,7 +99,7 @@ describe('chat', () => {
       await vi.waitFor(() => {
         expect(mockStream).toHaveBeenCalledWith(
           expect.objectContaining({
-            model: 'claude-sonnet-4-20250514',
+            model: 'claude-sonnet-4-5-20250929',
             max_tokens: 1024,
             temperature: 0.7,
             system: 'You are an NPC.',

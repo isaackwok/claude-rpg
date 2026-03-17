@@ -19,6 +19,8 @@ interface DialoguePanelProps {
 // Hoisted outside component to avoid re-injection on every render
 const dialogueStyles = (
   <style>{`
+    .dialogue-messages ::selection { background: rgba(196, 164, 108, 0.4); color: #fff; }
+    .dialogue-messages ::-moz-selection { background: rgba(196, 164, 108, 0.4); color: #fff; }
     @keyframes blink { 50% { opacity: 0; } }
     @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
     .md-content { word-wrap: break-word; }
@@ -327,7 +329,16 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
       </div>
 
       {/* Message list */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 16px' }}>
+      <div
+        className="dialogue-messages"
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          padding: '8px 16px',
+          cursor: 'text',
+          userSelect: 'text'
+        }}
+      >
         {messages.length === 0 && !isStreaming && (
           <div style={{ opacity: 0.5, fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
             {t(`npcIntro.${dialogue.agentId}`)}

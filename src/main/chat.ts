@@ -105,7 +105,8 @@ async function executeStream(
         max_tokens: config.maxTokens,
         temperature: config.temperature,
         system: systemPrompt,
-        messages: trimHistory(history).map((m) => ({ role: m.role, content: m.content }))
+        messages: trimHistory(history).map((m) => ({ role: m.role, content: m.content })),
+        tools: [{ name: 'web_search', type: 'web_search_20250305' as const }]
       },
       { signal: controller.signal }
     )
