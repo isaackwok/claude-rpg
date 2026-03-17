@@ -59,7 +59,7 @@ class InMemoryConversationRepository implements IConversationRepository {
       const conv = this.conversations.get(agentId)
       if (conv?.hasUnread) {
         conv.hasUnread = false
-        EventBus.emit('npc:speech-bubble', { agentId, visible: false })
+        EventBus.emit('npc:speech-bubble', { agentId, style: false })
         this.notify()
       }
     }
@@ -104,9 +104,11 @@ class InMemoryConversationRepository implements IConversationRepository {
     }
 
     // Speech bubble if this NPC's dialogue isn't open
-    if (this.activeDialogueAgentId !== agentId && !conv.hasUnread) {
-      conv.hasUnread = true
-      EventBus.emit('npc:speech-bubble', { agentId, visible: true })
+    if (this.activeDialogueAgentId !== agentId) {
+      if (!conv.hasUnread) {
+        conv.hasUnread = true
+      }
+      EventBus.emit('npc:speech-bubble', { agentId, style: 'streaming' })
     }
 
     this.notify()
@@ -116,6 +118,10 @@ class InMemoryConversationRepository implements IConversationRepository {
     const conv = this.conversations.get(agentId)
     if (conv) {
       conv.streamingState = 'idle'
+      // Switch bubble from "streaming dots" to "ready checkmark"
+      if (this.activeDialogueAgentId !== agentId && conv.hasUnread) {
+        EventBus.emit('npc:speech-bubble', { agentId, style: 'ready' })
+      }
       this.notify()
     }
   }
