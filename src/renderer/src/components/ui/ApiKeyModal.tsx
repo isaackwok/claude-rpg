@@ -98,7 +98,7 @@ export function ApiKeyModal({ onClose, onSaved }: ApiKeyModalProps) {
               background: 'rgba(200,180,140,0.3)',
               border: '1px solid rgba(200,180,140,0.6)',
               color: '#c4a46c',
-              cursor: saving ? 'wait' : 'pointer'
+              cursor: 'pointer'
             }}
           >
             {t('apiKey.save')}

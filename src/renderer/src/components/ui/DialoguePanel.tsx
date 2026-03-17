@@ -260,7 +260,7 @@ function InputArea({
     background: menuOpen ? 'rgba(200,180,140,0.35)' : 'rgba(200,180,140,0.15)',
     border: '1px solid rgba(200,180,140,0.4)',
     color: '#c4a46c',
-    cursor: isBusy ? 'not-allowed' : 'pointer',
+    cursor: 'pointer',
     borderRadius: 3,
     flexShrink: 0,
     transition: 'background 0.15s'
@@ -370,7 +370,7 @@ function InputArea({
           background: isBusy ? 'rgba(100,100,100,0.3)' : 'rgba(200,180,140,0.3)',
           border: '1px solid rgba(200,180,140,0.6)',
           color: '#c4a46c',
-          cursor: isBusy ? 'wait' : 'pointer'
+          cursor: 'pointer'
         }}
       >
         {t('dialogue.send')}
