@@ -1,4 +1,12 @@
-import { useState, useEffect, useCallback, useRef, useMemo, useSyncExternalStore } from 'react'
+import {
+  Fragment,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useMemo,
+  useSyncExternalStore
+} from 'react'
 import { EventBus } from '../../game/EventBus'
 import { useTranslation } from '../../i18n'
 import { BUILT_IN_NPCS } from '../../game/data/npcs'
@@ -181,10 +189,9 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
   const [expanded, setExpanded] = useState(false)
   const [unreadDividerIndex, setUnreadDividerIndex] = useState<number | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const messagesContainerRef = useRef<HTMLDivElement>(null)
+  const unreadMarkerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const justOpenedRef = useRef(false)
-  const openUnreadIndexRef = useRef<number | null>(null)
 
   // Subscribe to ConversationManager changes — version counter ensures React detects mutations
   useSyncExternalStore(
@@ -209,7 +216,6 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
       // Capture unread state before setActiveDialogue clears hasUnread
       const conv = conversationManager.getConversation(data.agentId)
       justOpenedRef.current = true
-      openUnreadIndexRef.current = conv?.firstUnreadIndex ?? null
       setUnreadDividerIndex(conv?.firstUnreadIndex ?? null)
 
       setDialogue({ agentId: data.agentId, npcName })
@@ -252,29 +258,20 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
   // 2. Reopen, no unread — instant scroll to bottom
   // 3. Reopen with unread — scroll first unread message to top edge
   useEffect(() => {
-    if (!conversation || !messagesContainerRef.current) return
+    if (!conversation) return
 
     if (justOpenedRef.current) {
       justOpenedRef.current = false
-      const unreadIdx = openUnreadIndexRef.current
-      openUnreadIndexRef.current = null
 
-      if (unreadIdx !== null && unreadIdx < conversation.messages.length) {
+      if (unreadMarkerRef.current) {
         // Scenario 3: scroll first unread to top edge
-        requestAnimationFrame(() => {
-          const container = messagesContainerRef.current
-          const targetEl = container?.querySelector(
-            `[data-msg-index="${unreadIdx}"]`
-          ) as HTMLElement | null
-          if (targetEl && container) {
-            container.scrollTop = targetEl.offsetTop - container.offsetTop
-          } else if (container) {
-            container.scrollTop = container.scrollHeight
-          }
+        unreadMarkerRef.current.scrollIntoView({
+          behavior: 'instant' as ScrollBehavior,
+          block: 'start'
         })
       } else {
         // Scenario 2: instant scroll to bottom
-        messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight
+        messagesEndRef.current?.scrollIntoView({ behavior: 'instant' as ScrollBehavior })
       }
 
       if (dialogue) conversationManager.clearUnreadMarker(dialogue.agentId)
@@ -283,6 +280,7 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }
   }, [
+    dialogue,
     conversation?.messages.length,
     conversation?.messages[conversation.messages.length - 1]?.content
   ])
@@ -375,7 +373,6 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
 
       {/* Message list */}
       <div
-        ref={messagesContainerRef}
         className="dialogue-messages"
         style={{
           flex: 1,
@@ -391,9 +388,10 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
           </div>
         )}
         {messages.map((msg, i) => (
-          <div key={`${msg.role}-${msg.timestamp}`} data-msg-index={i}>
+          <Fragment key={`${msg.role}-${msg.timestamp}`}>
             {unreadDividerIndex !== null && i === unreadDividerIndex && (
               <div
+                ref={unreadMarkerRef}
                 style={{
                   borderTop: '1px solid rgba(200, 180, 140, 0.4)',
                   margin: '8px 0 4px',
@@ -412,7 +410,7 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
               isStreaming={isStreaming}
               t={t}
             />
-          </div>
+          </Fragment>
         ))}
         {/* Thinking indicator — shows after send, before first chunk */}
         {isWaiting && (

@@ -179,9 +179,9 @@ class InMemoryConversationRepository implements IConversationRepository {
 
   clearUnreadMarker(agentId: AgentId): void {
     const conv = this.conversations.get(agentId)
-    if (conv && conv.firstUnreadIndex !== null) {
+    if (conv) {
       conv.firstUnreadIndex = null
-      this.notify()
+      // No notify() — callers capture firstUnreadIndex before clearing
     }
   }
 
