@@ -410,4 +410,127 @@ describe('ConversationManager', () => {
       expect(conversationManager.getConversation('agent-unread-1')!.hasUnread).toBe(false)
     })
   })
+
+  describe('firstUnreadIndex tracking', () => {
+    it('sets firstUnreadIndex to the new assistant message index when unread starts', () => {
+      conversationManager.setActiveDialogue(null)
+      conversationManager.getOrCreateConversation('agent-fui-1')
+
+      // Add a user message first so the assistant message is at index 1
+      conversationManager.appendMessage('agent-fui-1', {
+        role: 'user',
+        content: 'hello',
+        timestamp: 1
+      })
+
+      conversationManager.appendStreamChunk('agent-fui-1', 'response')
+
+      const conv = conversationManager.getConversation('agent-fui-1')!
+      expect(conv.firstUnreadIndex).toBe(1)
+    })
+
+    it('does not change firstUnreadIndex on subsequent chunks', () => {
+      conversationManager.setActiveDialogue(null)
+      conversationManager.getOrCreateConversation('agent-fui-2')
+
+      conversationManager.appendStreamChunk('agent-fui-2', 'first')
+      const indexAfterFirst = conversationManager.getConversation('agent-fui-2')!.firstUnreadIndex
+
+      conversationManager.appendStreamChunk('agent-fui-2', ' more')
+
+      expect(conversationManager.getConversation('agent-fui-2')!.firstUnreadIndex).toBe(
+        indexAfterFirst
+      )
+    })
+
+    it('is null when no unread messages exist', () => {
+      conversationManager.getOrCreateConversation('agent-fui-3')
+      expect(conversationManager.getConversation('agent-fui-3')!.firstUnreadIndex).toBeNull()
+    })
+
+    it('is not set when chunks arrive for the active dialogue agent', () => {
+      conversationManager.getOrCreateConversation('agent-fui-4')
+      conversationManager.setActiveDialogue('agent-fui-4')
+
+      conversationManager.appendStreamChunk('agent-fui-4', 'response')
+
+      expect(conversationManager.getConversation('agent-fui-4')!.firstUnreadIndex).toBeNull()
+    })
+
+    it('is preserved when setActiveDialogue clears hasUnread', () => {
+      conversationManager.setActiveDialogue(null)
+      conversationManager.getOrCreateConversation('agent-fui-5')
+
+      conversationManager.appendStreamChunk('agent-fui-5', 'unread response')
+      conversationManager.finalizeStream('agent-fui-5')
+
+      const indexBefore = conversationManager.getConversation('agent-fui-5')!.firstUnreadIndex
+      expect(indexBefore).toBe(0)
+
+      // Opening dialogue clears hasUnread but keeps firstUnreadIndex
+      conversationManager.setActiveDialogue('agent-fui-5')
+
+      const conv = conversationManager.getConversation('agent-fui-5')!
+      expect(conv.hasUnread).toBe(false)
+      expect(conv.firstUnreadIndex).toBe(indexBefore)
+    })
+
+    it('tracks index correctly across multiple unread sessions', () => {
+      conversationManager.setActiveDialogue(null)
+      conversationManager.getOrCreateConversation('agent-fui-6')
+
+      // First unread session: message at index 0
+      conversationManager.appendStreamChunk('agent-fui-6', 'first response')
+      conversationManager.finalizeStream('agent-fui-6')
+      expect(conversationManager.getConversation('agent-fui-6')!.firstUnreadIndex).toBe(0)
+
+      // User opens dialogue, reads, clears marker
+      conversationManager.setActiveDialogue('agent-fui-6')
+      conversationManager.clearUnreadMarker('agent-fui-6')
+
+      // User sends a message (index 1) then closes
+      conversationManager.appendMessage('agent-fui-6', {
+        role: 'user',
+        content: 'follow up',
+        timestamp: 2
+      })
+      conversationManager.setActiveDialogue(null)
+
+      // Second unread session: new assistant message at index 2
+      conversationManager.appendStreamChunk('agent-fui-6', 'second response')
+
+      expect(conversationManager.getConversation('agent-fui-6')!.firstUnreadIndex).toBe(2)
+    })
+  })
+
+  describe('clearUnreadMarker', () => {
+    it('sets firstUnreadIndex to null', () => {
+      conversationManager.setActiveDialogue(null)
+      conversationManager.getOrCreateConversation('agent-clear-1')
+      conversationManager.appendStreamChunk('agent-clear-1', 'data')
+
+      expect(conversationManager.getConversation('agent-clear-1')!.firstUnreadIndex).toBe(0)
+
+      conversationManager.clearUnreadMarker('agent-clear-1')
+
+      expect(conversationManager.getConversation('agent-clear-1')!.firstUnreadIndex).toBeNull()
+    })
+
+    it('does not trigger notify (no version increment)', () => {
+      conversationManager.setActiveDialogue(null)
+      conversationManager.getOrCreateConversation('agent-clear-2')
+      conversationManager.appendStreamChunk('agent-clear-2', 'data')
+
+      const vBefore = conversationManager.getVersion()
+      conversationManager.clearUnreadMarker('agent-clear-2')
+
+      expect(conversationManager.getVersion()).toBe(vBefore)
+    })
+
+    it('is a no-op for unknown agentId', () => {
+      const vBefore = conversationManager.getVersion()
+      conversationManager.clearUnreadMarker('agent-clear-nonexist')
+      expect(conversationManager.getVersion()).toBe(vBefore)
+    })
+  })
 })
