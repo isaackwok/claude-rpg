@@ -23,17 +23,20 @@ Phase 2 adds real AI-powered dialogue to Claude RPG. Players can talk to any bui
 - Runs Anthropic SDK calls — the renderer never sees the raw API key
 - Manages multiple concurrent streaming API calls (one per active NPC conversation)
 - Maintains conversation history per agent (for sending full context to Claude)
-- Exposes IPC handlers: `chat:send-message`, `chat:stream-chunk` (event), `chat:stream-end` (event), `chat:stream-error` (event), `apikey:set`, `apikey:check`
+- Exposes IPC handlers: `chat:send-message`, `chat:cancel-stream`, `chat:stream-chunk` (event), `chat:stream-end` (event), `chat:stream-error` (event), `apikey:set`, `apikey:check`, `apikey:clear`
+- Max 3 concurrent streams — additional requests are queued until a slot opens (prevents API rate limiting)
 
 **Preload** (`src/preload/`)
 
-- Exposes typed `chatAPI` on `window.api` via `contextBridge`:
+- Exposes typed API on `window.api` via `contextBridge` (flat namespace, typed in `src/preload/index.d.ts`):
   - `sendMessage(agentId: string, message: string): void`
-  - `onStreamChunk(callback: (data: { agentId: string; chunk: string }) => void): void`
-  - `onStreamEnd(callback: (data: { agentId: string }) => void): void`
-  - `onStreamError(callback: (data: { agentId: string; error: string }) => void): void`
+  - `cancelStream(agentId: string): void`
+  - `onStreamChunk(callback: (data: { agentId: string; chunk: string }) => void): () => void`
+  - `onStreamEnd(callback: (data: { agentId: string }) => void): () => void`
+  - `onStreamError(callback: (data: { agentId: string; error: string }) => void): () => void`
   - `setApiKey(key: string): Promise<boolean>`
   - `checkApiKey(): Promise<boolean>`
+  - `clearApiKey(): Promise<void>`
 
 **Renderer** (`src/renderer/`)
 
@@ -79,7 +82,16 @@ interface ActiveStream {
 }
 ```
 
-Multiple streams can run concurrently. Each IPC event is tagged with `agentId` so the renderer routes chunks to the correct conversation. When the player closes the dialogue mid-stream, the stream continues in the background — the main process keeps accumulating the response.
+Multiple streams can run concurrently (max 3 — additional requests are queued). Each IPC event is tagged with `agentId` so the renderer routes chunks to the correct conversation. When the player closes the dialogue mid-stream, the stream continues in the background — the main process keeps accumulating the response.
+
+### Dual Conversation History
+
+Conversation history is intentionally maintained in two places:
+
+- **Main process** — The authoritative source. Holds the full message history in Anthropic API format (`{ role, content }`). Used to build the `messages` array for SDK calls. Persists across renderer hot-reloads in dev.
+- **Renderer** — A display-oriented copy with timestamps and streaming state. Used by React components for rendering. On renderer reload (dev only), the renderer state is lost; the player can still send new messages (main process history is preserved), but previous messages won't appear in the UI until SQLite persistence is added in Phase 3.
+
+The main process is the source of truth. The renderer reconstructs its view from IPC events. This is acceptable for Phase 2 (in-memory only) — Phase 3's SQLite persistence will provide a single shared store.
 
 ## Components
 
@@ -105,7 +117,7 @@ interface AgentConfig {
 }
 ```
 
-The `AgentDef` type (renderer) gains an optional `systemPrompt` field for future customization (Phase 4: Guild Hall). For Phase 2, system prompts live in the main process registry only — they don't need to cross IPC.
+For Phase 2, system prompts live exclusively in the main process registry — they don't cross IPC to the renderer. The renderer's `AgentDef` type is not modified. In Phase 4 (Guild Hall), `AgentDef` will be extended with `systemPrompt`, `personality`, `isBuiltIn`, and `createdBy` fields to support custom agents.
 
 **Built-in NPC personas:**
 
@@ -155,6 +167,13 @@ interface Message {
 
 type StreamingState = 'idle' | 'streaming' | 'error'
 ```
+
+### Conversation History Limits
+
+To prevent unbounded context growth, the main process enforces a rolling window on conversation history sent to Claude:
+
+- **Max messages per conversation:** 50 (25 turns). Older messages are dropped from the API call but kept in local history for UI display.
+- When the limit is reached, the oldest user/assistant message pairs are trimmed from the `messages` array sent to the SDK. The system prompt is always included.
 
 ### 3. Dialogue Panel (Overhauled)
 
@@ -235,14 +254,15 @@ interface ChatHandler {
 }
 ```
 
-- On `chat:send-message`: look up system prompt, build messages array (system + history + new user message), call Anthropic SDK with streaming
+- On `chat:send-message`: look up system prompt, build messages array (system + history + new user message), call Anthropic SDK with streaming. The player's locale is sent with the message so the system prompt can instruct Claude to respond in the appropriate language.
+- On `chat:cancel-stream`: abort the active stream for the given agentId via AbortController, send `chat:stream-end`
 - Streams tokens back via `webContents.send('chat:stream-chunk', { agentId, chunk })`
 - On completion: sends `chat:stream-end`, stores full assistant response in history
 - On error: sends `chat:stream-error`, preserves conversation state for retry
 
 ### New EventBus Events
 
-Added to `GameEvents` interface:
+Added to `GameEvents` interface in `src/renderer/src/game/types.ts`:
 
 ```typescript
 'npc:speech-bubble': { agentId: string; visible: boolean }
@@ -250,11 +270,11 @@ Added to `GameEvents` interface:
 
 ### New i18n Keys
 
+**zh-TW:**
+
 ```json
 {
   "dialogue": {
-    "placeholder": "......",
-    "thinking": "思考中...",
     "inputPlaceholder": "輸入訊息...",
     "send": "發送",
     "connectionError": "通訊中斷...請檢查你的 API 金鑰",
@@ -270,6 +290,30 @@ Added to `GameEvents` interface:
     "placeholder": "sk-ant-...",
     "save": "儲存",
     "cancel": "取消"
+  }
+}
+```
+
+**en:**
+
+```json
+{
+  "dialogue": {
+    "inputPlaceholder": "Type a message...",
+    "send": "Send",
+    "connectionError": "Connection lost... please check your API key",
+    "noApiKey": "An API key is required to talk to NPCs",
+    "setApiKey": "Set API Key",
+    "apiKeySet": "API key saved",
+    "apiKeyInvalid": "Invalid API key format",
+    "retry": "Retry"
+  },
+  "apiKey": {
+    "title": "API Key Settings",
+    "prompt": "Enter your Anthropic API key",
+    "placeholder": "sk-ant-...",
+    "save": "Save",
+    "cancel": "Cancel"
   }
 }
 ```
