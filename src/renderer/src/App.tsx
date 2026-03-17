@@ -9,6 +9,7 @@ import { conversationManager } from './services/ConversationManager'
 function App(): React.JSX.Element {
   const phaserRef = useRef<PhaserGameRef>(null)
   const [showApiKeyModal, setShowApiKeyModal] = useState(false)
+  const [apiKeyVersion, setApiKeyVersion] = useState(0)
 
   // Wire IPC stream events to ConversationManager
   useEffect(() => {
@@ -45,11 +46,17 @@ function App(): React.JSX.Element {
       >
         <HUD />
         <ProximityHint />
-        <DialoguePanel onRequestApiKey={() => setShowApiKeyModal(true)} />
+        <DialoguePanel
+          onRequestApiKey={() => setShowApiKeyModal(true)}
+          apiKeyVersion={apiKeyVersion}
+        />
         {showApiKeyModal && (
           <ApiKeyModal
             onClose={() => setShowApiKeyModal(false)}
-            onSaved={() => setShowApiKeyModal(false)}
+            onSaved={() => {
+              setShowApiKeyModal(false)
+              setApiKeyVersion((v) => v + 1)
+            }}
           />
         )}
       </div>

@@ -12,9 +12,10 @@ interface DialogueState {
 
 interface DialoguePanelProps {
   onRequestApiKey: () => void
+  apiKeyVersion: number
 }
 
-export function DialoguePanel({ onRequestApiKey }: DialoguePanelProps) {
+export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelProps) {
   const { t, locale } = useTranslation()
   const [dialogue, setDialogue] = useState<DialogueState | null>(null)
   const [input, setInput] = useState('')
@@ -30,10 +31,10 @@ export function DialoguePanel({ onRequestApiKey }: DialoguePanelProps) {
     ? conversationManager.getConversation(dialogue.agentId)
     : null
 
-  // Check API key on mount
+  // Check API key on mount and when it changes (e.g. after saving in ApiKeyModal)
   useEffect(() => {
     window.api.checkApiKey().then(setHasApiKey)
-  }, [])
+  }, [apiKeyVersion])
 
   // Open dialogue on NPC interact
   useEffect(() => {
