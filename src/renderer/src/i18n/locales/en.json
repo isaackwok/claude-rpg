@@ -6,9 +6,24 @@
     "hint": "Press Space to talk",
     "close": "Press Escape to close"
   },
+  "apiKey": {
+    "title": "API Key Settings",
+    "prompt": "Enter your Anthropic API key",
+    "placeholder": "sk-ant-...",
+    "save": "Save",
+    "cancel": "Cancel"
+  },
   "dialogue": {
     "placeholder": "......",
-    "thinking": "Thinking..."
+    "thinking": "Thinking...",
+    "inputPlaceholder": "Type a message...",
+    "send": "Send",
+    "connectionError": "Connection lost... please check your API key",
+    "noApiKey": "An API key is required to talk to NPCs",
+    "setApiKey": "Set API Key",
+    "apiKeySet": "API key saved",
+    "apiKeyInvalid": "Invalid API key format",
+    "retry": "Retry"
   },
   "locations": {
     "townSquare": "Town Square",

@@ -2,6 +2,7 @@ import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { storeApiKey, hasApiKey, clearApiKey } from './api-key'
 
 function createWindow(): void {
   // Create the browser window.
@@ -56,6 +57,21 @@ app.whenReady().then(() => {
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
+
+  // API key management
+  ipcMain.handle('apikey:set', async (_event, key: string) => {
+    if (typeof key !== 'string' || !key.startsWith('sk-ant-')) return false
+    storeApiKey(key)
+    return true
+  })
+
+  ipcMain.handle('apikey:check', async () => {
+    return hasApiKey()
+  })
+
+  ipcMain.handle('apikey:clear', async () => {
+    clearApiKey()
+  })
 
   createWindow()
 

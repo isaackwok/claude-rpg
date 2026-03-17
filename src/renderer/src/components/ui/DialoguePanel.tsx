@@ -8,7 +8,11 @@ interface DialogueState {
   npcName: string
 }
 
-export function DialoguePanel() {
+interface DialoguePanelProps {
+  onRequestApiKey: () => void
+}
+
+export function DialoguePanel({ onRequestApiKey: _onRequestApiKey }: DialoguePanelProps) {
   const { t, locale } = useTranslation()
   const [dialogue, setDialogue] = useState<DialogueState | null>(null)
 

@@ -6,9 +6,24 @@
     "hint": "按 Space 對話",
     "close": "按 Escape 關閉"
   },
+  "apiKey": {
+    "title": "API 金鑰設定",
+    "prompt": "請輸入你的 Anthropic API 金鑰",
+    "placeholder": "sk-ant-...",
+    "save": "儲存",
+    "cancel": "取消"
+  },
   "dialogue": {
     "placeholder": "......",
-    "thinking": "思考中..."
+    "thinking": "思考中...",
+    "inputPlaceholder": "輸入訊息...",
+    "send": "發送",
+    "connectionError": "通訊中斷...請檢查你的 API 金鑰",
+    "noApiKey": "需要 API 金鑰才能與 NPC 對話",
+    "setApiKey": "設定 API 金鑰",
+    "apiKeySet": "API 金鑰已設定",
+    "apiKeyInvalid": "API 金鑰格式不正確",
+    "retry": "重試"
   },
   "locations": {
     "townSquare": "城鎮廣場",

@@ -1,11 +1,13 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { PhaserGame, type PhaserGameRef } from './components/PhaserGame'
 import { ProximityHint } from './components/ui/ProximityHint'
 import { DialoguePanel } from './components/ui/DialoguePanel'
 import { HUD } from './components/ui/HUD'
+import { ApiKeyModal } from './components/ui/ApiKeyModal'
 
 function App(): React.JSX.Element {
   const phaserRef = useRef<PhaserGameRef>(null)
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false)
 
   return (
     <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
@@ -23,7 +25,13 @@ function App(): React.JSX.Element {
       >
         <HUD />
         <ProximityHint />
-        <DialoguePanel />
+        <DialoguePanel onRequestApiKey={() => setShowApiKeyModal(true)} />
+        {showApiKeyModal && (
+          <ApiKeyModal
+            onClose={() => setShowApiKeyModal(false)}
+            onSaved={() => setShowApiKeyModal(false)}
+          />
+        )}
       </div>
     </div>
   )
