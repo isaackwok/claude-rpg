@@ -33,15 +33,13 @@ test('window opens at correct size with correct title', async () => {
   const title = await page.title()
   expect(title).toBe('Claude RPG')
 
-  // Electron BrowserWindow size includes title bar chrome;
-  // content area is smaller. Just check width is exact and height is close.
+  // Canvas auto-sizes via Scale.RESIZE; just check minimum dimensions
   const size = await page.evaluate(() => ({
     width: window.innerWidth,
     height: window.innerHeight,
   }))
-  expect(size.width).toBe(1024)
+  expect(size.width).toBeGreaterThanOrEqual(1024)
   expect(size.height).toBeGreaterThanOrEqual(700)
-  expect(size.height).toBeLessThanOrEqual(768)
 })
 
 // --- 2. Phaser Canvas Renders ---
@@ -52,8 +50,8 @@ test('Phaser canvas is present and sized correctly', async () => {
 
   const box = await canvas.boundingBox()
   expect(box).not.toBeNull()
-  expect(box!.width).toBe(1024)
-  expect(box!.height).toBe(768)
+  expect(box!.width).toBeGreaterThanOrEqual(1024)
+  expect(box!.height).toBeGreaterThanOrEqual(700)
 })
 
 // --- 3. Tilemap Renders (no missing textures) ---

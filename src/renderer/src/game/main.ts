@@ -4,10 +4,11 @@ import { Boot, Preloader, Town } from './scenes'
 export function StartGame(parent: string): Phaser.Game {
   const game = new Phaser.Game({
     type: Phaser.AUTO,
-    width: 1024,
-    height: 768,
-    parent,
     pixelArt: true,
+    scale: {
+      mode: Phaser.Scale.RESIZE,
+      parent,
+    },
     physics: {
       default: 'arcade',
       arcade: {

@@ -8,7 +8,8 @@ function createWindow(): void {
   const mainWindow = new BrowserWindow({
     width: 1024,
     height: 768,
-    resizable: false,
+    minWidth: 640,
+    minHeight: 480,
     title: 'Claude RPG',
     show: false,
     autoHideMenuBar: true,

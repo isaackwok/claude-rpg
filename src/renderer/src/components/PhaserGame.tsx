@@ -30,5 +30,5 @@ export const PhaserGame = forwardRef<PhaserGameRef>(function PhaserGame(_props, 
     }
   }, [ref])
 
-  return <div id="game-container" style={{ width: 1024, height: 768 }} />
+  return <div id="game-container" style={{ width: '100vw', height: '100vh' }} />
 })

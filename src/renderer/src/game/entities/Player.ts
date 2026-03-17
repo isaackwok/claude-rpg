@@ -17,8 +17,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     this.setDepth(10)
     const body = this.body as Phaser.Physics.Arcade.Body
-    body.setSize(12, 12)
-    body.setOffset(2, 2)
+    body.setSize(10, 8)
+    body.setOffset(3, 8)
     body.setCollideWorldBounds(true)
 
     this.cursors = scene.input.keyboard!.createCursorKeys()

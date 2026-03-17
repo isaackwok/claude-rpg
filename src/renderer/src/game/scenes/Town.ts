@@ -30,8 +30,8 @@ export class Town extends Scene {
     this.collisionLayer.setCollisionByExclusion([-1])
 
     // Player spawn (center of Town Square)
-    const spawnX = 19 * 16 + 8
-    const spawnY = 14 * 16 + 8
+    const spawnX = 39 * 16 + 8
+    const spawnY = 29 * 16 + 8
     this.player = new Player(this, spawnX, spawnY)
 
     // Collision with tilemap
@@ -89,6 +89,7 @@ export class Town extends Scene {
     this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels)
     this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels)
     this.cameras.main.setBackgroundColor('#1a1a2e')
+    this.cameras.main.setZoom(2)
   }
 
   update(): void {
