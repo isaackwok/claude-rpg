@@ -335,7 +335,7 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
         )}
         {messages.map((msg, i) => (
           <MessageBubble
-            key={i}
+            key={`${msg.role}-${msg.timestamp}`}
             msg={msg}
             isLastAssistant={msg.role === 'assistant' && i === messages.length - 1}
             isStreaming={isStreaming}

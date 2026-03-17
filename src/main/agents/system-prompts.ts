@@ -1,9 +1,11 @@
+import type { AgentId } from '../../shared/types'
+
 export interface AgentConfig {
-  id: string
-  systemPrompt: string
-  model: string
-  maxTokens: number
-  temperature: number
+  readonly id: AgentId
+  readonly systemPrompt: string
+  readonly model: string
+  readonly maxTokens: number
+  readonly temperature: number
 }
 
 const DEFAULT_MODEL = 'claude-sonnet-4-20250514'
@@ -178,10 +180,10 @@ const BUILT_IN_AGENTS: AgentConfig[] = [
 
 const agentMap = new Map<string, AgentConfig>(BUILT_IN_AGENTS.map((a) => [a.id, a]))
 
-export function getAgentConfig(agentId: string): AgentConfig | undefined {
+export function getAgentConfig(agentId: AgentId): Readonly<AgentConfig> | undefined {
   return agentMap.get(agentId)
 }
 
-export function getAllAgentConfigs(): AgentConfig[] {
+export function getAllAgentConfigs(): readonly AgentConfig[] {
   return BUILT_IN_AGENTS
 }

@@ -1,41 +1,53 @@
 import { EventBus } from '../game/EventBus'
+import type { AgentId, MessageRole } from '../../../shared/types'
 
 // TODO(phase-3): Replace InMemoryConversationRepository with SQLiteConversationRepository
 export interface IConversationRepository {
-  getConversation(agentId: string): Conversation | null
-  getOrCreateConversation(agentId: string): Conversation
-  appendMessage(agentId: string, message: Message): void
-  appendStreamChunk(agentId: string, chunk: string): void
-  finalizeStream(agentId: string): void
-  markWaiting(agentId: string): void
-  markStreamError(agentId: string, error?: string): void
-  prepareRetry(agentId: string): void
-  getStreamingState(agentId: string): StreamingState
+  subscribe(listener: Listener): () => void
+  getVersion(): number
+  setActiveDialogue(agentId: AgentId | null): void
+  getConversation(agentId: AgentId): Readonly<Conversation> | null
+  getOrCreateConversation(agentId: AgentId): Readonly<Conversation>
+  appendMessage(agentId: AgentId, message: Message): void
+  appendStreamChunk(agentId: AgentId, chunk: string): void
+  finalizeStream(agentId: AgentId): void
+  markWaiting(agentId: AgentId): void
+  markStreamError(agentId: AgentId, error?: string): void
+  prepareRetry(agentId: AgentId): void
+  getStreamingState(agentId: AgentId): StreamingState
 }
 
 export interface Conversation {
-  agentId: string
-  messages: Message[]
-  streamingState: StreamingState
-  streamError: string | null
-  hasUnread: boolean
+  readonly agentId: AgentId
+  readonly messages: readonly Message[]
+  readonly streamingState: StreamingState
+  readonly streamError: string | null
+  readonly hasUnread: boolean
   // TODO(phase-3): Add id, playerId, skillCategory, xpEarned, status, timestamps
 }
 
 export interface Message {
-  role: 'user' | 'assistant'
-  content: string
-  timestamp: number
+  readonly role: MessageRole
+  readonly content: string
+  readonly timestamp: number
 }
 
 export type StreamingState = 'idle' | 'waiting' | 'streaming' | 'error'
-
 type Listener = () => void
 
+/** Internal mutable version of Conversation for repository implementation */
+interface MutableConversation {
+  agentId: AgentId
+  messages: Message[]
+  streamingState: StreamingState
+  streamError: string | null
+  hasUnread: boolean
+}
+
 class InMemoryConversationRepository implements IConversationRepository {
-  private conversations = new Map<string, Conversation>()
+  private conversations = new Map<AgentId, MutableConversation>()
   private listeners: Listener[] = []
-  private activeDialogueAgentId: string | null = null
+  private activeDialogueAgentId: AgentId | null = null
   private version = 0
 
   subscribe(listener: Listener): () => void {
@@ -55,7 +67,7 @@ class InMemoryConversationRepository implements IConversationRepository {
     for (const listener of this.listeners) listener()
   }
 
-  setActiveDialogue(agentId: string | null): void {
+  setActiveDialogue(agentId: AgentId | null): void {
     this.activeDialogueAgentId = agentId
     if (agentId) {
       const conv = this.conversations.get(agentId)
@@ -67,11 +79,7 @@ class InMemoryConversationRepository implements IConversationRepository {
     }
   }
 
-  getConversation(agentId: string): Conversation | null {
-    return this.conversations.get(agentId) ?? null
-  }
-
-  getOrCreateConversation(agentId: string): Conversation {
+  private getMutableConversation(agentId: AgentId): MutableConversation {
     if (!this.conversations.has(agentId)) {
       this.conversations.set(agentId, {
         agentId,
@@ -84,14 +92,22 @@ class InMemoryConversationRepository implements IConversationRepository {
     return this.conversations.get(agentId)!
   }
 
-  appendMessage(agentId: string, message: Message): void {
-    const conv = this.getOrCreateConversation(agentId)
+  getConversation(agentId: AgentId): Readonly<Conversation> | null {
+    return this.conversations.get(agentId) ?? null
+  }
+
+  getOrCreateConversation(agentId: AgentId): Readonly<Conversation> {
+    return this.getMutableConversation(agentId)
+  }
+
+  appendMessage(agentId: AgentId, message: Message): void {
+    const conv = this.getMutableConversation(agentId)
     conv.messages.push(message)
     this.notify()
   }
 
-  appendStreamChunk(agentId: string, chunk: string): void {
-    const conv = this.getOrCreateConversation(agentId)
+  appendStreamChunk(agentId: AgentId, chunk: string): void {
+    const conv = this.getMutableConversation(agentId)
     const wasStreaming = conv.streamingState === 'streaming'
     conv.streamingState = 'streaming'
 
@@ -100,7 +116,7 @@ class InMemoryConversationRepository implements IConversationRepository {
     if (wasStreaming) {
       const last = conv.messages[conv.messages.length - 1]
       if (last && last.role === 'assistant') {
-        last.content += chunk
+        ;(last as { content: string }).content += chunk
       }
     } else {
       conv.messages.push({ role: 'assistant', content: chunk, timestamp: Date.now() })
@@ -117,7 +133,7 @@ class InMemoryConversationRepository implements IConversationRepository {
     this.notify()
   }
 
-  finalizeStream(agentId: string): void {
+  finalizeStream(agentId: AgentId): void {
     const conv = this.conversations.get(agentId)
     if (conv) {
       conv.streamingState = 'idle'
@@ -129,7 +145,7 @@ class InMemoryConversationRepository implements IConversationRepository {
     }
   }
 
-  markStreamError(agentId: string, error?: string): void {
+  markStreamError(agentId: AgentId, error?: string): void {
     const conv = this.conversations.get(agentId)
     if (conv) {
       conv.streamingState = 'error'
@@ -139,7 +155,7 @@ class InMemoryConversationRepository implements IConversationRepository {
   }
 
   /** Reset error state and remove the failed assistant message stub (if any) for retry */
-  prepareRetry(agentId: string): void {
+  prepareRetry(agentId: AgentId): void {
     const conv = this.conversations.get(agentId)
     if (conv) {
       conv.streamingState = 'idle'
@@ -153,13 +169,13 @@ class InMemoryConversationRepository implements IConversationRepository {
     }
   }
 
-  markWaiting(agentId: string): void {
-    const conv = this.getOrCreateConversation(agentId)
+  markWaiting(agentId: AgentId): void {
+    const conv = this.getMutableConversation(agentId)
     conv.streamingState = 'waiting'
     this.notify()
   }
 
-  getStreamingState(agentId: string): StreamingState {
+  getStreamingState(agentId: AgentId): StreamingState {
     return this.conversations.get(agentId)?.streamingState ?? 'idle'
   }
 }

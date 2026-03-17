@@ -2,19 +2,31 @@ import Anthropic from '@anthropic-ai/sdk'
 import type { WebContents } from 'electron'
 import { getApiKey } from './api-key'
 import { getAgentConfig } from './agents/system-prompts'
+import type { AgentId, MessageRole } from '../shared/types'
 
 interface Message {
-  role: 'user' | 'assistant'
+  role: MessageRole
   content: string
 }
 
 interface ActiveStream {
-  agentId: string
+  agentId: AgentId
   controller: AbortController
 }
 
 const MAX_CONCURRENT_STREAMS = 3
 const MAX_HISTORY_MESSAGES = 50
+
+let cachedClient: { apiKey: string; client: Anthropic } | null = null
+
+function getOrCreateClient(apiKey: string): Anthropic {
+  if (cachedClient && cachedClient.apiKey === apiKey) {
+    return cachedClient.client
+  }
+  const client = new Anthropic({ apiKey })
+  cachedClient = { apiKey, client }
+  return client
+}
 
 const conversationHistories = new Map<string, Message[]>()
 const activeStreams = new Map<string, ActiveStream>()
@@ -78,7 +90,7 @@ async function executeStream(
   const controller = new AbortController()
   activeStreams.set(agentId, { agentId, controller })
 
-  const client = new Anthropic({ apiKey })
+  const client = getOrCreateClient(apiKey)
   const systemPrompt =
     locale === 'en'
       ? config.systemPrompt + '\n\nThe player is using English. Respond in English.'
