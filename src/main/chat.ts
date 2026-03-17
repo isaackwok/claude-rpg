@@ -23,6 +23,7 @@ interface PendingToolConfirm {
 
 const MAX_CONCURRENT_STREAMS = 3
 const MAX_HISTORY_MESSAGES = 50
+const MAX_TOOL_ROUNDS = 20
 const TOOL_CONFIRM_TIMEOUT = 5 * 60 * 1000 // 5 minutes
 
 const delay = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
@@ -169,6 +170,11 @@ function requestToolConfirmation(
   payload: ToolConfirmPayload,
   webContents: WebContents
 ): Promise<{ approved: boolean; addToApproved?: string }> {
+  // If webContents is already destroyed, deny immediately — no point waiting for a response
+  if (webContents.isDestroyed()) {
+    return Promise.resolve({ approved: false })
+  }
+
   return new Promise((resolve) => {
     const timer = setTimeout(() => {
       pendingToolConfirms.delete(payload.toolCallId)
@@ -176,10 +182,7 @@ function requestToolConfirmation(
     }, TOOL_CONFIRM_TIMEOUT)
 
     pendingToolConfirms.set(payload.toolCallId, { resolve, timer })
-
-    if (!webContents.isDestroyed()) {
-      webContents.send('chat:tool-confirm', payload)
-    }
+    webContents.send('chat:tool-confirm', payload)
   })
 }
 
@@ -248,10 +251,24 @@ async function checkAndApproveMessagePaths(
     }
   }
 
-  // Wait for user to resolve all paths
+  // Wait for user to resolve all paths (with timeout matching tool confirmation)
   const result = await new Promise<{ approved: string[]; denied: string[] }>((resolve) => {
+    const timer = setTimeout(() => {
+      const pending = pendingPathApprovals.get(agentId)
+      if (!pending) return
+      // Treat all remaining paths as denied on timeout
+      for (const p of pending.remaining) {
+        pending.denied.push(p)
+      }
+      pendingPathApprovals.delete(agentId)
+      resolve({ approved: pending.approved, denied: pending.denied })
+    }, TOOL_CONFIRM_TIMEOUT)
+
     pendingPathApprovals.set(agentId, {
-      resolve,
+      resolve: (r) => {
+        clearTimeout(timer)
+        resolve(r)
+      },
       approved: [],
       denied: [],
       remaining: new Set(unapproved)
@@ -280,7 +297,7 @@ export function handlePathApproved(agentId: string, path: string, addToApproved?
     addApprovedFolder(addToApproved)
   }
   const pending = pendingPathApprovals.get(agentId)
-  if (!pending) return
+  if (!pending || !pending.remaining.has(path)) return
   pending.approved.push(path)
   pending.remaining.delete(path)
   if (pending.remaining.size === 0) {
@@ -292,7 +309,7 @@ export function handlePathApproved(agentId: string, path: string, addToApproved?
 /** Handle user's path denial response. */
 export function handlePathDenied(agentId: string, path: string): void {
   const pending = pendingPathApprovals.get(agentId)
-  if (!pending) return
+  if (!pending || !pending.remaining.has(path)) return
   pending.denied.push(path)
   pending.remaining.delete(path)
   if (pending.remaining.size === 0) {
@@ -331,6 +348,9 @@ async function executeStream(
   const finalMessage = await checkAndApproveMessagePaths(agentId, message, locale, webContents)
   if (!finalMessage.trim()) {
     // All paths were denied and nothing left to send
+    if (!webContents.isDestroyed()) {
+      webContents.send('chat:stream-end', { agentId })
+    }
     return
   }
 
@@ -356,8 +376,16 @@ async function executeStream(
   try {
     // Tool-use loop: keep calling the API until stop_reason is 'end_turn'
     let continueLoop = true
+    let toolRounds = 0
 
     while (continueLoop) {
+      if (++toolRounds > MAX_TOOL_ROUNDS) {
+        if (!webContents.isDestroyed()) {
+          const msg = '⚠ 工具使用次數已達上限，對話結束。(Tool use limit reached.)'
+          webContents.send('chat:stream-chunk', { agentId, chunk: msg })
+        }
+        break
+      }
       const stream = client.messages.stream(
         {
           model: config.model,
@@ -393,7 +421,11 @@ async function executeStream(
           const toolName = block.name as ToolName
           const args = block.input as Record<string, unknown>
           const targetPath = getToolTargetPath(toolName, args)
-          const folderApproved = targetPath ? isPathApproved(targetPath) : true
+          // run_command is never auto-approved — always require user confirmation
+          // for shell commands regardless of folder status, since the command string
+          // itself can access arbitrary paths.
+          const folderApproved =
+            toolName === 'run_command' ? false : targetPath ? isPathApproved(targetPath) : true
 
           // Auto-approve if target path is inside an approved folder
           if (folderApproved) {
@@ -487,32 +519,25 @@ async function executeStream(
     // Repair history to maintain valid alternating sequence.
     // If the last entry is an assistant message with tool_use blocks but no
     // corresponding tool_result user message was appended (e.g. error during
-    // tool execution), we must add placeholder tool_results to satisfy the API
-    // contract, or remove the orphaned assistant message entirely.
-    const last = history[history.length - 1]
-    if (last?.role === 'assistant' && Array.isArray(last.content)) {
-      const toolUseBlocks = (last.content as Anthropic.Messages.ContentBlock[]).filter(
+    // tool execution), we must add placeholder tool_results to satisfy the API contract.
+    const lastMsg = history[history.length - 1]
+    if (lastMsg?.role === 'assistant' && Array.isArray(lastMsg.content)) {
+      const toolUseBlocks = (lastMsg.content as Anthropic.Messages.ContentBlock[]).filter(
         (b) => b.type === 'tool_use'
       )
       if (toolUseBlocks.length > 0) {
-        // Check if a tool_result user message already follows (partially built)
-        const nextLast = history[history.length - 1]
-        if (nextLast === last) {
-          // No tool_result message was pushed — add error results for all tool_use blocks
-          const errorResults: Anthropic.Messages.ToolResultBlockParam[] = toolUseBlocks.map(
-            (b) => ({
-              type: 'tool_result' as const,
-              tool_use_id: (b as Anthropic.Messages.ToolUseBlock).id,
-              content: '操作因錯誤中斷。(Operation interrupted by error.)',
-              is_error: true
-            })
-          )
-          history.push({ role: 'user', content: errorResults })
-        }
+        // No tool_result message was pushed — add error results for all tool_use blocks
+        const errorResults: Anthropic.Messages.ToolResultBlockParam[] = toolUseBlocks.map((b) => ({
+          type: 'tool_result' as const,
+          tool_use_id: (b as Anthropic.Messages.ToolUseBlock).id,
+          content: '操作因錯誤中斷。(Operation interrupted by error.)',
+          is_error: true
+        }))
+        history.push({ role: 'user', content: errorResults })
       }
     } else if (fullTextResponse) {
       history.push({ role: 'assistant', content: fullTextResponse })
-    } else if (last?.role === 'user') {
+    } else if (lastMsg?.role === 'user') {
       history.pop()
     }
 

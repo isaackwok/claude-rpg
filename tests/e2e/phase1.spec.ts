@@ -27,6 +27,18 @@ test.afterAll(async () => {
   await app?.close()
 })
 
+// Helper: teleport player to a position via Phaser scene
+async function teleportPlayer(pg: Page, x: number, y: number): Promise<void> {
+  await pg.evaluate(
+    ({ x, y }) => {
+      const game = (window as any).__PHASER_GAME__
+      const scene = game?.scene.getScene('Town') as any
+      if (scene?.player) scene.player.setPosition(x, y)
+    },
+    { x, y }
+  )
+}
+
 // --- 1. Window Configuration ---
 
 test('window opens at correct size with correct title', async () => {
@@ -154,15 +166,12 @@ test('proximity hint appears near NPC', async () => {
 // --- 8. Dialogue Panel Opens on Space ---
 
 test('dialogue panel opens on Space key near NPC', async () => {
-  // Reset position so player is back at spawn near Elder
   await page.reload()
   await page.waitForTimeout(3000)
 
-  // Move up toward Elder NPC (one tile above spawn)
-  await page.keyboard.down('KeyW')
-  await page.waitForTimeout(600)
-  await page.keyboard.up('KeyW')
-  await page.waitForTimeout(300)
+  // Teleport player next to Elder NPC at (664, 464), offset to avoid collision
+  await teleportPlayer(page, 674, 478)
+  await page.waitForTimeout(800)
 
   // Hold Space long enough for Phaser's update loop to catch JustDown
   await page.keyboard.down('Space')
@@ -184,13 +193,12 @@ test('dialogue panel opens on Space key near NPC', async () => {
 // --- 9. Dialogue Closes on Escape ---
 
 test('dialogue panel closes on Escape', async () => {
-  // Reset and open dialogue (move to NPC + Space)
   await page.reload()
   await page.waitForTimeout(3000)
-  await page.keyboard.down('KeyW')
-  await page.waitForTimeout(600)
-  await page.keyboard.up('KeyW')
-  await page.waitForTimeout(300)
+
+  // Teleport player next to Elder NPC and open dialogue
+  await teleportPlayer(page, 674, 478)
+  await page.waitForTimeout(800)
   await page.keyboard.down('Space')
   await page.waitForTimeout(200)
   await page.keyboard.up('Space')

@@ -12,7 +12,11 @@ export function resolveSandboxedPath(inputPath: string, approvedFolders: string[
   let realPath: string
   try {
     realPath = realpathSync(normalized)
-  } catch {
+  } catch (err: unknown) {
+    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+      // Non-ENOENT errors (EACCES, ELOOP, etc.) indicate real problems — reject the path.
+      return null
+    }
     // File doesn't exist yet (e.g. write_file creating a new file).
     // Validate the normalized path directly — it can't have a symlink if it doesn't exist.
     realPath = normalized
