@@ -179,8 +179,12 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
   const [input, setInput] = useState('')
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null)
   const [expanded, setExpanded] = useState(false)
+  const [unreadDividerIndex, setUnreadDividerIndex] = useState<number | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const justOpenedRef = useRef(false)
+  const openUnreadIndexRef = useRef<number | null>(null)
 
   // Subscribe to ConversationManager changes — version counter ensures React detects mutations
   useSyncExternalStore(
@@ -201,6 +205,13 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
     const handler = (data: { agentId: string }): void => {
       const npc = BUILT_IN_NPCS.find((n) => n.id === data.agentId)
       const npcName = npc?.name[locale] ?? npc?.name['zh-TW'] ?? data.agentId
+
+      // Capture unread state before setActiveDialogue clears hasUnread
+      const conv = conversationManager.getConversation(data.agentId)
+      justOpenedRef.current = true
+      openUnreadIndexRef.current = conv?.firstUnreadIndex ?? null
+      setUnreadDividerIndex(conv?.firstUnreadIndex ?? null)
+
       setDialogue({ agentId: data.agentId, npcName })
       conversationManager.setActiveDialogue(data.agentId)
       conversationManager.getOrCreateConversation(data.agentId)
@@ -236,9 +247,41 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
     return () => window.removeEventListener('keydown', handleKey)
   }, [dialogue, close])
 
-  // Auto-scroll to bottom
+  // Three-scenario scroll logic:
+  // 1. Active conversation — smooth scroll to bottom
+  // 2. Reopen, no unread — instant scroll to bottom
+  // 3. Reopen with unread — scroll first unread message to top edge
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (!conversation || !messagesContainerRef.current) return
+
+    if (justOpenedRef.current) {
+      justOpenedRef.current = false
+      const unreadIdx = openUnreadIndexRef.current
+      openUnreadIndexRef.current = null
+
+      if (unreadIdx !== null && unreadIdx < conversation.messages.length) {
+        // Scenario 3: scroll first unread to top edge
+        requestAnimationFrame(() => {
+          const container = messagesContainerRef.current
+          const targetEl = container?.querySelector(
+            `[data-msg-index="${unreadIdx}"]`
+          ) as HTMLElement | null
+          if (targetEl && container) {
+            container.scrollTop = targetEl.offsetTop - container.offsetTop
+          } else if (container) {
+            container.scrollTop = container.scrollHeight
+          }
+        })
+      } else {
+        // Scenario 2: instant scroll to bottom
+        messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight
+      }
+
+      if (dialogue) conversationManager.clearUnreadMarker(dialogue.agentId)
+    } else {
+      // Scenario 1: smooth scroll during active conversation
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
   }, [
     conversation?.messages.length,
     conversation?.messages[conversation.messages.length - 1]?.content
@@ -253,6 +296,7 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
     }
     const text = input.trim()
     setInput('')
+    setUnreadDividerIndex(null)
     conversationManager.appendMessage(dialogue.agentId, {
       role: 'user',
       content: text,
@@ -331,6 +375,7 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
 
       {/* Message list */}
       <div
+        ref={messagesContainerRef}
         className="dialogue-messages"
         style={{
           flex: 1,
@@ -346,13 +391,28 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
           </div>
         )}
         {messages.map((msg, i) => (
-          <MessageBubble
-            key={`${msg.role}-${msg.timestamp}`}
-            msg={msg}
-            isLastAssistant={msg.role === 'assistant' && i === messages.length - 1}
-            isStreaming={isStreaming}
-            t={t}
-          />
+          <div key={`${msg.role}-${msg.timestamp}`} data-msg-index={i}>
+            {unreadDividerIndex !== null && i === unreadDividerIndex && (
+              <div
+                style={{
+                  borderTop: '1px solid rgba(200, 180, 140, 0.4)',
+                  margin: '8px 0 4px',
+                  fontSize: 11,
+                  color: 'rgba(200, 180, 140, 0.5)',
+                  textAlign: 'center',
+                  paddingTop: 4
+                }}
+              >
+                {t('dialogue.newMessages')}
+              </div>
+            )}
+            <MessageBubble
+              msg={msg}
+              isLastAssistant={msg.role === 'assistant' && i === messages.length - 1}
+              isStreaming={isStreaming}
+              t={t}
+            />
+          </div>
         ))}
         {/* Thinking indicator — shows after send, before first chunk */}
         {isWaiting && (

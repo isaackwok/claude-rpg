@@ -40,7 +40,8 @@
     "apiKeyInvalid": "Invalid API key format",
     "retry": "Retry",
     "copied": "Copied",
-    "copy": "Copy"
+    "copy": "Copy",
+    "newMessages": "New messages"
   },
   "locations": {
     "townSquare": "Town Square",
