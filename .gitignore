@@ -1,1 +1,9 @@
+node_modules/
+out/
+dist/
 .superpowers/
+firebase-debug.log
+tests/e2e/screenshots/
+test-results/
+playwright-report/
+.DS_Store

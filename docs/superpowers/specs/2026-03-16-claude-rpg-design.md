@@ -16,29 +16,29 @@ The primary audience is non-technical users (designers, PMs) who want to leverag
 
 ## Tech Stack
 
-| Layer | Technology | Purpose |
-|---|---|---|
-| Shell | Electron | Desktop app container, OS integration, secure key storage |
-| Game Engine | Phaser 3 | 2D world rendering, tilemaps, sprites, movement, collision |
-| UI Framework | React | Overlay panels — dialogue, menus, forms, skill trees |
-| AI Integration | Anthropic SDK / Agent SDK | Agent conversations, multi-agent orchestration |
-| Data Storage | SQLite (better-sqlite3) | Local persistence, behind repository interfaces |
-| Map Editor | Tiled | Tilemap creation, exported as JSON for Phaser |
-| i18n | JSON locale files | `locales/zh-TW.json`, `locales/en.json` |
-| Language | TypeScript | Throughout the entire codebase |
+| Layer          | Technology                | Purpose                                                    |
+| -------------- | ------------------------- | ---------------------------------------------------------- |
+| Shell          | Electron                  | Desktop app container, OS integration, secure key storage  |
+| Game Engine    | Phaser 3                  | 2D world rendering, tilemaps, sprites, movement, collision |
+| UI Framework   | React                     | Overlay panels — dialogue, menus, forms, skill trees       |
+| AI Integration | Anthropic SDK / Agent SDK | Agent conversations, multi-agent orchestration             |
+| Data Storage   | SQLite (better-sqlite3)   | Local persistence, behind repository interfaces            |
+| Map Editor     | Tiled                     | Tilemap creation, exported as JSON for Phaser              |
+| i18n           | JSON locale files         | `locales/zh-TW.json`, `locales/en.json`                    |
+| Language       | TypeScript                | Throughout the entire codebase                             |
 
 ## Implementation Phases
 
 The spec describes the full v1 vision. Implementation is split into phases, each producing a working deliverable:
 
-| Phase | Deliverable | Dependencies |
-|---|---|---|
-| **Phase 1: Shell & World** | Electron app with Phaser tilemap, character movement, NPC sprites with collision zones. React overlay scaffold. No AI yet. | None |
-| **Phase 2: Agent Conversations** | Single-agent NPC dialogue via Anthropic SDK. Talk to any built-in NPC, get responses. Conversation persistence. | Phase 1 |
-| **Phase 3: Progression** | XP tracking, leveling, title computation, quest board. Organic quest detection. Skill tree UI. | Phase 2 |
-| **Phase 4: Guild Hall** | Custom agent creation flow via Guild Master NPC. Sprite selection, personality, placement. | Phase 2 |
-| **Phase 5: Party System** | Multi-agent party formation and orchestrated quests via Agent SDK. | Phase 2, Phase 4 |
-| **Phase 6: Onboarding & Polish** | Title screen, API key wizard, character creation, tutorial, i18n pass, sound/animation polish. | All above |
+| Phase                            | Deliverable                                                                                                                | Dependencies     |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| **Phase 1: Shell & World**       | Electron app with Phaser tilemap, character movement, NPC sprites with collision zones. React overlay scaffold. No AI yet. | None             |
+| **Phase 2: Agent Conversations** | Single-agent NPC dialogue via Anthropic SDK. Talk to any built-in NPC, get responses. Conversation persistence.            | Phase 1          |
+| **Phase 3: Progression**         | XP tracking, leveling, title computation, quest board. Organic quest detection. Skill tree UI.                             | Phase 2          |
+| **Phase 4: Guild Hall**          | Custom agent creation flow via Guild Master NPC. Sprite selection, personality, placement.                                 | Phase 2          |
+| **Phase 5: Party System**        | Multi-agent party formation and orchestrated quests via Agent SDK.                                                         | Phase 2, Phase 4 |
+| **Phase 6: Onboarding & Polish** | Title screen, API key wizard, character creation, tutorial, i18n pass, sound/animation polish.                             | All above        |
 
 Each phase can be planned and implemented independently.
 
@@ -84,22 +84,22 @@ The event bus is a typed `EventEmitter` shared between Phaser and React within t
 ```typescript
 interface GameEvents {
   // Phaser → React
-  "npc:interact": { agentId: string; npcPosition: { x: number; y: number } }
-  "npc:proximity": { agentId: string; inRange: boolean }
-  "player:moved": { x: number; y: number; map: string }
-  "zone:entered": { zoneId: string; zoneName: string }
+  'npc:interact': { agentId: string; npcPosition: { x: number; y: number } }
+  'npc:proximity': { agentId: string; inRange: boolean }
+  'player:moved': { x: number; y: number; map: string }
+  'zone:entered': { zoneId: string; zoneName: string }
 
   // React → Phaser
-  "dialogue:closed": { agentId: string }
-  "npc:spawn": { agent: Agent }
-  "npc:remove": { agentId: string }
-  "camera:focus": { x: number; y: number }
+  'dialogue:closed': { agentId: string }
+  'npc:spawn': { agent: Agent }
+  'npc:remove': { agentId: string }
+  'camera:focus': { x: number; y: number }
 
   // Core Services → Both
-  "xp:gained": { category: SkillCategory; amount: number; newTotal: number }
-  "level:up": { category: SkillCategory; newLevel: number }
-  "quest:completed": { questId: string; title: LocalizedString }
-  "title:changed": { newTitle: LocalizedString }
+  'xp:gained': { category: SkillCategory; amount: number; newTotal: number }
+  'level:up': { category: SkillCategory; newLevel: number }
+  'quest:completed': { questId: string; title: LocalizedString }
+  'title:changed': { newTitle: LocalizedString }
 }
 ```
 
@@ -118,17 +118,17 @@ The world is a tile-based map built with Tiled Map Editor, exported as JSON, and
 
 **v1 Town Map — Key Locations:**
 
-| Location | Purpose | Built-in NPC |
-|---|---|---|
-| Town Square | Spawn point, tutorial area | 長老 (The Elder) — tutorial guide |
-| Guild Hall | Create/manage custom agents | 會長 (Guild Master) — agent creation guide |
-| Library | Research tasks | 學者 (The Scholar) |
-| Scribe's Workshop | Writing tasks | 書記官 (The Scribe) |
-| Market | Data & organization tasks | 商人 (The Merchant), 指揮官 (The Commander) |
-| Artisan's Studio | Visual/design tasks | 匠師 (The Artisan) |
-| Messenger's Post | Communication tasks | 傳令使 (The Herald) |
-| Tavern | Party management, quest board | 酒保 (Bartender) — party/quest UI |
-| Tower (unlockable) | Code/automation tasks | 巫師 (The Wizard) |
+| Location           | Purpose                       | Built-in NPC                                |
+| ------------------ | ----------------------------- | ------------------------------------------- |
+| Town Square        | Spawn point, tutorial area    | 長老 (The Elder) — tutorial guide           |
+| Guild Hall         | Create/manage custom agents   | 會長 (Guild Master) — agent creation guide  |
+| Library            | Research tasks                | 學者 (The Scholar)                          |
+| Scribe's Workshop  | Writing tasks                 | 書記官 (The Scribe)                         |
+| Market             | Data & organization tasks     | 商人 (The Merchant), 指揮官 (The Commander) |
+| Artisan's Studio   | Visual/design tasks           | 匠師 (The Artisan)                          |
+| Messenger's Post   | Communication tasks           | 傳令使 (The Herald)                         |
+| Tavern             | Party management, quest board | 酒保 (Bartender) — party/quest UI           |
+| Tower (unlockable) | Code/automation tasks         | 巫師 (The Wizard)                           |
 
 ### Character Movement & Interaction
 
@@ -146,39 +146,39 @@ A single `Agent` type is used for both built-in and custom NPCs:
 ```typescript
 interface Agent {
   id: string
-  name: LocalizedString        // { "zh-TW": "書記官", "en": "The Scribe" }
-  personality: string           // Free-form personality description
-  systemPrompt: string          // Claude system prompt
-  skills: SkillCategory[]       // Which categories this agent covers
-  sprite: string                // Sprite asset key
+  name: LocalizedString // { "zh-TW": "書記官", "en": "The Scribe" }
+  personality: string // Free-form personality description
+  systemPrompt: string // Claude system prompt
+  skills: SkillCategory[] // Which categories this agent covers
+  sprite: string // Sprite asset key
   location: { map: string; x: number; y: number }
   isBuiltIn: boolean
-  createdBy?: string            // Player ID, for custom agents
+  createdBy?: string // Player ID, for custom agents
 }
 
 type SkillCategory =
-  | "writing"
-  | "data"
-  | "visual"
-  | "code"
-  | "research"
-  | "organization"
-  | "communication"
+  | 'writing'
+  | 'data'
+  | 'visual'
+  | 'code'
+  | 'research'
+  | 'organization'
+  | 'communication'
 
 type LocalizedString = Record<string, string>
 ```
 
 ### Built-in NPCs
 
-| NPC | Skill Category | Personality | Capabilities |
-|---|---|---|---|
-| 書記官 (The Scribe) | Writing | Meticulous, poetic | Draft, edit, translate text |
-| 學者 (The Scholar) | Research | Curious, thorough | Web search, summarize docs, compare |
-| 商人 (The Merchant) | Data | Pragmatic, sharp | Analyze CSVs, charts, calculations |
-| 指揮官 (The Commander) | Organization | Disciplined, direct | Task planning, scheduling, lists |
-| 匠師 (The Artisan) | Visual | Creative, expressive | Image generation, design feedback |
-| 傳令使 (The Herald) | Communication | Diplomatic, warm | Draft messages, translate, summarize meetings |
-| 巫師 (The Wizard) | Code | Mysterious, precise | Write scripts, debug, automate |
+| NPC                    | Skill Category | Personality          | Capabilities                                  |
+| ---------------------- | -------------- | -------------------- | --------------------------------------------- |
+| 書記官 (The Scribe)    | Writing        | Meticulous, poetic   | Draft, edit, translate text                   |
+| 學者 (The Scholar)     | Research       | Curious, thorough    | Web search, summarize docs, compare           |
+| 商人 (The Merchant)    | Data           | Pragmatic, sharp     | Analyze CSVs, charts, calculations            |
+| 指揮官 (The Commander) | Organization   | Disciplined, direct  | Task planning, scheduling, lists              |
+| 匠師 (The Artisan)     | Visual         | Creative, expressive | Image generation, design feedback             |
+| 傳令使 (The Herald)    | Communication  | Diplomatic, warm     | Draft messages, translate, summarize meetings |
+| 巫師 (The Wizard)      | Code           | Mysterious, precise  | Write scripts, debug, automate                |
 
 ### Custom Agent Creation (Guild Hall)
 
@@ -195,6 +195,7 @@ The player walks into the Guild Hall and interacts with the Guild Master NPC, wh
 #### Formation
 
 At the Tavern, the player talks to the Bartender to form a party:
+
 - Select up to 4 agents (built-in or custom) from a list
 - Name the party
 - Party is saved and can be reused
@@ -245,15 +246,15 @@ Quest: "幫我用這份數據做一份簡報" (Make a presentation from this dat
 
 ### Skill Categories (7)
 
-| Category | Example Actions | Emergent Title |
-|---|---|---|
-| Writing | Draft emails, blog posts, copy | 文匠 (Wordsmith) |
-| Data | Analyze CSVs, summarize spreadsheets | 數據煉金師 (Data Alchemist) |
-| Visual | Generate images, edit assets, design feedback | 幻象法師 (Visual Mage) |
-| Code | Write scripts, debug, automate | 程式巫師 (Code Sorcerer) |
-| Research | Web search, summarize docs, compare options | 求知者 (Knowledge Seeker) |
-| Organization | Manage tasks, create plans, schedule | 戰略統帥 (Strategic Commander) |
-| Communication | Translate, summarize meetings, draft messages | 外交使者 (Diplomat) |
+| Category      | Example Actions                               | Emergent Title                 |
+| ------------- | --------------------------------------------- | ------------------------------ |
+| Writing       | Draft emails, blog posts, copy                | 文匠 (Wordsmith)               |
+| Data          | Analyze CSVs, summarize spreadsheets          | 數據煉金師 (Data Alchemist)    |
+| Visual        | Generate images, edit assets, design feedback | 幻象法師 (Visual Mage)         |
+| Code          | Write scripts, debug, automate                | 程式巫師 (Code Sorcerer)       |
+| Research      | Web search, summarize docs, compare options   | 求知者 (Knowledge Seeker)      |
+| Organization  | Manage tasks, create plans, schedule          | 戰略統帥 (Strategic Commander) |
+| Communication | Translate, summarize meetings, draft messages | 外交使者 (Diplomat)            |
 
 ### XP & Leveling
 
@@ -284,15 +285,14 @@ The player's title is computed from their top 2 skill categories:
 
 ```typescript
 function computeTitle(skills: Record<SkillCategory, number>): LocalizedString {
-  const sorted = Object.entries(skills)
-    .sort(([, a], [, b]) => b - a)
+  const sorted = Object.entries(skills).sort(([, a], [, b]) => b - a)
   const [primary] = sorted[0]
   const [secondary] = sorted[1]
   // Title = secondary adjective + primary noun
   // e.g., Research (博學) + Writing (文匠) = "博學文匠"
   return {
-    "zh-TW": titleAdjectives["zh-TW"][secondary] + titleNouns["zh-TW"][primary],
-    "en": titleAdjectives["en"][secondary] + " " + titleNouns["en"][primary]
+    'zh-TW': titleAdjectives['zh-TW'][secondary] + titleNouns['zh-TW'][primary],
+    en: titleAdjectives['en'][secondary] + ' ' + titleNouns['en'][primary]
   }
 }
 ```
@@ -304,11 +304,11 @@ Each category has both an adjective form (used as secondary) and a noun form (us
 Every 5 levels in a category unlocks a new tier of that category's title word:
 
 | Level | Writing Title (zh-TW) | Writing Title (en) |
-|---|---|---|
-| 5 | 抄寫員 | Scribbler |
-| 10 | 文匠 | Wordsmith |
-| 15 | 文豪 | Literary Master |
-| 20 | 傳奇作家 | Legendary Author |
+| ----- | --------------------- | ------------------ |
+| 5     | 抄寫員                | Scribbler          |
+| 10    | 文匠                  | Wordsmith          |
+| 15    | 文豪                  | Literary Master    |
+| 20    | 傳奇作家              | Legendary Author   |
 
 ### Quest System
 
@@ -321,31 +321,32 @@ interface QuestTrigger {
   id: string
   name: LocalizedString
   condition: {
-    type: "conversation_count"     // Count completed conversations
-    skillCategory: SkillCategory   // In this category
-    threshold: number              // Reaching this count
-    period?: "all_time" | "daily"  // Timeframe (default: all_time)
+    type: 'conversation_count' // Count completed conversations
+    skillCategory: SkillCategory // In this category
+    threshold: number // Reaching this count
+    period?: 'all_time' | 'daily' // Timeframe (default: all_time)
   }
   xpReward: number
-  repeatable: boolean              // Can trigger again after reset?
+  repeatable: boolean // Can trigger again after reset?
 }
 ```
 
 **v1 organic quests (examples):**
 
-| Quest | Trigger | Reward |
-|---|---|---|
-| 初次接觸 (First Contact) | 1 conversation in any category | 20 XP |
-| 知識收集者 (Knowledge Collector) | 3 conversations in Research | 50 XP |
-| 多才多藝 (Renaissance) | 1 conversation in each of 5 different categories | 100 XP |
-| 勤奮學徒 (Diligent Apprentice) | 10 conversations in any single category | 80 XP |
-| 日常冒險者 (Daily Adventurer) | 3 conversations in one day (daily, repeatable) | 30 XP |
+| Quest                            | Trigger                                          | Reward |
+| -------------------------------- | ------------------------------------------------ | ------ |
+| 初次接觸 (First Contact)         | 1 conversation in any category                   | 20 XP  |
+| 知識收集者 (Knowledge Collector) | 3 conversations in Research                      | 50 XP  |
+| 多才多藝 (Renaissance)           | 1 conversation in each of 5 different categories | 100 XP |
+| 勤奮學徒 (Diligent Apprentice)   | 10 conversations in any single category          | 80 XP  |
+| 日常冒險者 (Daily Adventurer)    | 3 conversations in one day (daily, repeatable)   | 30 XP  |
 
 The Progression Engine checks triggers after each conversation completion. When a trigger fires, the quest is created with `status: "completed"` and the player sees a celebration notification.
 
 #### Quest Board
 
 The Tavern quest board suggests tasks based on the player's weakest skill category:
+
 - "Your Visual skill is your lowest — try asking the Artisan to help you with a design task"
 - These are suggestions, not mandatory — no penalty for ignoring them
 
@@ -383,6 +384,7 @@ The Tavern quest board suggests tasks based on the player's weakest skill catego
 ### Mid-Session Key Errors
 
 If the API key becomes invalid during gameplay (revoked, rate-limited, expired):
+
 - The agent conversation shows an in-game error: "通訊中斷..." (Connection lost...)
 - Player is prompted to check/update their key in Settings
 - No data is lost — the conversation is preserved and can be resumed after key is fixed
@@ -429,12 +431,12 @@ interface Player {
   id: string
   name: string
   sprite: string
-  locale: "zh-TW" | "en"
-  skills: Record<SkillCategory, number>  // XP per category
-  level: number                // Overall level
-  title: LocalizedString       // Computed from top skills
+  locale: 'zh-TW' | 'en'
+  skills: Record<SkillCategory, number> // XP per category
+  level: number // Overall level
+  title: LocalizedString // Computed from top skills
   createdAt: Date
-  totalPlayTime: number        // Seconds
+  totalPlayTime: number // Seconds
   // Note: API key is NOT stored here — it lives in Electron main process via safeStorage
 }
 
@@ -442,27 +444,27 @@ interface Conversation {
   id: string
   agentId: string
   playerId: string
-  messages: { role: "user" | "assistant" | "system"; content: string; timestamp: Date }[]
+  messages: { role: 'user' | 'assistant' | 'system'; content: string; timestamp: Date }[]
   skillCategory: SkillCategory
   xpEarned: number
-  status: "active" | "completed"
+  status: 'active' | 'completed'
 }
 
 interface Quest {
   id: string
   title: LocalizedString
   description: LocalizedString
-  type: "organic" | "board" | "party"
+  type: 'organic' | 'board' | 'party'
   skillCategories: SkillCategory[]
   xpReward: number
-  status: "discovered" | "active" | "completed"
-  agents: string[]             // Agent IDs for party quests
+  status: 'discovered' | 'active' | 'completed'
+  agents: string[] // Agent IDs for party quests
 }
 
 interface Party {
   id: string
   name: string
-  agents: string[]             // Max 4 agent IDs
+  agents: string[] // Max 4 agent IDs
   activeQuest: string | null
 }
 
@@ -487,6 +489,7 @@ interface Progression {
 ## v1 Scope
 
 **Included:**
+
 - Electron app with Phaser game world + React UI overlays
 - Single town map with all key locations
 - 7 built-in NPC agents with full dialogue/conversation capability
@@ -499,6 +502,7 @@ interface Progression {
 - i18n: zh-TW and en
 
 **Deferred to future versions:**
+
 - Multiplayer / co-op parties with real users
 - Additional world maps (dungeons, forests, etc.)
 - Cloud save / sync

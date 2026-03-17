@@ -15,11 +15,13 @@ Creates placeholder PNG sprites and Tiled-compatible JSON tilemaps using Node.js
 ## Asset Types
 
 ### Tileset PNG
+
 - 16x16 tiles in a horizontal strip
 - Standard tiles: grass (#4a8c3f), path (#c4a46c), wall (#6b6b6b), water (#4a7ab5)
 - Output: `src/renderer/src/assets/tilesets/` or equivalent static asset directory
 
 ### Spritesheet PNG
+
 - 16x16 frames in a horizontal strip
 - Player: 4 directional frames (colored shape with direction indicator)
 - NPCs: 10 frames, each a distinct color matching the NPC's personality
@@ -29,6 +31,7 @@ Creates placeholder PNG sprites and Tiled-compatible JSON tilemaps using Node.js
 - Output: `src/renderer/src/assets/sprites/` or equivalent static asset directory
 
 ### Tilemap JSON (Tiled format)
+
 - 40x30 tiles, 16x16 tile size
 - Layers: Ground, Buildings, Collision, Objects
 - Objects layer contains NPC spawn points (type: "npc") and zone areas (type: "zone")

@@ -1,0 +1,36 @@
+{
+  "game": {
+    "title": "Claude RPG"
+  },
+  "interaction": {
+    "hint": "Press Space to talk",
+    "close": "Press Escape to close"
+  },
+  "dialogue": {
+    "placeholder": "......",
+    "thinking": "Thinking..."
+  },
+  "locations": {
+    "townSquare": "Town Square",
+    "guildHall": "Guild Hall",
+    "library": "Library",
+    "scribeWorkshop": "Scribe's Workshop",
+    "market": "Market",
+    "artisanStudio": "Artisan's Studio",
+    "messengerPost": "Messenger's Post",
+    "tavern": "Tavern",
+    "tower": "Tower"
+  },
+  "npcs": {
+    "elder": "The Elder",
+    "guildMaster": "Guild Master",
+    "scholar": "The Scholar",
+    "scribe": "The Scribe",
+    "merchant": "The Merchant",
+    "commander": "The Commander",
+    "artisan": "The Artisan",
+    "herald": "The Herald",
+    "wizard": "The Wizard",
+    "bartender": "Bartender"
+  }
+}

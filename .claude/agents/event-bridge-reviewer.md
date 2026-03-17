@@ -11,21 +11,25 @@ You review the typed EventBus that bridges Phaser and React in the Claude RPG re
 ## What To Check
 
 ### 1. Type Consistency
+
 - All `EventBus.emit()` calls must use event names defined in the `GameEvents` interface (`src/renderer/src/game/types.ts`)
 - Payloads passed to `emit()` must match the corresponding `GameEvents` type
 - All `EventBus.on()` listeners must destructure payloads matching `GameEvents`
 
 ### 2. Listener Lifecycle
+
 - Every `EventBus.on()` in a React component must have a matching `EventBus.off()` in the cleanup function of `useEffect`
 - Every `EventBus.on()` in a Phaser scene must have a matching `EventBus.off()` in the scene's `shutdown` or `destroy` method
 - Check for listeners registered outside of lifecycle hooks (potential duplicates on re-render)
 
 ### 3. Event Flow Correctness
+
 - Phaser → React events (`npc:interact`, `npc:proximity`, `player:moved`, `zone:entered`) should only be emitted from Phaser scenes/entities
 - React → Phaser events (`dialogue:closed`, `npc:spawn`, `npc:remove`, `camera:focus`) should only be emitted from React components
 - Core service events (`xp:gained`, `level:up`, `quest:completed`, `title:changed`) should only be emitted from service classes
 
 ### 4. Race Conditions
+
 - Check that `dialogue:closed` is not emitted before the dialogue panel has fully initialized
 - Check that `npc:interact` doesn't fire while dialogue is already open (Town scene should guard this with `dialogueOpen` flag)
 - Check that zone events don't re-emit every frame (should use a `currentZone` tracker)

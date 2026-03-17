@@ -15,6 +15,7 @@
 ### Task 1: Scaffold with electron-vite
 
 **Files:**
+
 - Create: `package.json`, `electron.vite.config.ts`, `tsconfig.json`, `tsconfig.node.json`, `tsconfig.web.json`
 - Create: `src/main/index.ts`, `src/preload/index.ts`, `src/renderer/index.html`, `src/renderer/src/main.tsx`
 
@@ -41,6 +42,7 @@ rm -rf ../claude-rpg-scaffold
 ```
 
 The scaffold provides:
+
 - `electron.vite.config.ts` — 3-process Vite config
 - `src/main/index.ts` — Electron main process (BrowserWindow creation)
 - `src/preload/index.ts` — contextBridge
@@ -78,6 +80,7 @@ Also add `pixelArt: true` consideration — this is a Phaser GameConfig option, 
 - [ ] **Step 5: Configure Electron window for RPG**
 
 Edit `src/main/index.ts`:
+
 - Set BrowserWindow size to `1024x768`
 - Set `resizable: false` (fixed game resolution for Phase 1)
 - Set window title to "Claude RPG"
@@ -107,6 +110,7 @@ git commit -m "feat: scaffold Electron + React + Vite + TypeScript via electron-
 ### Task 2: i18n Foundation
 
 **Files:**
+
 - Create: `src/renderer/src/i18n/index.ts`
 - Create: `src/renderer/src/i18n/types.ts`
 - Create: `src/renderer/src/i18n/locales/zh-TW.json`
@@ -117,6 +121,7 @@ i18n is set up early so all subsequent tasks use `t()` from the start. This is a
 - [ ] **Step 1: Create i18n types**
 
 `src/renderer/src/i18n/types.ts`:
+
 ```typescript
 export type Locale = 'zh-TW' | 'en'
 export type LocalizedString = Record<string, string>
@@ -125,6 +130,7 @@ export type LocalizedString = Record<string, string>
 - [ ] **Step 2: Create zh-TW locale file (primary)**
 
 `src/renderer/src/i18n/locales/zh-TW.json` with keys for:
+
 - Game title, interaction hints ("按 Space 對話")
 - All 9 location names (城鎮廣場, 公會大廳, 圖書館, 書記工坊, 市場, 匠師工坊, 傳令站, 酒館, 高塔)
 - All 10 NPC names (長老, 會長, 學者, 書記官, 商人, 指揮官, 匠師, 傳令使, 巫師, 酒保)
@@ -137,6 +143,7 @@ export type LocalizedString = Record<string, string>
 - [ ] **Step 4: Create i18n service**
 
 `src/renderer/src/i18n/index.ts`:
+
 - `t(key: string): string` — looks up key in current locale, falls back to zh-TW, then returns key itself
 - `setLocale(locale: Locale)` / `getLocale(): Locale`
 - A React context + `useTranslation()` hook for components that need to re-render on locale change
@@ -160,6 +167,7 @@ git commit -m "feat: add i18n foundation with zh-TW and en locales"
 ### Task 3: Phaser Game Bootstrap
 
 **Files:**
+
 - Create: `src/renderer/src/game/main.ts`
 - Create: `src/renderer/src/game/EventBus.ts`
 - Create: `src/renderer/src/game/types.ts`
@@ -175,6 +183,7 @@ Reference the official `phaserjs/template-react-ts` for the `PhaserGame.tsx` bri
 - [ ] **Step 1: Create game types**
 
 `src/renderer/src/game/types.ts` — define `GameEvents` interface matching the spec:
+
 ```typescript
 export interface GameEvents {
   'npc:interact': { agentId: string; npcPosition: { x: number; y: number } }
@@ -213,6 +222,7 @@ Also define `AgentDef` (Phase 1 lightweight version), `SkillCategory` type, `Loc
 - [ ] **Step 6: Create game config and StartGame function**
 
 `src/renderer/src/game/main.ts`:
+
 - `type: Phaser.AUTO`
 - `width: 1024, height: 768`
 - `pixelArt: true` (disables antialiasing — critical for pixel art)
@@ -223,6 +233,7 @@ Also define `AgentDef` (Phase 1 lightweight version), `SkillCategory` type, `Loc
 - [ ] **Step 7: Create PhaserGame React component**
 
 `src/renderer/src/components/PhaserGame.tsx` — adapted from the official `phaserjs/template-react-ts`:
+
 - Uses `useLayoutEffect` to call `StartGame('game-container')`
 - Stores game instance in ref
 - Cleans up (destroys game) on unmount
@@ -231,6 +242,7 @@ Also define `AgentDef` (Phase 1 lightweight version), `SkillCategory` type, `Loc
 - [ ] **Step 8: Wire into App.tsx**
 
 Update `src/renderer/src/App.tsx`:
+
 - Render `<PhaserGame />` inside a 1024x768 container
 - Add an absolutely positioned overlay `<div>` for React UI (with `pointerEvents: 'none'`)
 
@@ -254,6 +266,7 @@ git commit -m "feat: integrate Phaser 3 with typed EventBus and scene scaffold"
 ### Task 4: Placeholder Assets
 
 **Files:**
+
 - Create: `src/renderer/src/assets/tilemaps/town.json`
 - Create: `src/renderer/src/assets/tilesets/town-tileset.png`
 - Create: `src/renderer/src/assets/sprites/player.png`
@@ -264,6 +277,7 @@ Note: Asset paths may be in `public/assets/` or `src/renderer/src/assets/` depen
 - [ ] **Step 1: Generate placeholder tileset PNG**
 
 Write a Node.js script (`scripts/generate-assets.ts`) that uses the `canvas` npm package (or raw PNG buffer writing) to generate a minimal 64x16 tileset PNG with 4 colored 16x16 tiles:
+
 - Tile 0: green (#4a8c3f) — grass
 - Tile 1: beige (#c4a46c) — path
 - Tile 2: gray (#6b6b6b) — wall
@@ -281,6 +295,7 @@ npx tsx scripts/generate-assets.ts
 In the same `scripts/generate-assets.ts` script (or a separate `scripts/generate-tilemap.ts`), write the Tiled-compatible JSON tilemap directly. The Tiled JSON format is straightforward:
 
 Map spec: 40x30 tiles, 16x16 tile size, with 4 layers:
+
 - `Ground` (tile layer) — fill with grass, paths between locations
 - `Buildings` (tile layer) — wall tiles forming buildings for each location
 - `Collision` (tile layer) — wall tiles matching building walls (invisible in-game)
@@ -289,6 +304,7 @@ Map spec: 40x30 tiles, 16x16 tile size, with 4 layers:
   - 9 zone areas: `{ type: "zone", properties: [{ name: "zoneId", value: "townSquare" }, { name: "zoneName", value: "城鎮廣場" }], x, y, width, height }`
 
 Layout the 9 locations from the spec as distinct rectangular areas on the map:
+
 - Town Square: center (roughly 10x8 tiles)
 - Guild Hall: north-west
 - Library: north-east
@@ -304,6 +320,7 @@ Save to `town.json` in the static assets directory.
 - [ ] **Step 3: Generate placeholder sprite PNGs**
 
 In the same script, generate:
+
 - `player.png`: 64x16 spritesheet (4 frames of 16x16) — a colored character shape (e.g., blue square with a dot for head) in 4 directions
 - `npcs.png`: 160x16 spritesheet (10 frames of 16x16) — each NPC as a distinct colored square with a letter or symbol:
   - elder=#c4a46c, guildMaster=#8b6914, scholar=#2e5a88, scribe=#5a3a7e, merchant=#8b4513, commander=#8b0000, artisan=#d4a017, herald=#2e8b57, wizard=#4b0082, bartender=#8b7355
@@ -328,12 +345,14 @@ git commit -m "feat: add placeholder tileset, tilemap, and sprite assets"
 ### Task 5: Player Character
 
 **Files:**
+
 - Create: `src/renderer/src/game/entities/Player.ts`
 - Modify: `src/renderer/src/game/scenes/Town.ts`
 
 - [ ] **Step 1: Create Player class**
 
 `src/renderer/src/game/entities/Player.ts`:
+
 - Extends `Phaser.Physics.Arcade.Sprite`
 - Constructor: add to scene, enable physics, set body size, set depth
 - `update()`: read cursor keys + WASD, set velocity (e.g., 160px/sec), normalize diagonal, flip sprite for direction
@@ -343,6 +362,7 @@ git commit -m "feat: add placeholder tileset, tilemap, and sprite assets"
 - [ ] **Step 2: Add player to Town scene**
 
 Update `Town.ts` `create()`:
+
 - Create tilemap from loaded JSON: `this.make.tilemap({ key: 'town-map' })`
 - Add tileset image: `map.addTilesetImage(...)`
 - Create layers: Ground, Buildings, Collision (setVisible false on Collision)
@@ -354,6 +374,7 @@ Update `Town.ts` `create()`:
 - Camera bounds: `this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels)`
 
 Update `Town.ts` `update()`:
+
 - Call `this.player.update()`
 
 - [ ] **Step 3: Verify movement**
@@ -376,6 +397,7 @@ git commit -m "feat: add player character with WASD movement and collision"
 ### Task 6: NPC Sprites & Interaction Zones
 
 **Files:**
+
 - Create: `src/renderer/src/game/entities/NPC.ts`
 - Create: `src/renderer/src/game/data/npcs.ts`
 - Modify: `src/renderer/src/game/scenes/Town.ts`
@@ -383,6 +405,7 @@ git commit -m "feat: add player character with WASD movement and collision"
 - [ ] **Step 1: Create NPC data definitions**
 
 `src/renderer/src/game/data/npcs.ts`:
+
 - Export `BUILT_IN_NPCS: AgentDef[]` — array of all 9 built-in NPCs (+ bartender = 10) with:
   - `id`, `name` (LocalizedString with zh-TW and en), `sprite` frame index, `location`
   - Locations should match the Tiled map Object layer NPC spawn points
@@ -390,6 +413,7 @@ git commit -m "feat: add player character with WASD movement and collision"
 - [ ] **Step 2: Create NPC class**
 
 `src/renderer/src/game/entities/NPC.ts`:
+
 - Extends `Phaser.Physics.Arcade.Sprite`
 - Constructor: takes scene, x, y, `AgentDef`
 - Physics body: `setImmovable(true)` — player can't push NPCs
@@ -401,6 +425,7 @@ git commit -m "feat: add player character with WASD movement and collision"
 - [ ] **Step 3: Spawn NPCs in Town scene**
 
 Update `Town.ts` `create()`:
+
 - Import `BUILT_IN_NPCS`
 - For each NPC: instantiate `NPC` at their location
 - Store NPCs in an array/group
@@ -412,6 +437,7 @@ Update `Town.ts` `create()`:
 - [ ] **Step 4: Add Space key interaction**
 
 In `Town.ts`:
+
 - Listen for Space key press
 - On Space: find which NPC the player is in range of (if any)
 - If found and dialogue is not already open: emit `EventBus.emit('npc:interact', { agentId, npcPosition })`
@@ -439,11 +465,13 @@ git commit -m "feat: add NPC sprites with interaction zones and proximity detect
 ### Task 7: Zone Detection
 
 **Files:**
+
 - Modify: `src/renderer/src/game/scenes/Town.ts`
 
 - [ ] **Step 1: Parse zone objects from tilemap**
 
 In `Town.ts` `create()`:
+
 - Get the Objects layer: `map.getObjectLayer('Objects')`
 - Filter for objects with type `zone`
 - For each zone object: create a `Phaser.GameObjects.Zone` with the object's position/size
@@ -473,17 +501,19 @@ git commit -m "feat: add zone detection from tilemap object layer"
 ### Task 8: Proximity Hint
 
 **Files:**
+
 - Create: `src/renderer/src/components/ui/ProximityHint.tsx`
 - Modify: `src/renderer/src/App.tsx`
 
 - [ ] **Step 1: Create ProximityHint component**
 
 `src/renderer/src/components/ui/ProximityHint.tsx`:
+
 - Subscribe to `EventBus.on('npc:proximity', ...)` in `useEffect`
 - When `inRange: true`: show a styled hint at bottom-center of screen: `t('interaction.hint')` ("按 Space 對話")
 - When `inRange: false`: hide the hint
 - Style: pixel-art themed box with semi-transparent dark background, white text
-- Set `pointerEvents: 'auto'` only when visible
+- ~~Set `pointerEvents: 'auto'` only when visible~~ → Updated: use `pointerEvents: 'none'` always — ProximityHint is display-only and must not block Phaser canvas input
 
 - [ ] **Step 2: Add to App.tsx overlay layer**
 
@@ -503,12 +533,14 @@ git commit -m "feat: add proximity hint UI overlay"
 ### Task 9: Dialogue Panel
 
 **Files:**
+
 - Create: `src/renderer/src/components/ui/DialoguePanel.tsx`
 - Modify: `src/renderer/src/App.tsx`
 
 - [ ] **Step 1: Create DialoguePanel component**
 
 `src/renderer/src/components/ui/DialoguePanel.tsx`:
+
 - Subscribe to `EventBus.on('npc:interact', ...)` → open panel with NPC info
 - Display: NPC name (localized via `t()` or from `AgentDef.name`), placeholder dialogue text "......"
 - Style: classic RPG dialogue box — bottom 1/4 of screen, dark semi-transparent background, bordered, NPC name in header
@@ -538,12 +570,14 @@ git commit -m "feat: add RPG-style dialogue panel overlay"
 ### Task 10: HUD (Location Display)
 
 **Files:**
+
 - Create: `src/renderer/src/components/ui/HUD.tsx`
 - Modify: `src/renderer/src/App.tsx`
 
 - [ ] **Step 1: Create HUD component**
 
 `src/renderer/src/components/ui/HUD.tsx`:
+
 - Subscribe to `EventBus.on('zone:entered', ...)`
 - Display current location name in top-left corner
 - Look up localized zone name via `t('locations.' + zoneId)` or use the `zoneName` from the event
@@ -567,6 +601,7 @@ git commit -m "feat: add HUD with location name display"
 ### Task 11: End-to-End Verification & Polish
 
 **Files:**
+
 - Possibly minor edits across multiple files
 
 - [ ] **Step 1: TypeScript check**
@@ -580,6 +615,7 @@ Fix any type errors.
 - [ ] **Step 2: Full walkthrough test**
 
 Run `npm run dev` and verify:
+
 1. Electron window opens at 1024x768 with "Claude RPG" title
 2. Tilemap renders with distinct location areas
 3. Player spawns in Town Square
@@ -638,19 +674,19 @@ Should complete without errors (produces distributable in `out/`).
 
 ## Key Files Reference
 
-| File | Responsibility |
-|---|---|
-| `electron.vite.config.ts` | 3-process Vite config (main/preload/renderer) |
-| `src/main/index.ts` | Electron BrowserWindow creation |
-| `src/renderer/src/game/EventBus.ts` | Typed event bus (Phaser ↔ React bridge) |
-| `src/renderer/src/game/types.ts` | GameEvents, AgentDef, SkillCategory types |
-| `src/renderer/src/game/scenes/Town.ts` | Main gameplay scene — tilemap, player, NPCs, zones |
-| `src/renderer/src/game/entities/Player.ts` | Player sprite, movement, camera follow |
-| `src/renderer/src/game/entities/NPC.ts` | NPC sprite, idle animation, interaction zone |
-| `src/renderer/src/game/data/npcs.ts` | Built-in NPC definitions |
-| `src/renderer/src/components/PhaserGame.tsx` | React component hosting Phaser (from official template pattern) |
-| `src/renderer/src/components/ui/DialoguePanel.tsx` | RPG dialogue box overlay |
-| `src/renderer/src/i18n/index.ts` | t() function, locale management |
+| File                                               | Responsibility                                                  |
+| -------------------------------------------------- | --------------------------------------------------------------- |
+| `electron.vite.config.ts`                          | 3-process Vite config (main/preload/renderer)                   |
+| `src/main/index.ts`                                | Electron BrowserWindow creation                                 |
+| `src/renderer/src/game/EventBus.ts`                | Typed event bus (Phaser ↔ React bridge)                         |
+| `src/renderer/src/game/types.ts`                   | GameEvents, AgentDef, SkillCategory types                       |
+| `src/renderer/src/game/scenes/Town.ts`             | Main gameplay scene — tilemap, player, NPCs, zones              |
+| `src/renderer/src/game/entities/Player.ts`         | Player sprite, movement, camera follow                          |
+| `src/renderer/src/game/entities/NPC.ts`            | NPC sprite, idle animation, interaction zone                    |
+| `src/renderer/src/game/data/npcs.ts`               | Built-in NPC definitions                                        |
+| `src/renderer/src/components/PhaserGame.tsx`       | React component hosting Phaser (from official template pattern) |
+| `src/renderer/src/components/ui/DialoguePanel.tsx` | RPG dialogue box overlay                                        |
+| `src/renderer/src/i18n/index.ts`                   | t() function, locale management                                 |
 
 ## Notes
 
