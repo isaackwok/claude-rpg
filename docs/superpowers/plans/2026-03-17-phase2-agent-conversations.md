@@ -73,6 +73,7 @@ export function storeApiKey(key: string): void {
 export function getApiKey(): string | null {
   const keyPath = getKeyPath()
   if (!existsSync(keyPath)) return null
+  if (!safeStorage.isEncryptionAvailable()) return null
   const encrypted = readFileSync(keyPath)
   return safeStorage.decryptString(encrypted)
 }
@@ -676,7 +677,11 @@ async function executeStream(
   }
 
   const history = getOrCreateHistory(agentId)
-  history.push({ role: 'user', content: message })
+  // Avoid duplicate on retry: only push if the last message isn't already this exact user message
+  const last = history[history.length - 1]
+  if (!(last?.role === 'user' && last.content === message)) {
+    history.push({ role: 'user', content: message })
+  }
 
   const controller = new AbortController()
   activeStreams.set(agentId, { agentId, controller })
@@ -845,6 +850,7 @@ export interface IConversationRepository {
   appendStreamChunk(agentId: string, chunk: string): void
   finalizeStream(agentId: string): void
   markStreamError(agentId: string): void
+  prepareRetry(agentId: string): void
   getStreamingState(agentId: string): StreamingState
 }
 
@@ -960,6 +966,20 @@ class InMemoryConversationRepository implements IConversationRepository {
     const conv = this.conversations.get(agentId)
     if (conv) {
       conv.streamingState = 'error'
+      this.notify()
+    }
+  }
+
+  /** Reset error state and remove the failed assistant message stub (if any) for retry */
+  prepareRetry(agentId: string): void {
+    const conv = this.conversations.get(agentId)
+    if (conv) {
+      conv.streamingState = 'idle'
+      // Remove the incomplete assistant message that errored out
+      const last = conv.messages[conv.messages.length - 1]
+      if (last?.role === 'assistant') {
+        conv.messages.pop()
+      }
       this.notify()
     }
   }
@@ -1236,8 +1256,7 @@ export function DialoguePanel({ onRequestApiKey }: DialoguePanelProps) {
                   .reverse()
                   .find((m) => m.role === 'user')
                 if (lastUserMsg && dialogue) {
-                  conversationManager.getOrCreateConversation(dialogue.agentId).streamingState =
-                    'idle'
+                  conversationManager.prepareRetry(dialogue.agentId)
                   window.api.sendMessage(dialogue.agentId, lastUserMsg.content, locale)
                 }
               }}
