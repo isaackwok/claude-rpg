@@ -3,6 +3,7 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { storeApiKey, hasApiKey, clearApiKey } from './api-key'
+import { handleSendMessage, cancelStream } from './chat'
 
 function createWindow(): void {
   // Create the browser window.
@@ -71,6 +72,15 @@ app.whenReady().then(() => {
 
   ipcMain.handle('apikey:clear', async () => {
     clearApiKey()
+  })
+
+  // Chat
+  ipcMain.on('chat:send-message', (event, { agentId, message, locale }) => {
+    handleSendMessage(agentId, message, locale, event.sender)
+  })
+
+  ipcMain.on('chat:cancel-stream', (_event, { agentId }) => {
+    cancelStream(agentId)
   })
 
   createWindow()
