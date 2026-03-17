@@ -40,7 +40,8 @@
     "apiKeyInvalid": "API 金鑰格式不正確",
     "retry": "重試",
     "copied": "已複製",
-    "copy": "複製"
+    "copy": "複製",
+    "newMessages": "新訊息"
   },
   "locations": {
     "townSquare": "城鎮廣場",

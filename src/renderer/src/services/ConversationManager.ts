@@ -15,6 +15,7 @@ export interface IConversationRepository {
   markStreamError(agentId: AgentId, error: string): void
   prepareRetry(agentId: AgentId): void
   getStreamingState(agentId: AgentId): StreamingState
+  clearUnreadMarker(agentId: AgentId): void
 }
 
 export type ConversationStatus =
@@ -28,6 +29,7 @@ export interface Conversation {
   readonly messages: readonly Message[]
   readonly status: ConversationStatus
   readonly hasUnread: boolean
+  readonly firstUnreadIndex: number | null
   // TODO(phase-3): Add id, playerId, skillCategory, xpEarned, status, timestamps
 }
 
@@ -46,6 +48,7 @@ interface MutableConversation {
   messages: Message[]
   status: ConversationStatus
   hasUnread: boolean
+  firstUnreadIndex: number | null
 }
 
 class InMemoryConversationRepository implements IConversationRepository {
@@ -77,6 +80,7 @@ class InMemoryConversationRepository implements IConversationRepository {
       const conv = this.conversations.get(agentId)
       if (conv?.hasUnread) {
         conv.hasUnread = false
+        // Keep firstUnreadIndex — DialoguePanel reads it before clearing
         EventBus.emit('npc:speech-bubble', { agentId, style: false })
         this.notify()
       }
@@ -89,7 +93,8 @@ class InMemoryConversationRepository implements IConversationRepository {
         agentId,
         messages: [],
         status: { state: 'idle' },
-        hasUnread: false
+        hasUnread: false,
+        firstUnreadIndex: null
       })
     }
     return this.conversations.get(agentId)!
@@ -129,6 +134,8 @@ class InMemoryConversationRepository implements IConversationRepository {
     if (this.activeDialogueAgentId !== agentId) {
       if (!conv.hasUnread) {
         conv.hasUnread = true
+        // Track where unread messages start (index of the new assistant message)
+        conv.firstUnreadIndex = conv.messages.length - 1
       }
       EventBus.emit('npc:speech-bubble', { agentId, style: 'streaming' })
     }
@@ -167,6 +174,14 @@ class InMemoryConversationRepository implements IConversationRepository {
         conv.messages.pop()
       }
       this.notify()
+    }
+  }
+
+  clearUnreadMarker(agentId: AgentId): void {
+    const conv = this.conversations.get(agentId)
+    if (conv) {
+      conv.firstUnreadIndex = null
+      // No notify() — callers capture firstUnreadIndex before clearing
     }
   }
 
