@@ -24,6 +24,7 @@ export interface GameEvents {
   'player:moved': { x: number; y: number; map: string }
   'zone:entered': { zoneId: string; zoneName: string }
   'dialogue:closed': { agentId: string }
+  'npc:speech-bubble': { agentId: string; visible: boolean }
   'npc:spawn': { agent: AgentDef }
   'npc:remove': { agentId: string }
   'camera:focus': { x: number; y: number }
