@@ -48,7 +48,7 @@ Phase 2 adds real AI-powered dialogue to Claude RPG. Players can talk to any bui
 
 ```
 Player types in DialoguePanel → submit
-  → React calls window.api.chat.sendMessage(agentId, text)
+  → React calls window.api.sendMessage(agentId, text)
     → ipcRenderer.send('chat:send-message', { agentId, message })
       → Main process handler:
         1. Look up NPC system prompt from registry
