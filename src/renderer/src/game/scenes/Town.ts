@@ -3,7 +3,6 @@ import { Player } from '../entities/Player'
 import { NPC } from '../entities/NPC'
 import { BUILT_IN_NPCS } from '../data/npcs'
 import { EventBus } from '../EventBus'
-import { BuildingDecorator } from '../decorations/BuildingDecorator'
 
 export class Town extends Scene {
   private player!: Player
@@ -32,9 +31,6 @@ export class Town extends Scene {
     this.collisionLayer = map.createLayer('Collision', tileset)!
     this.collisionLayer.setVisible(false)
     this.collisionLayer.setCollisionByExclusion([-1])
-
-    // Draw building decorations on top of tilemap
-    new BuildingDecorator(this).decorateAll()
 
     // Player spawn (center of Town Square)
     const spawnX = 39 * 16 + 8
