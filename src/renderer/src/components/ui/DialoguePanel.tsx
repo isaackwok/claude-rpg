@@ -3,7 +3,7 @@ import { EventBus } from '../../game/EventBus'
 import { useTranslation } from '../../i18n'
 import { BUILT_IN_NPCS } from '../../game/data/npcs'
 import { conversationManager } from '../../services/ConversationManager'
-import type { Conversation } from '../../services/ConversationManager'
+import type { Conversation, Message } from '../../services/ConversationManager'
 import { renderMarkdown } from '../../utils/renderMarkdown'
 
 interface DialogueState {
@@ -16,6 +16,61 @@ interface DialoguePanelProps {
   apiKeyVersion: number
 }
 
+// Hoisted outside component to avoid re-injection on every render
+const dialogueStyles = (
+  <style>{`
+    @keyframes blink { 50% { opacity: 0; } }
+    @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+    .md-content { word-wrap: break-word; }
+    .md-content p { margin: 0 0 0.5em; }
+    .md-content p:last-child { margin-bottom: 0; }
+    .md-content ul, .md-content ol { margin: 0.3em 0; padding-left: 1.4em; }
+    .md-content ul { list-style: disc; }
+    .md-content ol { list-style: decimal; }
+    .md-content li { margin: 0.15em 0; }
+    .md-content strong { color: #e0c888; }
+    .md-content em { color: #c4b8a0; }
+    .md-content code {
+      background: rgba(255,255,255,0.08);
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-size: 13px;
+    }
+    .md-content pre {
+      background: rgba(0,0,0,0.4);
+      padding: 8px;
+      border-radius: 4px;
+      overflow-x: auto;
+      margin: 0.4em 0;
+    }
+    .md-content pre code {
+      background: none;
+      padding: 0;
+    }
+    .md-content h1, .md-content h2, .md-content h3 {
+      color: #c4a46c;
+      margin: 0.5em 0 0.3em;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    .md-content blockquote {
+      border-left: 2px solid rgba(200,180,140,0.4);
+      margin: 0.4em 0;
+      padding: 2px 8px;
+      opacity: 0.85;
+    }
+    .md-content a { color: #7eb8da; text-decoration: underline; }
+    .md-content hr { border: none; border-top: 1px solid rgba(200,180,140,0.2); margin: 0.5em 0; }
+    .md-content table { border-collapse: collapse; margin: 0.4em 0; }
+    .md-content th, .md-content td {
+      border: 1px solid rgba(200,180,140,0.3);
+      padding: 3px 8px;
+      font-size: 13px;
+    }
+    .md-content th { background: rgba(200,180,140,0.1); color: #c4a46c; }
+  `}</style>
+)
+
 /** Renders a single message bubble with markdown (assistant) or plain text (user) */
 function MessageBubble({
   msg,
@@ -23,7 +78,7 @@ function MessageBubble({
   isStreaming,
   t
 }: {
-  msg: { role: string; content: string }
+  msg: Message
   isLastAssistant: boolean
   isStreaming: boolean
   t: (key: string) => string
@@ -36,12 +91,15 @@ function MessageBubble({
     return renderMarkdown(msg.content)
   }, [isAssistant, msg.content])
 
-  const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(msg.content).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1500)
-    })
-  }, [msg.content])
+  const handleCopy = (): void => {
+    navigator.clipboard.writeText(msg.content).then(
+      () => {
+        setCopied(true)
+        setTimeout(() => setCopied(false), 1500)
+      },
+      () => {} // Clipboard access denied — silently ignore
+    )
+  }
 
   return (
     <div
@@ -389,56 +447,7 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
         </div>
       )}
 
-      {/* Animations + Markdown styles */}
-      <style>{`
-        @keyframes blink { 50% { opacity: 0; } }
-        @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
-        .md-content { word-wrap: break-word; }
-        .md-content p { margin: 0 0 0.5em; }
-        .md-content p:last-child { margin-bottom: 0; }
-        .md-content ul, .md-content ol { margin: 0.3em 0; padding-left: 1.4em; }
-        .md-content li { margin: 0.15em 0; }
-        .md-content strong { color: #e0c888; }
-        .md-content em { color: #c4b8a0; }
-        .md-content code {
-          background: rgba(255,255,255,0.08);
-          padding: 1px 4px;
-          border-radius: 3px;
-          font-size: 13px;
-        }
-        .md-content pre {
-          background: rgba(0,0,0,0.4);
-          padding: 8px;
-          border-radius: 4px;
-          overflow-x: auto;
-          margin: 0.4em 0;
-        }
-        .md-content pre code {
-          background: none;
-          padding: 0;
-        }
-        .md-content h1, .md-content h2, .md-content h3 {
-          color: #c4a46c;
-          margin: 0.5em 0 0.3em;
-          font-size: 14px;
-          font-weight: bold;
-        }
-        .md-content blockquote {
-          border-left: 2px solid rgba(200,180,140,0.4);
-          margin: 0.4em 0;
-          padding: 2px 8px;
-          opacity: 0.85;
-        }
-        .md-content a { color: #7eb8da; text-decoration: underline; }
-        .md-content hr { border: none; border-top: 1px solid rgba(200,180,140,0.2); margin: 0.5em 0; }
-        .md-content table { border-collapse: collapse; margin: 0.4em 0; }
-        .md-content th, .md-content td {
-          border: 1px solid rgba(200,180,140,0.3);
-          padding: 3px 8px;
-          font-size: 13px;
-        }
-        .md-content th { background: rgba(200,180,140,0.1); color: #c4a46c; }
-      `}</style>
+      {dialogueStyles}
     </div>
   )
 }
