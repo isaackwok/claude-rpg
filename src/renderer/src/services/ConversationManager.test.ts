@@ -24,8 +24,7 @@ describe('ConversationManager', () => {
       expect(conv).toEqual({
         agentId: 'agent-create-1',
         messages: [],
-        streamingState: 'idle',
-        streamError: null,
+        status: { state: 'idle' },
         hasUnread: false
       })
     })
@@ -83,7 +82,7 @@ describe('ConversationManager', () => {
       conversationManager.appendStreamChunk('agent-chunk-1', 'Hello')
 
       const conv = conversationManager.getConversation('agent-chunk-1')!
-      expect(conv.streamingState).toBe('streaming')
+      expect(conv.status).toEqual({ state: 'streaming' })
       expect(conv.messages).toHaveLength(1)
       expect(conv.messages[0].role).toBe('assistant')
       expect(conv.messages[0].content).toBe('Hello')
@@ -142,33 +141,27 @@ describe('ConversationManager', () => {
   })
 
   describe('markStreamError', () => {
-    it('sets state to error', () => {
+    it('sets state to error with error string', () => {
       conversationManager.getOrCreateConversation('agent-error-1')
       conversationManager.appendStreamChunk('agent-error-1', 'partial')
-      conversationManager.markStreamError('agent-error-1')
+      conversationManager.markStreamError('agent-error-1', 'something failed')
 
       expect(conversationManager.getStreamingState('agent-error-1')).toBe('error')
+      const conv = conversationManager.getConversation('agent-error-1')!
+      expect(conv.status).toEqual({ state: 'error', error: 'something failed' })
     })
 
-    it('stores the error string when provided', () => {
+    it('stores the error string in the status', () => {
       conversationManager.getOrCreateConversation('agent-error-2')
       conversationManager.markStreamError('agent-error-2', 'rate limit exceeded')
 
       const conv = conversationManager.getConversation('agent-error-2')!
-      expect(conv.streamError).toBe('rate limit exceeded')
-    })
-
-    it('stores null when no error string is provided', () => {
-      conversationManager.getOrCreateConversation('agent-error-3')
-      conversationManager.markStreamError('agent-error-3')
-
-      const conv = conversationManager.getConversation('agent-error-3')!
-      expect(conv.streamError).toBeNull()
+      expect(conv.status).toEqual({ state: 'error', error: 'rate limit exceeded' })
     })
 
     it('is a no-op for unknown agentId', () => {
       const vBefore = conversationManager.getVersion()
-      conversationManager.markStreamError('agent-error-nonexist')
+      conversationManager.markStreamError('agent-error-nonexist', 'error')
       expect(conversationManager.getVersion()).toBe(vBefore)
     })
   })
@@ -197,25 +190,28 @@ describe('ConversationManager', () => {
         timestamp: 1
       })
       conversationManager.appendStreamChunk('agent-retry-1', 'partial response')
-      conversationManager.markStreamError('agent-retry-1')
+      conversationManager.markStreamError('agent-retry-1', 'failed')
 
       conversationManager.prepareRetry('agent-retry-1')
 
       const conv = conversationManager.getConversation('agent-retry-1')!
-      expect(conv.streamingState).toBe('idle')
+      expect(conv.status).toEqual({ state: 'idle' })
       expect(conv.messages).toHaveLength(1)
       expect(conv.messages[0].role).toBe('user')
     })
 
-    it('clears streamError on retry', () => {
+    it('clears error status on retry', () => {
       conversationManager.getOrCreateConversation('agent-retry-3')
       conversationManager.markStreamError('agent-retry-3', 'network error')
-      expect(conversationManager.getConversation('agent-retry-3')!.streamError).toBe(
-        'network error'
-      )
+      expect(conversationManager.getConversation('agent-retry-3')!.status).toEqual({
+        state: 'error',
+        error: 'network error'
+      })
 
       conversationManager.prepareRetry('agent-retry-3')
-      expect(conversationManager.getConversation('agent-retry-3')!.streamError).toBeNull()
+      expect(conversationManager.getConversation('agent-retry-3')!.status).toEqual({
+        state: 'idle'
+      })
     })
 
     it('does not remove last message if it is a user message', () => {
@@ -225,7 +221,7 @@ describe('ConversationManager', () => {
         content: 'question',
         timestamp: 1
       })
-      conversationManager.markStreamError('agent-retry-2')
+      conversationManager.markStreamError('agent-retry-2', 'failed')
 
       conversationManager.prepareRetry('agent-retry-2')
 

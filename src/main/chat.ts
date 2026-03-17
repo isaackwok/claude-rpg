@@ -28,16 +28,16 @@ function getOrCreateClient(apiKey: string): Anthropic {
   return client
 }
 
-const conversationHistories = new Map<string, Message[]>()
-const activeStreams = new Map<string, ActiveStream>()
+const conversationHistories = new Map<AgentId, Message[]>()
+const activeStreams = new Map<AgentId, ActiveStream>()
 const pendingQueue: Array<{
-  agentId: string
+  agentId: AgentId
   message: string
   locale: string
   webContents: WebContents
 }> = []
 
-function getOrCreateHistory(agentId: string): Message[] {
+function getOrCreateHistory(agentId: AgentId): Message[] {
   if (!conversationHistories.has(agentId)) {
     conversationHistories.set(agentId, [])
   }
@@ -63,7 +63,7 @@ function processQueue(): void {
 }
 
 async function executeStream(
-  agentId: string,
+  agentId: AgentId,
   message: string,
   locale: string,
   webContents: WebContents
@@ -88,14 +88,13 @@ async function executeStream(
   }
 
   const controller = new AbortController()
-  activeStreams.set(agentId, { agentId, controller })
-
   const client = getOrCreateClient(apiKey)
   const systemPrompt =
     locale === 'en'
       ? config.systemPrompt + '\n\nThe player is using English. Respond in English.'
       : config.systemPrompt
 
+  activeStreams.set(agentId, { agentId, controller })
   let fullResponse = ''
 
   try {
@@ -148,6 +147,7 @@ async function executeStream(
       }
     } else {
       const error = err instanceof Error ? err.message : String(err)
+      console.error(`[chat] Stream error for agent ${agentId}:`, err)
       if (!webContents.isDestroyed()) {
         webContents.send('chat:stream-error', { agentId, error })
       }
@@ -159,7 +159,7 @@ async function executeStream(
 }
 
 export function handleSendMessage(
-  agentId: string,
+  agentId: AgentId,
   message: string,
   locale: string,
   webContents: WebContents
@@ -171,11 +171,10 @@ export function handleSendMessage(
   }
 }
 
-export function cancelStream(agentId: string): void {
+export function cancelStream(agentId: AgentId): void {
   const stream = activeStreams.get(agentId)
   if (stream) {
+    // Only abort — let executeStream's finally block handle cleanup and queue processing
     stream.controller.abort()
-    activeStreams.delete(agentId)
-    processQueue()
   }
 }

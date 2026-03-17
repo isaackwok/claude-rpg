@@ -65,7 +65,8 @@ app.whenReady().then(() => {
     try {
       storeApiKey(key)
       return true
-    } catch {
+    } catch (err) {
+      console.error('[apikey:set] Failed to store API key:', err)
       return false
     }
   })
@@ -87,6 +88,7 @@ app.whenReady().then(() => {
       typeof (data as Record<string, unknown>).message !== 'string' ||
       typeof (data as Record<string, unknown>).locale !== 'string'
     ) {
+      console.warn('[chat:send-message] Received malformed IPC payload:', data)
       return
     }
     const { agentId, message, locale } = data as {
@@ -103,6 +105,7 @@ app.whenReady().then(() => {
       typeof data !== 'object' ||
       typeof (data as Record<string, unknown>).agentId !== 'string'
     ) {
+      console.warn('[chat:cancel-stream] Received malformed IPC payload:', data)
       return
     }
     cancelStream((data as { agentId: string }).agentId)

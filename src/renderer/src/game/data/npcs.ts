@@ -1,6 +1,6 @@
 import type { AgentDef } from '../types'
 
-export const BUILT_IN_NPCS: AgentDef[] = [
+export const BUILT_IN_NPCS: readonly AgentDef[] = [
   {
     id: 'elder',
     name: { 'zh-TW': '長老 艾德蒙', en: 'Elder Edmond' },

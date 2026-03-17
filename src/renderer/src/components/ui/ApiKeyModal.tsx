@@ -16,12 +16,18 @@ export function ApiKeyModal({ onClose, onSaved }: ApiKeyModalProps) {
     if (!key.trim()) return
     setSaving(true)
     setError('')
-    const ok = await window.api.setApiKey(key.trim())
-    setSaving(false)
-    if (ok) {
-      onSaved()
-    } else {
-      setError(t('dialogue.apiKeyInvalid'))
+    try {
+      const ok = await window.api.setApiKey(key.trim())
+      if (ok) {
+        onSaved()
+      } else {
+        setError(t('dialogue.apiKeyInvalid'))
+      }
+    } catch (err) {
+      console.error('[ApiKeyModal] Failed to save API key:', err)
+      setError(t('dialogue.connectionError'))
+    } finally {
+      setSaving(false)
     }
   }, [key, t, onSaved])
 

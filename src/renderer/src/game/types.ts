@@ -13,12 +13,12 @@ export type SkillCategory =
   | 'communication'
 
 export interface AgentDef {
-  id: AgentId
-  name: LocalizedString
-  sprite: string
-  spriteFrame: number
-  location: { map: string; x: number; y: number }
-  skills?: SkillCategory[]
+  readonly id: AgentId
+  readonly name: LocalizedString
+  readonly sprite: string
+  readonly spriteFrame: number
+  readonly location: { readonly map: string; readonly x: number; readonly y: number }
+  readonly skills?: readonly SkillCategory[]
 }
 
 export interface GameEvents {

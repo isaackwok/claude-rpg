@@ -9,6 +9,11 @@ const md = new Marked({ breaks: true, gfm: true })
  * Used by MessageBubble to render assistant responses.
  */
 export function renderMarkdown(content: string): string {
-  const raw = md.parse(content, { async: false }) as string
-  return DOMPurify.sanitize(raw)
+  try {
+    const raw = md.parse(content, { async: false }) as string
+    return DOMPurify.sanitize(raw)
+  } catch (err) {
+    console.error('[renderMarkdown] Failed to parse markdown:', err)
+    return DOMPurify.sanitize(content)
+  }
 }

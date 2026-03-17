@@ -4,10 +4,11 @@ import { useTranslation } from '../../i18n'
 import { BUILT_IN_NPCS } from '../../game/data/npcs'
 import { conversationManager } from '../../services/ConversationManager'
 import type { Conversation, Message } from '../../services/ConversationManager'
+import type { AgentId } from '../../game/types'
 import { renderMarkdown } from '../../utils/renderMarkdown'
 
 interface DialogueState {
-  agentId: string
+  agentId: AgentId
   npcName: string
 }
 
@@ -263,8 +264,8 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
 
   if (!dialogue) return null
 
-  const isWaiting = conversation?.streamingState === 'waiting'
-  const isStreaming = conversation?.streamingState === 'streaming'
+  const isWaiting = conversation?.status.state === 'waiting'
+  const isStreaming = conversation?.status.state === 'streaming'
   const isBusy = isWaiting || isStreaming
   const messages = conversation?.messages ?? []
 
@@ -374,11 +375,11 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
           </div>
         )}
         {/* Error state */}
-        {conversation?.streamingState === 'error' && (
+        {conversation?.status.state === 'error' && (
           <div style={{ padding: '6px 10px', color: '#ff6b6b', fontSize: 13 }}>
-            {conversation.streamError === 'no-api-key'
+            {conversation.status.error === 'no-api-key'
               ? t('dialogue.errorNoApiKey')
-              : conversation.streamError?.includes('rate limit')
+              : conversation.status.error.includes('rate limit')
                 ? t('dialogue.errorRateLimit')
                 : t('dialogue.connectionError')}{' '}
             <span

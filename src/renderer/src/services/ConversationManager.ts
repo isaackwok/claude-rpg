@@ -12,16 +12,21 @@ export interface IConversationRepository {
   appendStreamChunk(agentId: AgentId, chunk: string): void
   finalizeStream(agentId: AgentId): void
   markWaiting(agentId: AgentId): void
-  markStreamError(agentId: AgentId, error?: string): void
+  markStreamError(agentId: AgentId, error: string): void
   prepareRetry(agentId: AgentId): void
   getStreamingState(agentId: AgentId): StreamingState
 }
 
+export type ConversationStatus =
+  | { readonly state: 'idle' }
+  | { readonly state: 'waiting' }
+  | { readonly state: 'streaming' }
+  | { readonly state: 'error'; readonly error: string }
+
 export interface Conversation {
   readonly agentId: AgentId
   readonly messages: readonly Message[]
-  readonly streamingState: StreamingState
-  readonly streamError: string | null
+  readonly status: ConversationStatus
   readonly hasUnread: boolean
   // TODO(phase-3): Add id, playerId, skillCategory, xpEarned, status, timestamps
 }
@@ -32,15 +37,14 @@ export interface Message {
   readonly timestamp: number
 }
 
-export type StreamingState = 'idle' | 'waiting' | 'streaming' | 'error'
+export type StreamingState = ConversationStatus['state']
 type Listener = () => void
 
 /** Internal mutable version of Conversation for repository implementation */
 interface MutableConversation {
   agentId: AgentId
   messages: Message[]
-  streamingState: StreamingState
-  streamError: string | null
+  status: ConversationStatus
   hasUnread: boolean
 }
 
@@ -84,8 +88,7 @@ class InMemoryConversationRepository implements IConversationRepository {
       this.conversations.set(agentId, {
         agentId,
         messages: [],
-        streamingState: 'idle',
-        streamError: null,
+        status: { state: 'idle' },
         hasUnread: false
       })
     }
@@ -108,8 +111,8 @@ class InMemoryConversationRepository implements IConversationRepository {
 
   appendStreamChunk(agentId: AgentId, chunk: string): void {
     const conv = this.getMutableConversation(agentId)
-    const wasStreaming = conv.streamingState === 'streaming'
-    conv.streamingState = 'streaming'
+    const wasStreaming = conv.status.state === 'streaming'
+    conv.status = { state: 'streaming' }
 
     // If already streaming, append to the in-progress assistant message
     // Otherwise, create a new assistant message for this stream
@@ -136,7 +139,7 @@ class InMemoryConversationRepository implements IConversationRepository {
   finalizeStream(agentId: AgentId): void {
     const conv = this.conversations.get(agentId)
     if (conv) {
-      conv.streamingState = 'idle'
+      conv.status = { state: 'idle' }
       // Switch bubble from "streaming dots" to "ready checkmark"
       if (this.activeDialogueAgentId !== agentId && conv.hasUnread) {
         EventBus.emit('npc:speech-bubble', { agentId, style: 'ready' })
@@ -145,11 +148,10 @@ class InMemoryConversationRepository implements IConversationRepository {
     }
   }
 
-  markStreamError(agentId: AgentId, error?: string): void {
+  markStreamError(agentId: AgentId, error: string): void {
     const conv = this.conversations.get(agentId)
     if (conv) {
-      conv.streamingState = 'error'
-      conv.streamError = error ?? null
+      conv.status = { state: 'error', error }
       this.notify()
     }
   }
@@ -158,8 +160,7 @@ class InMemoryConversationRepository implements IConversationRepository {
   prepareRetry(agentId: AgentId): void {
     const conv = this.conversations.get(agentId)
     if (conv) {
-      conv.streamingState = 'idle'
-      conv.streamError = null
+      conv.status = { state: 'idle' }
       // Remove the incomplete assistant message that errored out
       const last = conv.messages[conv.messages.length - 1]
       if (last?.role === 'assistant') {
@@ -171,12 +172,12 @@ class InMemoryConversationRepository implements IConversationRepository {
 
   markWaiting(agentId: AgentId): void {
     const conv = this.getMutableConversation(agentId)
-    conv.streamingState = 'waiting'
+    conv.status = { state: 'waiting' }
     this.notify()
   }
 
   getStreamingState(agentId: AgentId): StreamingState {
-    return this.conversations.get(agentId)?.streamingState ?? 'idle'
+    return this.conversations.get(agentId)?.status.state ?? 'idle'
   }
 }
 
