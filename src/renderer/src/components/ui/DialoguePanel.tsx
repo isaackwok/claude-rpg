@@ -146,19 +146,25 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
       >
         <span>{dialogue.npcName}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span
+          <svg
             onClick={() => setExpanded((v) => !v)}
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
             style={{
               cursor: 'pointer',
               opacity: 0.6,
-              fontSize: 14,
               transition: 'transform 0.3s ease',
-              display: 'inline-block',
               transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)'
             }}
           >
-            ▲
-          </span>
+            <polyline points="18 15 12 9 6 15" />
+          </svg>
           <span onClick={close} style={{ cursor: 'pointer', opacity: 0.6, fontSize: 12 }}>
             {t('interaction.close')}
           </span>
