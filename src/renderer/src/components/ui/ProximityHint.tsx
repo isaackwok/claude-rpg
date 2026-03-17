@@ -32,7 +32,7 @@ export function ProximityHint() {
         border: '2px solid rgba(255, 255, 255, 0.3)',
         fontFamily: 'monospace',
         fontSize: 14,
-        pointerEvents: 'auto',
+        pointerEvents: 'none',
         whiteSpace: 'nowrap',
       }}
     >

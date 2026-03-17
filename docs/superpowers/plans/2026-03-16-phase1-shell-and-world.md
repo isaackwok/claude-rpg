@@ -483,7 +483,7 @@ git commit -m "feat: add zone detection from tilemap object layer"
 - When `inRange: true`: show a styled hint at bottom-center of screen: `t('interaction.hint')` ("按 Space 對話")
 - When `inRange: false`: hide the hint
 - Style: pixel-art themed box with semi-transparent dark background, white text
-- Set `pointerEvents: 'auto'` only when visible
+- ~~Set `pointerEvents: 'auto'` only when visible~~ → Updated: use `pointerEvents: 'none'` always — ProximityHint is display-only and must not block Phaser canvas input
 
 - [ ] **Step 2: Add to App.tsx overlay layer**
 

@@ -12,6 +12,7 @@ export class Town extends Scene {
   private spaceKey!: Phaser.Input.Keyboard.Key
   private currentZone: string | null = null
   private zones: { zone: Phaser.GameObjects.Zone; zoneId: string; zoneName: string }[] = []
+  private onDialogueClosed!: () => void
 
   constructor() {
     super('Town')
@@ -80,9 +81,10 @@ export class Town extends Scene {
     this.spaceKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE)
 
     // Listen for dialogue close
-    EventBus.on('dialogue:closed', () => {
+    this.onDialogueClosed = () => {
       this.dialogueOpen = false
-    })
+    }
+    EventBus.on('dialogue:closed', this.onDialogueClosed)
 
     // Camera
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1)
@@ -90,6 +92,10 @@ export class Town extends Scene {
     this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels)
     this.cameras.main.setBackgroundColor('#1a1a2e')
     this.cameras.main.setZoom(2)
+  }
+
+  shutdown(): void {
+    EventBus.off('dialogue:closed', this.onDialogueClosed)
   }
 
   update(): void {

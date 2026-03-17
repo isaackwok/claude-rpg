@@ -41,7 +41,7 @@ Phaser and React coexist in the renderer process, communicating through a **type
 - **React → Phaser:** Events like `dialogue:closed`, `npc:spawn`, `camera:focus`
 - **Core Services → Both:** Events like `xp:gained`, `level:up`, `quest:completed`
 
-The `PhaserGame.tsx` React component hosts the Phaser canvas (pattern from `phaserjs/template-react-ts`). React UI overlays are absolutely positioned over the game canvas with `pointerEvents: 'none'` (toggled to `'auto'` when interactive).
+The `PhaserGame.tsx` React component hosts the Phaser canvas (pattern from `phaserjs/template-react-ts`). React UI overlays are absolutely positioned over the game canvas with `pointerEvents: 'none'` by default; only interactive overlays (e.g. DialoguePanel, menus) toggle to `'auto'` when they need keyboard/mouse input. Display-only overlays (e.g. ProximityHint, HUD) must stay `'none'` to avoid blocking Phaser canvas input.
 
 ### Data Access
 
