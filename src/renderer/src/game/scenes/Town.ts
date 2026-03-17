@@ -60,8 +60,10 @@ export class Town extends Scene {
     if (objectLayer) {
       for (const obj of objectLayer.objects) {
         if (obj.type === 'zone') {
-          const zoneId = obj.properties?.find((p: { name: string }) => p.name === 'zoneId')?.value as string
-          const zoneName = obj.properties?.find((p: { name: string }) => p.name === 'zoneName')?.value as string
+          const zoneId = obj.properties?.find((p: { name: string }) => p.name === 'zoneId')
+            ?.value as string
+          const zoneName = obj.properties?.find((p: { name: string }) => p.name === 'zoneName')
+            ?.value as string
           if (zoneId && zoneName) {
             const zone = this.add.zone(
               obj.x! + obj.width! / 2,
@@ -114,7 +116,19 @@ export class Town extends Scene {
       if (npc.playerInRange) {
         const zoneBody = npc.interactionZone.body as Phaser.Physics.Arcade.StaticBody
         const playerBody = this.player.body as Phaser.Physics.Arcade.Body
-        if (!Phaser.Geom.Intersects.RectangleToRectangle(playerBody, zoneBody)) {
+        const playerRect = new Phaser.Geom.Rectangle(
+          playerBody.x,
+          playerBody.y,
+          playerBody.width,
+          playerBody.height
+        )
+        const zoneRect = new Phaser.Geom.Rectangle(
+          zoneBody.x,
+          zoneBody.y,
+          zoneBody.width,
+          zoneBody.height
+        )
+        if (!Phaser.Geom.Intersects.RectangleToRectangle(playerRect, zoneRect)) {
           npc.playerInRange = false
           EventBus.emit('npc:proximity', { agentId: npc.agentDef.id, inRange: false })
         }
@@ -128,7 +142,7 @@ export class Town extends Scene {
         this.dialogueOpen = true
         EventBus.emit('npc:interact', {
           agentId: nearbyNpc.agentDef.id,
-          npcPosition: { x: nearbyNpc.x, y: nearbyNpc.y },
+          npcPosition: { x: nearbyNpc.x, y: nearbyNpc.y }
         })
       }
     }
@@ -137,7 +151,19 @@ export class Town extends Scene {
     for (const { zone, zoneId, zoneName } of this.zones) {
       const zoneBody = zone.body as Phaser.Physics.Arcade.StaticBody
       const playerBody = this.player.body as Phaser.Physics.Arcade.Body
-      if (Phaser.Geom.Intersects.RectangleToRectangle(playerBody, zoneBody)) {
+      const playerRect = new Phaser.Geom.Rectangle(
+        playerBody.x,
+        playerBody.y,
+        playerBody.width,
+        playerBody.height
+      )
+      const zoneRect = new Phaser.Geom.Rectangle(
+        zoneBody.x,
+        zoneBody.y,
+        zoneBody.width,
+        zoneBody.height
+      )
+      if (Phaser.Geom.Intersects.RectangleToRectangle(playerRect, zoneRect)) {
         if (this.currentZone !== zoneId) {
           this.currentZone = zoneId
           EventBus.emit('zone:entered', { zoneId, zoneName })

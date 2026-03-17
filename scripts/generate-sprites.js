@@ -59,7 +59,7 @@ const COLORS = {
   bartenderBrownShadow: rgba(110, 75, 40),
   apron: rgba(220, 210, 195),
   apronShadow: rgba(190, 180, 165),
-  belt: rgba(80, 55, 35),
+  belt: rgba(80, 55, 35)
 }
 
 const C = COLORS
@@ -76,7 +76,16 @@ const C = COLORS
  * Row 10-11: Belt/waist
  * Row 12-15: Legs + feet
  */
-function makeCharDown(hair, shirt, shirtShadow, pants, pantsShadow, boot, hairColor, extraFeatures) {
+function makeCharDown(
+  hair,
+  shirt,
+  shirtShadow,
+  pants,
+  pantsShadow,
+  boot,
+  hairColor,
+  extraFeatures
+) {
   const _ = C.transparent
   const s = C.skin
   const ss = C.skinShadow
@@ -105,7 +114,7 @@ function makeCharDown(hair, shirt, shirtShadow, pants, pantsShadow, boot, hairCo
     /* 12 */ [_, _, _, _, _, _, p, pS, pS, p, _, _, _, _, _, _],
     /* 13 */ [_, _, _, _, _, _, p, _, _, p, _, _, _, _, _, _],
     /* 14 */ [_, _, _, _, _, _, b, _, _, b, _, _, _, _, _, _],
-    /* 15 */ [_, _, _, _, _, _, b, _, _, b, _, _, _, _, _, _],
+    /* 15 */ [_, _, _, _, _, _, b, _, _, b, _, _, _, _, _, _]
   ]
 
   if (extraFeatures) extraFeatures(grid)
@@ -140,7 +149,7 @@ function makeCharUp(hair, shirt, shirtShadow, pants, pantsShadow, boot, hairColo
     /* 12 */ [_, _, _, _, _, _, p, pS, pS, p, _, _, _, _, _, _],
     /* 13 */ [_, _, _, _, _, _, p, _, _, p, _, _, _, _, _, _],
     /* 14 */ [_, _, _, _, _, _, b, _, _, b, _, _, _, _, _, _],
-    /* 15 */ [_, _, _, _, _, _, b, _, _, b, _, _, _, _, _, _],
+    /* 15 */ [_, _, _, _, _, _, b, _, _, b, _, _, _, _, _, _]
   ]
 
   if (extraFeatures) extraFeatures(grid)
@@ -150,7 +159,16 @@ function makeCharUp(hair, shirt, shirtShadow, pants, pantsShadow, boot, hairColo
 /**
  * Draw character facing left.
  */
-function makeCharLeft(hair, shirt, shirtShadow, pants, pantsShadow, boot, hairColor, extraFeatures) {
+function makeCharLeft(
+  hair,
+  shirt,
+  shirtShadow,
+  pants,
+  pantsShadow,
+  boot,
+  hairColor,
+  extraFeatures
+) {
   const _ = C.transparent
   const s = C.skin
   const ss = C.skinShadow
@@ -178,7 +196,7 @@ function makeCharLeft(hair, shirt, shirtShadow, pants, pantsShadow, boot, hairCo
     /* 12 */ [_, _, _, _, _, _, p, pS, p, _, _, _, _, _, _, _],
     /* 13 */ [_, _, _, _, _, _, p, _, p, _, _, _, _, _, _, _],
     /* 14 */ [_, _, _, _, _, _, b, _, b, _, _, _, _, _, _, _],
-    /* 15 */ [_, _, _, _, _, _, b, _, b, _, _, _, _, _, _, _],
+    /* 15 */ [_, _, _, _, _, _, b, _, b, _, _, _, _, _, _, _]
   ]
 
   if (extraFeatures) extraFeatures(grid)
@@ -188,22 +206,50 @@ function makeCharLeft(hair, shirt, shirtShadow, pants, pantsShadow, boot, hairCo
 /**
  * Draw character facing right (mirror of left).
  */
-function makeCharRight(hair, shirt, shirtShadow, pants, pantsShadow, boot, hairColor, extraFeatures) {
-  const leftGrid = makeCharLeft(hair, shirt, shirtShadow, pants, pantsShadow, boot, hairColor, extraFeatures)
+function makeCharRight(
+  hair,
+  shirt,
+  shirtShadow,
+  pants,
+  pantsShadow,
+  boot,
+  hairColor,
+  extraFeatures
+) {
+  const leftGrid = makeCharLeft(
+    hair,
+    shirt,
+    shirtShadow,
+    pants,
+    pantsShadow,
+    boot,
+    hairColor,
+    extraFeatures
+  )
   // Mirror horizontally
-  return leftGrid.map(row => [...row].reverse())
+  return leftGrid.map((row) => [...row].reverse())
 }
 
 /**
  * Create 4-direction spritesheet for a character.
  * Order: up(0), down(1), left(2), right(3)
  */
-function makeCharSheet(shirt, shirtShadow, pants, pantsShadow, boot, hairColor, extraDown, extraUp, extraLeft) {
+function makeCharSheet(
+  shirt,
+  shirtShadow,
+  pants,
+  pantsShadow,
+  boot,
+  hairColor,
+  extraDown,
+  extraUp,
+  extraLeft
+) {
   return [
     makeCharUp(null, shirt, shirtShadow, pants, pantsShadow, boot, hairColor, extraUp),
     makeCharDown(null, shirt, shirtShadow, pants, pantsShadow, boot, hairColor, extraDown),
     makeCharLeft(null, shirt, shirtShadow, pants, pantsShadow, boot, hairColor, extraLeft),
-    makeCharRight(null, shirt, shirtShadow, pants, pantsShadow, boot, hairColor),
+    makeCharRight(null, shirt, shirtShadow, pants, pantsShadow, boot, hairColor)
   ]
 }
 
@@ -219,13 +265,15 @@ function writeSheet(frames, outputPath) {
 
   for (let f = 0; f < numFrames; f++) {
     const grid = frames[f]
-    if (grid.length !== FRAME) throw new Error(`Frame ${f}: expected ${FRAME} rows, got ${grid.length}`)
+    if (grid.length !== FRAME)
+      throw new Error(`Frame ${f}: expected ${FRAME} rows, got ${grid.length}`)
     for (let y = 0; y < FRAME; y++) {
-      if (grid[y].length !== FRAME) throw new Error(`Frame ${f}, row ${y}: expected ${FRAME} cols, got ${grid[y].length}`)
+      if (grid[y].length !== FRAME)
+        throw new Error(`Frame ${f}, row ${y}: expected ${FRAME} cols, got ${grid[y].length}`)
       for (let x = 0; x < FRAME; x++) {
         const px = grid[y][x]
         if (!px) throw new Error(`Frame ${f}, row ${y}, col ${x}: undefined pixel`)
-        const idx = ((y * width) + (f * FRAME + x)) * 4
+        const idx = (y * width + (f * FRAME + x)) * 4
         png.data[idx + 0] = px[0]
         png.data[idx + 1] = px[1]
         png.data[idx + 2] = px[2]
@@ -241,8 +289,10 @@ function writeSheet(frames, outputPath) {
 
 // ─── PLAYER ─────────────────────────────────────────────────
 const playerFrames = makeCharSheet(
-  C.playerShirt, C.playerShirtShadow,
-  C.playerPants, C.playerPantsShadow,
+  C.playerShirt,
+  C.playerShirtShadow,
+  C.playerPants,
+  C.playerPantsShadow,
   C.playerBoot,
   C.brownHair
 )
@@ -258,86 +308,462 @@ const _ = C.transparent
 
 const npcFrames = [
   // 0: Elder — white hair, gray robes
-  npcDown(C.elderRobe, C.elderRobeShadow, C.elderRobe, C.elderRobeShadow, C.playerBoot, C.whiteHair,
+  npcDown(
+    C.elderRobe,
+    C.elderRobeShadow,
+    C.elderRobe,
+    C.elderRobeShadow,
+    C.playerBoot,
+    C.whiteHair,
     (g) => {
       // Long robe — cover legs
-      g[12] = [_, _, _, _, _, C.elderRobeShadow, C.elderRobe, C.elderRobe, C.elderRobe, C.elderRobe, C.elderRobeShadow, _, _, _, _, _]
-      g[13] = [_, _, _, _, _, _, C.elderRobe, C.elderRobeShadow, C.elderRobeShadow, C.elderRobe, _, _, _, _, _, _]
+      g[12] = [
+        _,
+        _,
+        _,
+        _,
+        _,
+        C.elderRobeShadow,
+        C.elderRobe,
+        C.elderRobe,
+        C.elderRobe,
+        C.elderRobe,
+        C.elderRobeShadow,
+        _,
+        _,
+        _,
+        _,
+        _
+      ]
+      g[13] = [
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        C.elderRobe,
+        C.elderRobeShadow,
+        C.elderRobeShadow,
+        C.elderRobe,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _
+      ]
       g[14] = [_, _, _, _, _, _, C.playerBoot, _, _, C.playerBoot, _, _, _, _, _, _]
       g[15] = [_, _, _, _, _, _, C.playerBoot, _, _, C.playerBoot, _, _, _, _, _, _]
-    }),
+    }
+  ),
 
   // 1: Guild Master — gold shirt, black hair
-  npcDown(C.guildGold, C.guildGoldShadow, C.playerPants, C.playerPantsShadow, C.playerBoot, C.blackHair,
+  npcDown(
+    C.guildGold,
+    C.guildGoldShadow,
+    C.playerPants,
+    C.playerPantsShadow,
+    C.playerBoot,
+    C.blackHair,
     (g) => {
       // Belt accent
       g[10] = [_, _, _, _, _, _, C.belt, C.guildGold, C.guildGold, C.belt, _, _, _, _, _, _]
-    }),
+    }
+  ),
 
   // 2: Scholar — blue robe, black hair
-  npcDown(C.scholarBlue, C.scholarBlueShadow, C.scholarBlue, C.scholarBlueShadow, C.playerBoot, C.blackHair,
+  npcDown(
+    C.scholarBlue,
+    C.scholarBlueShadow,
+    C.scholarBlue,
+    C.scholarBlueShadow,
+    C.playerBoot,
+    C.blackHair,
     (g) => {
       // Glasses
       const gl = rgba(180, 200, 230)
-      g[3] = [_, _, _, _, C.blackHair, C.skin, gl, C.skin, C.skin, gl, C.skin, C.blackHair, _, _, _, _]
-    }),
+      g[3] = [
+        _,
+        _,
+        _,
+        _,
+        C.blackHair,
+        C.skin,
+        gl,
+        C.skin,
+        C.skin,
+        gl,
+        C.skin,
+        C.blackHair,
+        _,
+        _,
+        _,
+        _
+      ]
+    }
+  ),
 
   // 3: Scribe — green outfit, brown hair
-  npcDown(C.scribeGreen, C.scribeGreenShadow, C.playerPants, C.playerPantsShadow, C.playerBoot, C.brownHair),
+  npcDown(
+    C.scribeGreen,
+    C.scribeGreenShadow,
+    C.playerPants,
+    C.playerPantsShadow,
+    C.playerBoot,
+    C.brownHair
+  ),
 
   // 4: Merchant — orange/gold, blonde hair, apron
-  npcDown(C.merchantOrange, C.merchantOrangeShadow, C.playerPants, C.playerPantsShadow, C.playerBoot, C.blondeHair,
+  npcDown(
+    C.merchantOrange,
+    C.merchantOrangeShadow,
+    C.playerPants,
+    C.playerPantsShadow,
+    C.playerBoot,
+    C.blondeHair,
     (g) => {
       // Apron over torso
-      g[7] = [_, _, _, _, C.merchantOrange, C.apron, C.apron, C.apron, C.apron, C.apron, C.apron, C.merchantOrange, _, _, _, _]
-      g[8] = [_, _, _, _, C.skin, C.apronShadow, C.apron, C.apron, C.apron, C.apron, C.apronShadow, C.skin, _, _, _, _]
-    }),
+      g[7] = [
+        _,
+        _,
+        _,
+        _,
+        C.merchantOrange,
+        C.apron,
+        C.apron,
+        C.apron,
+        C.apron,
+        C.apron,
+        C.apron,
+        C.merchantOrange,
+        _,
+        _,
+        _,
+        _
+      ]
+      g[8] = [
+        _,
+        _,
+        _,
+        _,
+        C.skin,
+        C.apronShadow,
+        C.apron,
+        C.apron,
+        C.apron,
+        C.apron,
+        C.apronShadow,
+        C.skin,
+        _,
+        _,
+        _,
+        _
+      ]
+    }
+  ),
 
   // 5: Commander — red armor, black hair
-  npcDown(C.commanderRed, C.commanderRedShadow, C.playerPants, C.playerPantsShadow, C.playerBoot, C.blackHair,
+  npcDown(
+    C.commanderRed,
+    C.commanderRedShadow,
+    C.playerPants,
+    C.playerPantsShadow,
+    C.playerBoot,
+    C.blackHair,
     (g) => {
       // Shoulder pads
-      g[6] = [_, _, _, _, C.commanderRed, C.commanderRed, C.commanderRed, C.commanderRed, C.commanderRed, C.commanderRed, C.commanderRed, C.commanderRed, _, _, _, _]
-      g[7] = [_, _, _, C.commanderRed, C.commanderRed, C.commanderRedShadow, C.commanderRed, C.commanderRed, C.commanderRed, C.commanderRed, C.commanderRedShadow, C.commanderRed, C.commanderRed, _, _, _]
+      g[6] = [
+        _,
+        _,
+        _,
+        _,
+        C.commanderRed,
+        C.commanderRed,
+        C.commanderRed,
+        C.commanderRed,
+        C.commanderRed,
+        C.commanderRed,
+        C.commanderRed,
+        C.commanderRed,
+        _,
+        _,
+        _,
+        _
+      ]
+      g[7] = [
+        _,
+        _,
+        _,
+        C.commanderRed,
+        C.commanderRed,
+        C.commanderRedShadow,
+        C.commanderRed,
+        C.commanderRed,
+        C.commanderRed,
+        C.commanderRed,
+        C.commanderRedShadow,
+        C.commanderRed,
+        C.commanderRed,
+        _,
+        _,
+        _
+      ]
       // Belt
-      g[10] = [_, _, _, _, _, _, C.belt, C.commanderRedShadow, C.commanderRedShadow, C.belt, _, _, _, _, _, _]
-    }),
+      g[10] = [
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        C.belt,
+        C.commanderRedShadow,
+        C.commanderRedShadow,
+        C.belt,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _
+      ]
+    }
+  ),
 
   // 6: Artisan — purple, red hair
-  npcDown(C.artisanPurple, C.artisanPurpleShadow, C.playerPants, C.playerPantsShadow, C.playerBoot, C.redHair),
+  npcDown(
+    C.artisanPurple,
+    C.artisanPurpleShadow,
+    C.playerPants,
+    C.playerPantsShadow,
+    C.playerBoot,
+    C.redHair
+  ),
 
   // 7: Herald — teal outfit, blonde hair
-  npcDown(C.heraldTeal, C.heraldTealShadow, C.playerPants, C.playerPantsShadow, C.playerBoot, C.blondeHair,
+  npcDown(
+    C.heraldTeal,
+    C.heraldTealShadow,
+    C.playerPants,
+    C.playerPantsShadow,
+    C.playerBoot,
+    C.blondeHair,
     (g) => {
       // Sash across torso
-      g[7] = [_, _, _, _, C.heraldTeal, C.heraldTealShadow, C.guildGold, C.heraldTeal, C.heraldTeal, C.heraldTeal, C.heraldTeal, C.heraldTeal, _, _, _, _]
-      g[8] = [_, _, _, _, C.skin, C.heraldTealShadow, C.heraldTeal, C.guildGold, C.heraldTeal, C.heraldTeal, C.heraldTealShadow, C.skin, _, _, _, _]
-    }),
+      g[7] = [
+        _,
+        _,
+        _,
+        _,
+        C.heraldTeal,
+        C.heraldTealShadow,
+        C.guildGold,
+        C.heraldTeal,
+        C.heraldTeal,
+        C.heraldTeal,
+        C.heraldTeal,
+        C.heraldTeal,
+        _,
+        _,
+        _,
+        _
+      ]
+      g[8] = [
+        _,
+        _,
+        _,
+        _,
+        C.skin,
+        C.heraldTealShadow,
+        C.heraldTeal,
+        C.guildGold,
+        C.heraldTeal,
+        C.heraldTeal,
+        C.heraldTealShadow,
+        C.skin,
+        _,
+        _,
+        _,
+        _
+      ]
+    }
+  ),
 
   // 8: Wizard — dark purple robe, wizard hat, white hair
-  npcDown(C.wizardDark, C.wizardDarkShadow, C.wizardDark, C.wizardDarkShadow, C.playerBoot, C.whiteHair,
+  npcDown(
+    C.wizardDark,
+    C.wizardDarkShadow,
+    C.wizardDark,
+    C.wizardDarkShadow,
+    C.playerBoot,
+    C.whiteHair,
     (g) => {
       // Pointed wizard hat
       g[0] = [_, _, _, _, _, _, _, C.wizardHat, C.wizardHat, _, _, _, _, _, _, _]
-      g[1] = [_, _, _, _, _, _, C.wizardHat, C.wizardHat, C.wizardHat, C.wizardHat, _, _, _, _, _, _]
-      g[2] = [_, _, _, _, _, C.wizardHat, C.wizardHat, C.wizardHat, C.wizardHat, C.wizardHat, C.wizardHat, _, _, _, _, _]
-      g[3] = [_, _, _, _, C.wizardHat, C.skin, C.eye, C.skin, C.skin, C.eye, C.skin, C.wizardHat, _, _, _, _]
+      g[1] = [
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        C.wizardHat,
+        C.wizardHat,
+        C.wizardHat,
+        C.wizardHat,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _
+      ]
+      g[2] = [
+        _,
+        _,
+        _,
+        _,
+        _,
+        C.wizardHat,
+        C.wizardHat,
+        C.wizardHat,
+        C.wizardHat,
+        C.wizardHat,
+        C.wizardHat,
+        _,
+        _,
+        _,
+        _,
+        _
+      ]
+      g[3] = [
+        _,
+        _,
+        _,
+        _,
+        C.wizardHat,
+        C.skin,
+        C.eye,
+        C.skin,
+        C.skin,
+        C.eye,
+        C.skin,
+        C.wizardHat,
+        _,
+        _,
+        _,
+        _
+      ]
       // Long robe
-      g[12] = [_, _, _, _, _, C.wizardDarkShadow, C.wizardDark, C.wizardDark, C.wizardDark, C.wizardDark, C.wizardDarkShadow, _, _, _, _, _]
-      g[13] = [_, _, _, _, _, _, C.wizardDark, C.wizardDarkShadow, C.wizardDarkShadow, C.wizardDark, _, _, _, _, _, _]
+      g[12] = [
+        _,
+        _,
+        _,
+        _,
+        _,
+        C.wizardDarkShadow,
+        C.wizardDark,
+        C.wizardDark,
+        C.wizardDark,
+        C.wizardDark,
+        C.wizardDarkShadow,
+        _,
+        _,
+        _,
+        _,
+        _
+      ]
+      g[13] = [
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        C.wizardDark,
+        C.wizardDarkShadow,
+        C.wizardDarkShadow,
+        C.wizardDark,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _
+      ]
       g[14] = [_, _, _, _, _, _, C.playerBoot, _, _, C.playerBoot, _, _, _, _, _, _]
       g[15] = [_, _, _, _, _, _, C.playerBoot, _, _, C.playerBoot, _, _, _, _, _, _]
-    }),
+    }
+  ),
 
   // 9: Bartender — brown shirt, white apron
-  npcDown(C.bartenderBrown, C.bartenderBrownShadow, C.playerPants, C.playerPantsShadow, C.playerBoot, C.blackHair,
+  npcDown(
+    C.bartenderBrown,
+    C.bartenderBrownShadow,
+    C.playerPants,
+    C.playerPantsShadow,
+    C.playerBoot,
+    C.blackHair,
     (g) => {
       // White apron
-      g[7] = [_, _, _, _, C.bartenderBrown, C.apron, C.apron, C.apron, C.apron, C.apron, C.apron, C.bartenderBrown, _, _, _, _]
-      g[8] = [_, _, _, _, C.skin, C.apronShadow, C.apron, C.apron, C.apron, C.apron, C.apronShadow, C.skin, _, _, _, _]
-      g[9] = [_, _, _, _, _, C.bartenderBrownShadow, C.apron, C.apron, C.apron, C.apron, C.bartenderBrownShadow, _, _, _, _, _]
+      g[7] = [
+        _,
+        _,
+        _,
+        _,
+        C.bartenderBrown,
+        C.apron,
+        C.apron,
+        C.apron,
+        C.apron,
+        C.apron,
+        C.apron,
+        C.bartenderBrown,
+        _,
+        _,
+        _,
+        _
+      ]
+      g[8] = [
+        _,
+        _,
+        _,
+        _,
+        C.skin,
+        C.apronShadow,
+        C.apron,
+        C.apron,
+        C.apron,
+        C.apron,
+        C.apronShadow,
+        C.skin,
+        _,
+        _,
+        _,
+        _
+      ]
+      g[9] = [
+        _,
+        _,
+        _,
+        _,
+        _,
+        C.bartenderBrownShadow,
+        C.apron,
+        C.apron,
+        C.apron,
+        C.apron,
+        C.bartenderBrownShadow,
+        _,
+        _,
+        _,
+        _,
+        _
+      ]
       g[10] = [_, _, _, _, _, _, C.apron, C.apronShadow, C.apronShadow, C.apron, _, _, _, _, _, _]
-    }),
+    }
+  )
 ]
 
 // ─── OUTPUT ─────────────────────────────────────────────────

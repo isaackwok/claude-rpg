@@ -74,11 +74,13 @@ Check the current plan and spec files:
 ### Step 3: Present the Checklist
 
 Format findings as a clear checklist grouped by category. For each item, include:
+
 - What needs to change
 - Why (tied back to the specific diff)
 - Suggested action (brief)
 
 Example format:
+
 ```
 ## Pre-Commit Audit Results
 

@@ -10,12 +10,12 @@ test.beforeAll(async () => {
   // Build the app first
   execFileSync('npx', ['electron-vite', 'build'], {
     cwd: path.resolve(__dirname, '../..'),
-    stdio: 'pipe',
+    stdio: 'pipe'
   })
 
   // Launch Electron app
   app = await electron.launch({
-    args: [path.resolve(__dirname, '../../out/main/index.js')],
+    args: [path.resolve(__dirname, '../../out/main/index.js')]
   })
 
   page = await app.firstWindow()
@@ -36,7 +36,7 @@ test('window opens at correct size with correct title', async () => {
   // Canvas auto-sizes via Scale.RESIZE; just check minimum dimensions
   const size = await page.evaluate(() => ({
     width: window.innerWidth,
-    height: window.innerHeight,
+    height: window.innerHeight
   }))
   expect(size.width).toBeGreaterThanOrEqual(1024)
   expect(size.height).toBeGreaterThanOrEqual(700)
@@ -70,7 +70,10 @@ test('tilemap renders without missing textures', async () => {
   await page.waitForTimeout(3000)
 
   const textureErrors = errors.filter(
-    (e) => e.includes('Texture') || e.includes('Failed to process') || e.includes('Content Security Policy')
+    (e) =>
+      e.includes('Texture') ||
+      e.includes('Failed to process') ||
+      e.includes('Content Security Policy')
   )
   expect(textureErrors).toEqual([])
 })
@@ -220,7 +223,7 @@ const ALL_NPCS = [
   { id: 'artisan', name: '匠師' },
   { id: 'herald', name: '傳令使' },
   { id: 'wizard', name: '巫師' },
-  { id: 'bartender', name: '酒保' },
+  { id: 'bartender', name: '酒保' }
 ]
 
 for (const npc of ALL_NPCS) {
@@ -251,7 +254,7 @@ for (const npc of ALL_NPCS) {
         npcExists: true,
         hasInteractionZone: !!npcObj.interactionZone,
         npcX: npcObj.x,
-        npcY: npcObj.y,
+        npcY: npcObj.y
       }
     }, npc.id)
 

@@ -59,7 +59,7 @@ export function DialoguePanel() {
         flexDirection: 'column',
         fontFamily: 'monospace',
         color: '#ffffff',
-        pointerEvents: 'auto',
+        pointerEvents: 'auto'
       }}
     >
       {/* NPC name header */}
@@ -69,7 +69,7 @@ export function DialoguePanel() {
           borderBottom: '1px solid rgba(200, 180, 140, 0.3)',
           fontWeight: 'bold',
           fontSize: 16,
-          color: '#c4a46c',
+          color: '#c4a46c'
         }}
       >
         {dialogue.npcName}
@@ -79,7 +79,7 @@ export function DialoguePanel() {
             float: 'right',
             cursor: 'pointer',
             opacity: 0.6,
-            fontSize: 12,
+            fontSize: 12
           }}
         >
           {t('interaction.close')}
@@ -92,7 +92,7 @@ export function DialoguePanel() {
           flex: 1,
           padding: '12px 16px',
           fontSize: 14,
-          lineHeight: 1.6,
+          lineHeight: 1.6
         }}
       >
         {t('dialogue.placeholder')}

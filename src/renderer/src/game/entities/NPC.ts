@@ -29,7 +29,7 @@ export class NPC extends Phaser.Physics.Arcade.Sprite {
       duration: 1000,
       yoyo: true,
       repeat: -1,
-      ease: 'Sine.easeInOut',
+      ease: 'Sine.easeInOut'
     })
   }
 }

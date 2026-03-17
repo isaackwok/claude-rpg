@@ -34,11 +34,23 @@ function fillRect(png: PNG, x: number, y: number, w: number, h: number, hex: str
   }
 }
 
-function drawBorder(png: PNG, x: number, y: number, w: number, h: number, hex: string, thickness = 1): void {
+function drawBorder(
+  png: PNG,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  hex: string,
+  thickness = 1
+): void {
   const [r, g, b] = hexToRgb(hex)
   for (let py = y; py < y + h; py++) {
     for (let px = x; px < x + w; px++) {
-      const isBorder = px < x + thickness || px >= x + w - thickness || py < y + thickness || py >= y + h - thickness
+      const isBorder =
+        px < x + thickness ||
+        px >= x + w - thickness ||
+        py < y + thickness ||
+        py >= y + h - thickness
       if (isBorder) {
         const idx = (png.width * py + px) << 2
         png.data[idx] = r
@@ -91,10 +103,10 @@ function generatePlayerSprite(): void {
     fillRect(png, fx + 5, 2, 6, 5, headColor)
     // Direction indicator (small dot)
     const dotPositions = [
-      [fx + 8, 1],   // up
-      [fx + 8, 14],  // down
-      [fx + 2, 9],   // left
-      [fx + 13, 9],  // right
+      [fx + 8, 1], // up
+      [fx + 8, 14], // down
+      [fx + 2, 9], // left
+      [fx + 13, 9] // right
     ]
     const [dx, dy] = dotPositions[frame]
     fillRect(png, dx, dy, 2, 2, '#ffffff')
@@ -115,7 +127,7 @@ function generateNpcSprites(): void {
     { id: 'artisan', color: '#d4a017' },
     { id: 'herald', color: '#2e8b57' },
     { id: 'wizard', color: '#4b0082' },
-    { id: 'bartender', color: '#8b7355' },
+    { id: 'bartender', color: '#8b7355' }
   ]
 
   const png = createPng(TILE_SIZE * npcs.length, TILE_SIZE)
@@ -126,11 +138,11 @@ function generateNpcSprites(): void {
     fillRect(png, fx + 2, 2, 12, 12, npc.color)
     // Lighter "face" area
     const [r, g, b] = hexToRgb(npc.color)
-    const lighter = '#' + [
-      Math.min(255, r + 60),
-      Math.min(255, g + 60),
-      Math.min(255, b + 60)
-    ].map(c => c.toString(16).padStart(2, '0')).join('')
+    const lighter =
+      '#' +
+      [Math.min(255, r + 60), Math.min(255, g + 60), Math.min(255, b + 60)]
+        .map((c) => c.toString(16).padStart(2, '0'))
+        .join('')
     fillRect(png, fx + 5, 3, 6, 5, lighter)
     // Border
     drawBorder(png, fx + 2, 2, 12, 12, '#000000')
@@ -163,7 +175,14 @@ function generateTilemap(): void {
     }
   }
 
-  function fillArea(layer: number[], x: number, y: number, w: number, h: number, tile: number): void {
+  function fillArea(
+    layer: number[],
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    tile: number
+  ): void {
     for (let py = y; py < y + h; py++) {
       for (let px = x; px < x + w; px++) {
         setTile(layer, px, py, tile)
@@ -171,7 +190,13 @@ function generateTilemap(): void {
     }
   }
 
-  function makeBuilding(x: number, y: number, w: number, h: number, doorSide: 'top' | 'bottom' = 'bottom'): void {
+  function makeBuilding(
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    doorSide: 'top' | 'bottom' = 'bottom'
+  ): void {
     // Walls around the perimeter
     for (let py = y; py < y + h; py++) {
       for (let px = x; px < x + w; px++) {
@@ -200,11 +225,11 @@ function generateTilemap(): void {
   fillArea(ground, 19, 0, 2, MAP_H, PATH) // vertical main road
 
   // Paths to locations
-  fillArea(ground, 5, 5, 2, 10, PATH)   // to Guild Hall
-  fillArea(ground, 33, 5, 2, 10, PATH)  // to Library
-  fillArea(ground, 33, 15, 2, 8, PATH)  // to Market
-  fillArea(ground, 5, 15, 2, 8, PATH)   // to Artisan
-  fillArea(ground, 12, 23, 8, 2, PATH)  // to Tavern
+  fillArea(ground, 5, 5, 2, 10, PATH) // to Guild Hall
+  fillArea(ground, 33, 5, 2, 10, PATH) // to Library
+  fillArea(ground, 33, 15, 2, 8, PATH) // to Market
+  fillArea(ground, 5, 15, 2, 8, PATH) // to Artisan
+  fillArea(ground, 12, 23, 8, 2, PATH) // to Tavern
 
   // Town Square (center, 10x8, open area)
   fillArea(ground, 15, 11, 10, 8, PATH)
@@ -221,14 +246,14 @@ function generateTilemap(): void {
   fillArea(collision, MAP_W - 3, MAP_H - 3, 3, 3, WALL)
 
   // Buildings — above main road (y<14): door at bottom; below: door at top
-  makeBuilding(3, 3, 7, 6)                // Guild Hall (NW) — door bottom
-  makeBuilding(30, 3, 7, 6)               // Library (NE) — door bottom
-  makeBuilding(17, 1, 6, 5)               // Tower (far N) — door bottom
-  makeBuilding(32, 17, 6, 6, 'top')       // Scribe's Workshop (E) — door top
-  makeBuilding(32, 24, 6, 5, 'top')       // Market (SE) — door top
-  makeBuilding(2, 17, 6, 6, 'top')        // Artisan's Studio (W) — door top
-  makeBuilding(2, 24, 6, 5, 'top')        // Messenger's Post (SW) — door top
-  makeBuilding(15, 23, 10, 6, 'top')      // Tavern (S) — door top
+  makeBuilding(3, 3, 7, 6) // Guild Hall (NW) — door bottom
+  makeBuilding(30, 3, 7, 6) // Library (NE) — door bottom
+  makeBuilding(17, 1, 6, 5) // Tower (far N) — door bottom
+  makeBuilding(32, 17, 6, 6, 'top') // Scribe's Workshop (E) — door top
+  makeBuilding(32, 24, 6, 5, 'top') // Market (SE) — door top
+  makeBuilding(2, 17, 6, 6, 'top') // Artisan's Studio (W) — door top
+  makeBuilding(2, 24, 6, 5, 'top') // Messenger's Post (SW) — door top
+  makeBuilding(15, 23, 10, 6, 'top') // Tavern (S) — door top
 
   // Map border collision
   for (let x = 0; x < MAP_W; x++) {
@@ -246,16 +271,16 @@ function generateTilemap(): void {
 
   // NPC spawns
   const npcSpawns = [
-    { npcId: 'elder', x: 19, y: 13 },       // Town Square
-    { npcId: 'guildMaster', x: 6, y: 6 },   // Guild Hall
-    { npcId: 'scholar', x: 33, y: 6 },       // Library
-    { npcId: 'scribe', x: 34, y: 20 },       // Scribe's Workshop
-    { npcId: 'merchant', x: 34, y: 26 },     // Market
-    { npcId: 'commander', x: 35, y: 26 },    // Market
-    { npcId: 'artisan', x: 4, y: 20 },       // Artisan's Studio
-    { npcId: 'herald', x: 4, y: 26 },        // Messenger's Post
-    { npcId: 'wizard', x: 19, y: 3 },        // Tower
-    { npcId: 'bartender', x: 19, y: 25 },    // Tavern
+    { npcId: 'elder', x: 19, y: 13 }, // Town Square
+    { npcId: 'guildMaster', x: 6, y: 6 }, // Guild Hall
+    { npcId: 'scholar', x: 33, y: 6 }, // Library
+    { npcId: 'scribe', x: 34, y: 20 }, // Scribe's Workshop
+    { npcId: 'merchant', x: 34, y: 26 }, // Market
+    { npcId: 'commander', x: 35, y: 26 }, // Market
+    { npcId: 'artisan', x: 4, y: 20 }, // Artisan's Studio
+    { npcId: 'herald', x: 4, y: 26 }, // Messenger's Post
+    { npcId: 'wizard', x: 19, y: 3 }, // Tower
+    { npcId: 'bartender', x: 19, y: 25 } // Tavern
   ]
 
   for (const spawn of npcSpawns) {
@@ -283,7 +308,7 @@ function generateTilemap(): void {
     { zoneId: 'artisanStudio', zoneName: '匠師工坊', x: 2, y: 17, w: 6, h: 6 },
     { zoneId: 'messengerPost', zoneName: '傳令站', x: 2, y: 24, w: 6, h: 5 },
     { zoneId: 'tavern', zoneName: '酒館', x: 15, y: 23, w: 10, h: 6 },
-    { zoneId: 'tower', zoneName: '高塔', x: 17, y: 1, w: 6, h: 5 },
+    { zoneId: 'tower', zoneName: '高塔', x: 17, y: 1, w: 6, h: 5 }
   ]
 
   for (const zone of zones) {
@@ -299,7 +324,7 @@ function generateTilemap(): void {
       visible: true,
       properties: [
         { name: 'zoneId', type: 'string', value: zone.zoneId },
-        { name: 'zoneName', type: 'string', value: zone.zoneName },
+        { name: 'zoneName', type: 'string', value: zone.zoneName }
       ]
     })
   }
@@ -331,7 +356,7 @@ function generateTilemap(): void {
         spacing: 0,
         tilecount: 4,
         tileheight: TILE_SIZE,
-        tilewidth: TILE_SIZE,
+        tilewidth: TILE_SIZE
       }
     ],
     layers: [
@@ -345,7 +370,7 @@ function generateTilemap(): void {
         y: 0,
         width: MAP_W,
         height: MAP_H,
-        data: ground,
+        data: ground
       },
       {
         id: 2,
@@ -357,7 +382,7 @@ function generateTilemap(): void {
         y: 0,
         width: MAP_W,
         height: MAP_H,
-        data: buildings,
+        data: buildings
       },
       {
         id: 3,
@@ -369,7 +394,7 @@ function generateTilemap(): void {
         y: 0,
         width: MAP_W,
         height: MAP_H,
-        data: collision,
+        data: collision
       },
       {
         id: 4,
@@ -380,9 +405,9 @@ function generateTilemap(): void {
         x: 0,
         y: 0,
         draworder: 'topdown',
-        objects,
+        objects
       }
-    ],
+    ]
   }
 
   const outPath = path.join(ASSETS_DIR, 'tilemaps', 'town.json')

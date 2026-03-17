@@ -18,7 +18,7 @@ function App(): React.JSX.Element {
           left: 0,
           width: '100%',
           height: '100%',
-          pointerEvents: 'none',
+          pointerEvents: 'none'
         }}
       >
         <HUD />

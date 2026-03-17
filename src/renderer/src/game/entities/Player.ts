@@ -5,7 +5,12 @@ const SPEED = 160
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
-  private wasd!: { W: Phaser.Input.Keyboard.Key; A: Phaser.Input.Keyboard.Key; S: Phaser.Input.Keyboard.Key; D: Phaser.Input.Keyboard.Key }
+  private wasd!: {
+    W: Phaser.Input.Keyboard.Key
+    A: Phaser.Input.Keyboard.Key
+    S: Phaser.Input.Keyboard.Key
+    D: Phaser.Input.Keyboard.Key
+  }
   private lastX = 0
   private lastY = 0
 
@@ -25,7 +30,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       W: scene.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.W),
       A: scene.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.A),
       S: scene.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.S),
-      D: scene.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.D),
+      D: scene.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.D)
     }
 
     this.lastX = x

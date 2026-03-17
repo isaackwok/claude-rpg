@@ -33,7 +33,7 @@ export function HUD() {
         border: '1px solid rgba(200, 180, 140, 0.4)',
         fontFamily: 'monospace',
         fontSize: 13,
-        pointerEvents: 'none',
+        pointerEvents: 'none'
       }}
     >
       {locationName}

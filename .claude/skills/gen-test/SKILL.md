@@ -16,6 +16,7 @@ npm install -D vitest @vitest/coverage-v8
 ```
 
 And add to `package.json` scripts:
+
 ```json
 "test:unit": "vitest run",
 "test:unit:watch": "vitest"
@@ -35,6 +36,7 @@ Read the target file and identify what's worth testing:
 - **Edge cases** — null/undefined handling, empty arrays, boundary values
 
 Skip testing:
+
 - Simple getters/setters with no logic
 - Framework boilerplate (Phaser scene lifecycle, React component rendering without logic)
 - Code that's just wiring (passing data from A to B with no transformation)
@@ -67,6 +69,7 @@ describe('ModuleName', () => {
 ```
 
 Guidelines:
+
 - **Test names describe behavior**, not implementation — "should emit npc:interact when player overlaps NPC zone" not "should call emit method"
 - **One assertion per test** where practical — makes failures easy to diagnose
 - **Mock external dependencies**, not internal logic — mock `EventBus.emit` but don't mock the function you're testing
@@ -82,6 +85,7 @@ npx vitest run <test-file-path>
 ```
 
 Fix any failures before presenting to the user. Common issues:
+
 - Missing path aliases (check `vitest.config.ts` for `resolve.alias`)
 - Phaser globals not available (may need a mock for `Phaser.Scene`)
 - React components needing `@testing-library/react` (suggest installing if needed)
@@ -89,6 +93,7 @@ Fix any failures before presenting to the user. Common issues:
 ### Mocking Patterns for This Project
 
 **EventBus:**
+
 ```typescript
 vi.mock('../EventBus', () => ({
   EventBus: {
@@ -100,6 +105,7 @@ vi.mock('../EventBus', () => ({
 ```
 
 **Phaser Scene (for game logic tests):**
+
 ```typescript
 const mockScene = {
   add: { sprite: vi.fn(), text: vi.fn() },
@@ -109,8 +115,9 @@ const mockScene = {
 ```
 
 **i18n `t()` function:**
+
 ```typescript
 vi.mock('../i18n', () => ({
-  t: (key: string) => key  // Returns the key itself for assertion
+  t: (key: string) => key // Returns the key itself for assertion
 }))
 ```

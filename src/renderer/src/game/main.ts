@@ -7,7 +7,7 @@ export function StartGame(parent: string): Phaser.Game {
     pixelArt: true,
     scale: {
       mode: Phaser.Scale.RESIZE,
-      parent,
+      parent
     },
     physics: {
       default: 'arcade',

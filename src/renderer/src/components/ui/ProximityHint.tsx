@@ -33,7 +33,7 @@ export function ProximityHint() {
         fontFamily: 'monospace',
         fontSize: 14,
         pointerEvents: 'none',
-        whiteSpace: 'nowrap',
+        whiteSpace: 'nowrap'
       }}
     >
       {t('interaction.hint')}

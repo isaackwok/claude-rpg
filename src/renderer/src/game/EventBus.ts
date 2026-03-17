@@ -8,15 +8,27 @@ class TypedEventBus {
     this.emitter.emit(event, data)
   }
 
-  on<K extends keyof GameEvents>(event: K, fn: (data: GameEvents[K]) => void, context?: unknown): void {
+  on<K extends keyof GameEvents>(
+    event: K,
+    fn: (data: GameEvents[K]) => void,
+    context?: unknown
+  ): void {
     this.emitter.on(event, fn, context)
   }
 
-  once<K extends keyof GameEvents>(event: K, fn: (data: GameEvents[K]) => void, context?: unknown): void {
+  once<K extends keyof GameEvents>(
+    event: K,
+    fn: (data: GameEvents[K]) => void,
+    context?: unknown
+  ): void {
     this.emitter.once(event, fn, context)
   }
 
-  off<K extends keyof GameEvents>(event: K, fn?: (data: GameEvents[K]) => void, context?: unknown): void {
+  off<K extends keyof GameEvents>(
+    event: K,
+    fn?: (data: GameEvents[K]) => void,
+    context?: unknown
+  ): void {
     this.emitter.off(event, fn, context)
   }
 

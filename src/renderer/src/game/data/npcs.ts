@@ -7,14 +7,14 @@ export const BUILT_IN_NPCS: AgentDef[] = [
     sprite: 'npcs',
     spriteFrame: 0,
     location: { map: 'town', x: 39 * 16 + 8, y: 28 * 16 + 8 },
-    skills: ['research'],
+    skills: ['research']
   },
   {
     id: 'guildMaster',
     name: { 'zh-TW': '會長', en: 'Guild Master' },
     sprite: 'npcs',
     spriteFrame: 1,
-    location: { map: 'town', x: 26 * 16 + 8, y: 21 * 16 + 8 },
+    location: { map: 'town', x: 26 * 16 + 8, y: 21 * 16 + 8 }
   },
   {
     id: 'scholar',
@@ -22,7 +22,7 @@ export const BUILT_IN_NPCS: AgentDef[] = [
     sprite: 'npcs',
     spriteFrame: 2,
     location: { map: 'town', x: 53 * 16 + 8, y: 21 * 16 + 8 },
-    skills: ['research'],
+    skills: ['research']
   },
   {
     id: 'scribe',
@@ -30,7 +30,7 @@ export const BUILT_IN_NPCS: AgentDef[] = [
     sprite: 'npcs',
     spriteFrame: 3,
     location: { map: 'town', x: 54 * 16 + 8, y: 35 * 16 + 8 },
-    skills: ['writing'],
+    skills: ['writing']
   },
   {
     id: 'merchant',
@@ -38,7 +38,7 @@ export const BUILT_IN_NPCS: AgentDef[] = [
     sprite: 'npcs',
     spriteFrame: 4,
     location: { map: 'town', x: 54 * 16 + 8, y: 41 * 16 + 8 },
-    skills: ['data'],
+    skills: ['data']
   },
   {
     id: 'commander',
@@ -46,7 +46,7 @@ export const BUILT_IN_NPCS: AgentDef[] = [
     sprite: 'npcs',
     spriteFrame: 5,
     location: { map: 'town', x: 57 * 16 + 8, y: 41 * 16 + 8 },
-    skills: ['organization'],
+    skills: ['organization']
   },
   {
     id: 'artisan',
@@ -54,7 +54,7 @@ export const BUILT_IN_NPCS: AgentDef[] = [
     sprite: 'npcs',
     spriteFrame: 6,
     location: { map: 'town', x: 24 * 16 + 8, y: 35 * 16 + 8 },
-    skills: ['visual'],
+    skills: ['visual']
   },
   {
     id: 'herald',
@@ -62,7 +62,7 @@ export const BUILT_IN_NPCS: AgentDef[] = [
     sprite: 'npcs',
     spriteFrame: 7,
     location: { map: 'town', x: 24 * 16 + 8, y: 41 * 16 + 8 },
-    skills: ['communication'],
+    skills: ['communication']
   },
   {
     id: 'wizard',
@@ -70,13 +70,13 @@ export const BUILT_IN_NPCS: AgentDef[] = [
     sprite: 'npcs',
     spriteFrame: 8,
     location: { map: 'town', x: 39 * 16 + 8, y: 18 * 16 + 8 },
-    skills: ['code'],
+    skills: ['code']
   },
   {
     id: 'bartender',
     name: { 'zh-TW': '酒保', en: 'Bartender' },
     sprite: 'npcs',
     spriteFrame: 9,
-    location: { map: 'town', x: 39 * 16 + 8, y: 40 * 16 + 8 },
-  },
+    location: { map: 'town', x: 39 * 16 + 8, y: 40 * 16 + 8 }
+  }
 ]

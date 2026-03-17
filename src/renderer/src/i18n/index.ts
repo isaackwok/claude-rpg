@@ -1,4 +1,11 @@
-import { createContext, useContext, useState, useCallback, createElement, type ReactNode } from 'react'
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  createElement,
+  type ReactNode
+} from 'react'
 import type { Locale } from './types'
 import zhTW from './locales/zh-TW.json'
 import en from './locales/en.json'
@@ -29,11 +36,7 @@ function getNestedValue(obj: Record<string, unknown>, path: string): string | un
 
 /** Translate a dot-notated key. Falls back to zh-TW, then returns the key itself. */
 export function t(key: string): string {
-  return (
-    getNestedValue(locales[currentLocale], key) ??
-    getNestedValue(locales['zh-TW'], key) ??
-    key
-  )
+  return getNestedValue(locales[currentLocale], key) ?? getNestedValue(locales['zh-TW'], key) ?? key
 }
 
 export function getLocale(): Locale {
@@ -69,11 +72,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   const translate = useCallback(
     (key: string) => {
       // Re-read from locales using the current locale state to trigger re-renders
-      return (
-        getNestedValue(locales[locale], key) ??
-        getNestedValue(locales['zh-TW'], key) ??
-        key
-      )
+      return getNestedValue(locales[locale], key) ?? getNestedValue(locales['zh-TW'], key) ?? key
     },
     [locale]
   )
