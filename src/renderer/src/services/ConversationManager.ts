@@ -7,6 +7,7 @@ export interface IConversationRepository {
   appendMessage(agentId: string, message: Message): void
   appendStreamChunk(agentId: string, chunk: string): void
   finalizeStream(agentId: string): void
+  markWaiting(agentId: string): void
   markStreamError(agentId: string): void
   prepareRetry(agentId: string): void
   getStreamingState(agentId: string): StreamingState
@@ -26,7 +27,7 @@ export interface Message {
   timestamp: number
 }
 
-export type StreamingState = 'idle' | 'streaming' | 'error'
+export type StreamingState = 'idle' | 'waiting' | 'streaming' | 'error'
 
 type Listener = () => void
 
@@ -146,6 +147,12 @@ class InMemoryConversationRepository implements IConversationRepository {
       }
       this.notify()
     }
+  }
+
+  markWaiting(agentId: string): void {
+    const conv = this.getOrCreateConversation(agentId)
+    conv.streamingState = 'waiting'
+    this.notify()
   }
 
   getStreamingState(agentId: string): StreamingState {

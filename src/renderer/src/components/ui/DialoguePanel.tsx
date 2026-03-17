@@ -95,12 +95,15 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
       content: text,
       timestamp: Date.now()
     })
+    conversationManager.markWaiting(dialogue.agentId)
     window.api.sendMessage(dialogue.agentId, text, locale)
   }, [dialogue, input, hasApiKey, locale, onRequestApiKey])
 
   if (!dialogue) return null
 
+  const isWaiting = conversation?.streamingState === 'waiting'
   const isStreaming = conversation?.streamingState === 'streaming'
+  const isBusy = isWaiting || isStreaming
   const messages = conversation?.messages ?? []
 
   return (
@@ -181,6 +184,26 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
             </div>
           </div>
         ))}
+        {/* Thinking indicator — shows after send, before first chunk */}
+        {isWaiting && (
+          <div style={{ marginBottom: 8 }}>
+            <div
+              style={{
+                display: 'inline-block',
+                padding: '6px 10px',
+                borderRadius: 4,
+                fontSize: 14,
+                background: 'rgba(200, 180, 140, 0.15)',
+                border: '1px solid rgba(200, 180, 140, 0.2)',
+                color: 'rgba(200, 180, 140, 0.7)'
+              }}
+            >
+              <span style={{ animation: 'pulse 1.5s ease-in-out infinite' }}>
+                {t('dialogue.thinking')}
+              </span>
+            </div>
+          </div>
+        )}
         {/* Error state */}
         {conversation?.streamingState === 'error' && (
           <div style={{ padding: '6px 10px', color: '#ff6b6b', fontSize: 13 }}>
@@ -248,7 +271,7 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && send()}
             placeholder={t('dialogue.inputPlaceholder')}
-            disabled={isStreaming}
+            disabled={isBusy}
             style={{
               flex: 1,
               padding: '6px 8px',
@@ -262,15 +285,15 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
           />
           <button
             onClick={send}
-            disabled={isStreaming || !input.trim()}
+            disabled={isBusy || !input.trim()}
             style={{
               padding: '6px 16px',
               fontFamily: 'monospace',
               fontSize: 14,
-              background: isStreaming ? 'rgba(100,100,100,0.3)' : 'rgba(200,180,140,0.3)',
+              background: isBusy ? 'rgba(100,100,100,0.3)' : 'rgba(200,180,140,0.3)',
               border: '1px solid rgba(200,180,140,0.6)',
               color: '#c4a46c',
-              cursor: isStreaming ? 'wait' : 'pointer'
+              cursor: isBusy ? 'wait' : 'pointer'
             }}
           >
             {t('dialogue.send')}
@@ -279,7 +302,10 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
       )}
 
       {/* Blink animation */}
-      <style>{`@keyframes blink { 50% { opacity: 0; } }`}</style>
+      <style>{`
+        @keyframes blink { 50% { opacity: 0; } }
+        @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+      `}</style>
     </div>
   )
 }
