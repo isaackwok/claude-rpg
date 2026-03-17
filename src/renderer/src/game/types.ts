@@ -1,4 +1,7 @@
 import type { LocalizedString } from '../i18n/types'
+import type { AgentId } from '../../../shared/types'
+
+export type { AgentId }
 
 export type SkillCategory =
   | 'writing'
@@ -10,22 +13,23 @@ export type SkillCategory =
   | 'communication'
 
 export interface AgentDef {
-  id: string
-  name: LocalizedString
-  sprite: string
-  spriteFrame: number
-  location: { map: string; x: number; y: number }
-  skills?: SkillCategory[]
+  readonly id: AgentId
+  readonly name: LocalizedString
+  readonly sprite: string
+  readonly spriteFrame: number
+  readonly location: { readonly map: string; readonly x: number; readonly y: number }
+  readonly skills?: readonly SkillCategory[]
 }
 
 export interface GameEvents {
-  'npc:interact': { agentId: string; npcPosition: { x: number; y: number } }
-  'npc:proximity': { agentId: string; inRange: boolean }
+  'npc:interact': { agentId: AgentId; npcPosition: { x: number; y: number } }
+  'npc:proximity': { agentId: AgentId; inRange: boolean }
   'player:moved': { x: number; y: number; map: string }
   'zone:entered': { zoneId: string; zoneName: string }
-  'dialogue:closed': { agentId: string }
+  'dialogue:closed': { agentId: AgentId }
+  'npc:speech-bubble': { agentId: AgentId; style: 'streaming' | 'ready' | false }
   'npc:spawn': { agent: AgentDef }
-  'npc:remove': { agentId: string }
+  'npc:remove': { agentId: AgentId }
   'camera:focus': { x: number; y: number }
   'xp:gained': { category: SkillCategory; amount: number; newTotal: number }
   'level:up': { category: SkillCategory; newLevel: number }

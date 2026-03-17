@@ -85,6 +85,7 @@ export class Town extends Scene {
     // Listen for dialogue close
     this.onDialogueClosed = () => {
       this.dialogueOpen = false
+      this.setCaptureGameKeys(true)
     }
     EventBus.on('dialogue:closed', this.onDialogueClosed)
 
@@ -94,6 +95,27 @@ export class Town extends Scene {
     this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels)
     this.cameras.main.setBackgroundColor('#1a1a2e')
     this.cameras.main.setZoom(2)
+  }
+
+  /** Toggle Phaser's key capture — release during dialogue so the DOM input receives keystrokes */
+  private setCaptureGameKeys(capture: boolean): void {
+    const kb = this.input.keyboard!
+    const keys = [
+      Phaser.Input.Keyboard.KeyCodes.SPACE,
+      Phaser.Input.Keyboard.KeyCodes.W,
+      Phaser.Input.Keyboard.KeyCodes.A,
+      Phaser.Input.Keyboard.KeyCodes.S,
+      Phaser.Input.Keyboard.KeyCodes.D,
+      Phaser.Input.Keyboard.KeyCodes.UP,
+      Phaser.Input.Keyboard.KeyCodes.DOWN,
+      Phaser.Input.Keyboard.KeyCodes.LEFT,
+      Phaser.Input.Keyboard.KeyCodes.RIGHT
+    ]
+    if (capture) {
+      kb.addCapture(keys)
+    } else {
+      kb.removeCapture(keys)
+    }
   }
 
   shutdown(): void {
@@ -140,6 +162,7 @@ export class Town extends Scene {
       const nearbyNpc = this.npcs.find((npc) => npc.playerInRange)
       if (nearbyNpc && !this.dialogueOpen) {
         this.dialogueOpen = true
+        this.setCaptureGameKeys(false)
         EventBus.emit('npc:interact', {
           agentId: nearbyNpc.agentDef.id,
           npcPosition: { x: nearbyNpc.x, y: nearbyNpc.y }

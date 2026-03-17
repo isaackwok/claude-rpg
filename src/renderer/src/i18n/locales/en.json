@@ -6,9 +6,41 @@
     "hint": "Press Space to talk",
     "close": "Press Escape to close"
   },
+  "apiKey": {
+    "title": "API Key Settings",
+    "prompt": "Enter your Anthropic API key",
+    "placeholder": "sk-ant-...",
+    "save": "Save",
+    "cancel": "Cancel"
+  },
+  "npcIntro": {
+    "elder": "I am Edmond, known as the Elder — the oldest resident of this town. I enjoy telling stories through proverbs and have witnessed countless adventurers come and go. If something puzzles you, just ask — guiding the young is what I do best.",
+    "guildMaster": "I am Nile, the Guild Master. I speak plainly and value discipline, but every adventurer's growth fills me with pride. Organizing teams and crafting strategies — that's my forte.",
+    "scholar": "I am Sophia, the Scholar. The library is my home. I have an endless thirst for knowledge and love citing references and diving deep into problems. Need something researched? Let me investigate it thoroughly.",
+    "scribe": "I am Raven, the Scribe. I hold words to the highest standard and pursue the perfect turn of phrase. Drafting emails, writing articles, translating texts — leave it all to me.",
+    "merchant": "I am Marco, the Merchant — the sharpest trader in the market. I'm pragmatic, efficient, and can spot patterns in data at a glance. Data analysis, business strategy — these are my specialties.",
+    "commander": "I am Neo, the Commander. I plan every task with military precision and strict discipline. Need scheduling, checklists, or process optimization? Let me deploy it like a campaign.",
+    "artisan": "I am Iris, the Artisan. I see everything through an artistic lens, always composing images in my mind. Design, color, typography, creative ideation — all my domain.",
+    "herald": "I am Naomi, the Herald. I'm warm, articulate, and skilled at connecting people. Drafting messages, translating, meeting summaries — let me help you communicate just right.",
+    "wizard": "I am Merlin, known as the Wizard. I dwell in the tower and see code as magic spells, debugging as breaking curses. Programming, automation, technical puzzles — all within my arcane domain.",
+    "bartender": "I'm Rex, the Bartender. I know everyone in town and all the gossip too. Want to chat, find someone, or learn who's good at what? Take a seat — I'll fill you in."
+  },
   "dialogue": {
-    "placeholder": "......",
-    "thinking": "Thinking..."
+    "thinking": "Thinking...",
+    "inputPlaceholder": "Type a message...",
+    "send": "Send",
+    "connectionError": "Connection error. ",
+    "errorNoApiKey": "API key not found — please set your API key.",
+    "errorRateLimit": "Rate limit reached — please wait a moment.",
+    "errorGeneric": "Something went wrong. ",
+    "copyFailed": "Could not copy",
+    "noApiKey": "An API key is required to talk to NPCs",
+    "setApiKey": "Set API Key",
+    "apiKeySet": "API key saved",
+    "apiKeyInvalid": "Invalid API key format",
+    "retry": "Retry",
+    "copied": "Copied",
+    "copy": "Copy"
   },
   "locations": {
     "townSquare": "Town Square",
@@ -22,15 +54,15 @@
     "tower": "Tower"
   },
   "npcs": {
-    "elder": "The Elder",
-    "guildMaster": "Guild Master",
-    "scholar": "The Scholar",
-    "scribe": "The Scribe",
-    "merchant": "The Merchant",
-    "commander": "The Commander",
-    "artisan": "The Artisan",
-    "herald": "The Herald",
-    "wizard": "The Wizard",
-    "bartender": "Bartender"
+    "elder": "Elder Edmond",
+    "guildMaster": "Guild Master Nile",
+    "scholar": "Scholar Sophia",
+    "scribe": "Scribe Raven",
+    "merchant": "Merchant Marco",
+    "commander": "Commander Neo",
+    "artisan": "Artisan Iris",
+    "herald": "Herald Naomi",
+    "wizard": "Wizard Merlin",
+    "bartender": "Bartender Rex"
   }
 }

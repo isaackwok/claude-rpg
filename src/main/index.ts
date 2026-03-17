@@ -2,6 +2,8 @@ import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { storeApiKey, hasApiKey, clearApiKey } from './api-key'
+import { handleSendMessage, cancelStream } from './chat'
 
 function createWindow(): void {
   // Create the browser window.
@@ -56,6 +58,58 @@ app.whenReady().then(() => {
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
+
+  // API key management
+  ipcMain.handle('apikey:set', async (_event, key: string) => {
+    if (typeof key !== 'string' || !key.startsWith('sk-ant-')) return false
+    try {
+      storeApiKey(key)
+      return true
+    } catch (err) {
+      console.error('[apikey:set] Failed to store API key:', err)
+      return false
+    }
+  })
+
+  ipcMain.handle('apikey:check', async () => {
+    return hasApiKey()
+  })
+
+  ipcMain.handle('apikey:clear', async () => {
+    clearApiKey()
+  })
+
+  // Chat
+  ipcMain.on('chat:send-message', (event, data: unknown) => {
+    if (
+      !data ||
+      typeof data !== 'object' ||
+      typeof (data as Record<string, unknown>).agentId !== 'string' ||
+      typeof (data as Record<string, unknown>).message !== 'string' ||
+      typeof (data as Record<string, unknown>).locale !== 'string'
+    ) {
+      console.warn('[chat:send-message] Received malformed IPC payload:', data)
+      return
+    }
+    const { agentId, message, locale } = data as {
+      agentId: string
+      message: string
+      locale: string
+    }
+    handleSendMessage(agentId, message, locale, event.sender)
+  })
+
+  ipcMain.on('chat:cancel-stream', (_event, data: unknown) => {
+    if (
+      !data ||
+      typeof data !== 'object' ||
+      typeof (data as Record<string, unknown>).agentId !== 'string'
+    ) {
+      console.warn('[chat:cancel-stream] Received malformed IPC payload:', data)
+      return
+    }
+    cancelStream((data as { agentId: string }).agentId)
+  })
 
   createWindow()
 

@@ -6,9 +6,41 @@
     "hint": "按 Space 對話",
     "close": "按 Escape 關閉"
   },
+  "apiKey": {
+    "title": "API 金鑰設定",
+    "prompt": "請輸入你的 Anthropic API 金鑰",
+    "placeholder": "sk-ant-...",
+    "save": "儲存",
+    "cancel": "取消"
+  },
+  "npcIntro": {
+    "elder": "我是艾德蒙（Edmond），人們都叫我長老。我是這座小鎮最年長的居民，喜歡用諺語說故事，見證了無數冒險者的來去。有什麼困惑，儘管問我——引導年輕人是我最擅長的事。",
+    "guildMaster": "我是乃爾（Nile），公會的會長。我說話直接、重視紀律，但每位冒險者的成長都讓我驕傲。組織團隊、制定策略——這些是我的強項。",
+    "scholar": "我是索菲亞（Sophia），大家叫我學者。圖書館就是我的家，我對知識有無盡的渴望，喜歡引用文獻、鑽研問題。需要研究什麼主題？讓我幫你查個透徹。",
+    "scribe": "我是雷文（Raven），書記工坊的主人。我對文字有極高的品味，追求完美的措辭。無論是起草郵件、撰寫文章還是翻譯文本，交給我就對了。",
+    "merchant": "我是馬可（Marco），市場上最精明的交易者。我務實、講究效率，一眼就能看穿數據中的規律。數據分析、商業策略——這些是我的拿手好戲。",
+    "commander": "我是乃歐（Neo），紀律嚴明的指揮官。我用軍事化的精確度規劃每個任務。需要排程、清單、流程優化？讓我把它當一場戰役來部署。",
+    "artisan": "我是艾瑞絲（Iris），匠師工坊裡的創意大師。我用藝術的眼光看待一切，腦海中永遠在構思畫面。設計、配色、排版、創意發想——這些都是我的領域。",
+    "herald": "我是娜歐蜜（Naomi），傳令站的外交官。我溫暖親切、表達清晰，擅長連結不同的人。起草訊息、翻譯、會議摘要——讓我幫你用最恰當的方式傳達。",
+    "wizard": "我是瑪琳（Merlin），人稱巫師，住在高塔裡的程式法師。我把程式碼視為魔法咒語，把除錯當作破解詛咒。寫程式、自動化、技術難題——皆在我的法術範圍之內。",
+    "bartender": "我是雷克斯（Rex），這間酒館的老闆。我認識鎮上每個人，知道所有的八卦。想閒聊、想找人、想了解誰擅長什麼？坐下來，我慢慢告訴你。"
+  },
   "dialogue": {
-    "placeholder": "......",
-    "thinking": "思考中..."
+    "thinking": "思考中...",
+    "inputPlaceholder": "輸入訊息...",
+    "send": "發送",
+    "connectionError": "連線錯誤。",
+    "errorNoApiKey": "找不到 API 金鑰——請設定你的金鑰。",
+    "errorRateLimit": "請求次數達到上限——請稍候再試。",
+    "errorGeneric": "發生錯誤。",
+    "copyFailed": "無法複製",
+    "noApiKey": "需要 API 金鑰才能與 NPC 對話",
+    "setApiKey": "設定 API 金鑰",
+    "apiKeySet": "API 金鑰已設定",
+    "apiKeyInvalid": "API 金鑰格式不正確",
+    "retry": "重試",
+    "copied": "已複製",
+    "copy": "複製"
   },
   "locations": {
     "townSquare": "城鎮廣場",
@@ -22,15 +54,15 @@
     "tower": "高塔"
   },
   "npcs": {
-    "elder": "長老",
-    "guildMaster": "會長",
-    "scholar": "學者",
-    "scribe": "書記官",
-    "merchant": "商人",
-    "commander": "指揮官",
-    "artisan": "匠師",
-    "herald": "傳令使",
-    "wizard": "巫師",
-    "bartender": "酒保"
+    "elder": "長老 艾德蒙",
+    "guildMaster": "會長 乃爾",
+    "scholar": "學者 索菲亞",
+    "scribe": "書記官 雷文",
+    "merchant": "商人 馬可",
+    "commander": "指揮官 乃歐",
+    "artisan": "匠師 艾瑞絲",
+    "herald": "傳令使 娜歐蜜",
+    "wizard": "巫師 瑪琳",
+    "bartender": "酒保 雷克斯"
   }
 }
