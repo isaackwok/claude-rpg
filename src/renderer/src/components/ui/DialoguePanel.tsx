@@ -248,6 +248,7 @@ function InputArea({
   }, [triggerClose, setInput, inputRef])
 
   const inputHeight = 30
+  const maxTextareaHeight = 120
 
   const plusBtnStyle: CSSProperties = {
     width: inputHeight,
@@ -293,7 +294,7 @@ function InputArea({
         onInput={(e) => {
           const el = e.currentTarget
           el.style.height = 'auto'
-          el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+          el.style.height = Math.min(el.scrollHeight, maxTextareaHeight) + 'px'
         }}
         placeholder={t('dialogue.inputPlaceholder')}
         disabled={isBusy}
@@ -301,7 +302,7 @@ function InputArea({
         style={{
           flex: 1,
           minHeight: inputHeight,
-          maxHeight: 120,
+          maxHeight: maxTextareaHeight,
           boxSizing: 'border-box',
           padding: '4px 8px',
           fontFamily: 'monospace',
