@@ -9,15 +9,23 @@ import {
   handleToolApproved,
   handleToolDenied,
   handlePathApproved,
-  handlePathDenied
+  handlePathDenied,
+  setChatDependencies
 } from './chat'
 import {
   getApprovedFolders,
   addApprovedFolder,
   removeApprovedFolder,
   selectAndAddFolder,
-  isPathApproved
+  isPathApproved,
+  initFolderManager
 } from './folder-manager'
+import { getDatabase, closeDatabase } from './db/database'
+import { SqlitePlayerRepository } from './db/player-repository'
+import { SqliteXPRepository } from './db/xp-repository'
+import { SqliteConversationPersistence } from './db/conversation-persistence'
+import { SqliteFolderRepository } from './db/folder-repository'
+import { ProgressionEngine } from './progression-engine'
 
 function createWindow(): void {
   // Create the browser window.
@@ -68,6 +76,52 @@ app.whenReady().then(() => {
   // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
+  })
+
+  // Initialize SQLite database and repositories
+  const db = getDatabase()
+  const playerRepo = new SqlitePlayerRepository(db)
+  const xpRepo = new SqliteXPRepository(db)
+  const conversationPersistence = new SqliteConversationPersistence(db)
+  const folderRepo = new SqliteFolderRepository(db)
+  const progressionEngine = new ProgressionEngine(xpRepo, playerRepo, 'player-1')
+
+  // Ensure player exists
+  playerRepo.getOrCreate('player-1')
+
+  // Wire dependencies into chat and folder manager
+  setChatDependencies(progressionEngine, conversationPersistence)
+  initFolderManager(folderRepo)
+
+  // Progression IPC handlers
+  ipcMain.handle('progression:get-player', () => {
+    try {
+      return progressionEngine.getPlayerState()
+    } catch (err) {
+      console.error('[ipc] progression:get-player failed:', err)
+      return null
+    }
+  })
+  ipcMain.handle('progression:get-skills', () => {
+    try {
+      return progressionEngine.getPlayerState().skills
+    } catch (err) {
+      console.error('[ipc] progression:get-skills failed:', err)
+      return null
+    }
+  })
+  ipcMain.handle('conversations:get-history', (_event, agentId: string) => {
+    if (typeof agentId !== 'string') {
+      console.warn('[ipc] conversations:get-history received invalid agentId:', agentId)
+      return []
+    }
+    try {
+      const conv = conversationPersistence.getOrCreateByAgent(agentId, 'player-1')
+      return conversationPersistence.getMessages(conv.id)
+    } catch (err) {
+      console.error(`[ipc] conversations:get-history failed for ${agentId}:`, err)
+      return []
+    }
   })
 
   // IPC test
@@ -219,6 +273,8 @@ app.whenReady().then(() => {
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
+app.on('before-quit', () => closeDatabase())
+
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()

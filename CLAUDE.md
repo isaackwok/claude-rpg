@@ -72,7 +72,7 @@ The project is built in 6 phases, each producing a working deliverable:
 5. **Party System** — Multi-agent orchestration via Agent SDK
 6. **Onboarding & Polish** — Title screen, API key wizard, character creation, i18n pass
 
-Completed: Phase 1 (Shell & World), Phase 2 (Agent Conversations), Phase 2.5 (NPC Tool Use)
-Next up: Phase 3 (Progression)
+Completed: Phase 1 (Shell & World), Phase 2 (Agent Conversations), Phase 2.5 (NPC Tool Use), Phase 3A (Progression Engine)
+Next up: Phase 3B (Quests & Skill Tree)
 Full spec: `docs/superpowers/specs/2026-03-16-claude-rpg-design.md`
 Plans & specs: `docs/superpowers/plans/` and `docs/superpowers/specs/`

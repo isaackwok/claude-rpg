@@ -3,7 +3,12 @@ import type {
   ApprovedFolder,
   ToolConfirmPayload,
   ToolExecutingPayload,
-  PathApprovalPayload
+  PathApprovalPayload,
+  PlayerState,
+  SkillMap,
+  XPAwardResult,
+  LocalizedString,
+  PersistedMessage
 } from '../shared/types'
 
 interface ChatAPI {
@@ -35,6 +40,13 @@ interface ChatAPI {
   checkPaths(paths: string[]): Promise<Array<{ path: string; approved: boolean }>>
   // File/folder picker
   pickFiles(): Promise<string[]>
+  // Progression
+  getPlayerState(): Promise<PlayerState>
+  getSkills(): Promise<SkillMap>
+  onXPAwarded(callback: (result: XPAwardResult) => void): () => void
+  onTitleChanged(callback: (data: { newTitle: LocalizedString }) => void): () => void
+  // Conversation history
+  getConversationHistory(agentId: string): Promise<PersistedMessage[]>
 }
 
 declare global {

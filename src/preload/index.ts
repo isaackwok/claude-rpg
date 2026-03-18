@@ -80,7 +80,37 @@ const api = {
     ipcRenderer.invoke('folders:check-paths', paths),
 
   // File/folder picker
-  pickFiles: (): Promise<string[]> => ipcRenderer.invoke('dialog:pick-files')
+  pickFiles: (): Promise<string[]> => ipcRenderer.invoke('dialog:pick-files'),
+
+  // Progression
+  getPlayerState: (): Promise<import('../shared/types').PlayerState> =>
+    ipcRenderer.invoke('progression:get-player'),
+  getSkills: (): Promise<import('../shared/types').SkillMap> =>
+    ipcRenderer.invoke('progression:get-skills'),
+  onXPAwarded: (
+    callback: (result: import('../shared/types').XPAwardResult) => void
+  ): (() => void) => {
+    const handler = (_event: unknown, result: import('../shared/types').XPAwardResult): void =>
+      callback(result)
+    ipcRenderer.on('progression:xp-awarded', handler)
+    return () => ipcRenderer.removeListener('progression:xp-awarded', handler)
+  },
+  onTitleChanged: (
+    callback: (data: { newTitle: import('../shared/types').LocalizedString }) => void
+  ): (() => void) => {
+    const handler = (
+      _event: unknown,
+      data: { newTitle: import('../shared/types').LocalizedString }
+    ): void => callback(data)
+    ipcRenderer.on('progression:title-changed', handler)
+    return () => ipcRenderer.removeListener('progression:title-changed', handler)
+  },
+
+  // Conversation history
+  getConversationHistory: (
+    agentId: string
+  ): Promise<import('../shared/types').PersistedMessage[]> =>
+    ipcRenderer.invoke('conversations:get-history', agentId)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

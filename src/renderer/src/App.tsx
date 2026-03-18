@@ -1,18 +1,24 @@
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState, useEffect, useCallback } from 'react'
 import { PhaserGame, type PhaserGameRef } from './components/PhaserGame'
 import { ProximityHint } from './components/ui/ProximityHint'
 import { DialoguePanel } from './components/ui/DialoguePanel'
 import { HUD } from './components/ui/HUD'
 import { ApiKeyModal } from './components/ui/ApiKeyModal'
 import { NoticeBoardPanel } from './components/ui/NoticeBoardPanel'
+import { SkillsPanel } from './components/ui/SkillsPanel'
+import { LevelUpBanner } from './components/ui/LevelUpBanner'
 import { conversationManager } from './services/ConversationManager'
 import { EventBus } from './game/EventBus'
+import type { AgentId } from '../../shared/types'
 
 function App(): React.JSX.Element {
   const phaserRef = useRef<PhaserGameRef>(null)
   const [showApiKeyModal, setShowApiKeyModal] = useState(false)
   const [showNoticeBoard, setShowNoticeBoard] = useState(false)
+  const [showSkillsPanel, setShowSkillsPanel] = useState(false)
+  const [levelUpBanner, setLevelUpBanner] = useState<number | null>(null)
   const [apiKeyVersion, setApiKeyVersion] = useState(0)
+  const hydratedAgents = useRef(new Set<string>())
 
   // Wire IPC stream events to ConversationManager
   useEffect(() => {
@@ -53,6 +59,16 @@ function App(): React.JSX.Element {
     }
   }, [])
 
+  // Level-up banner listener
+  useEffect(() => {
+    const cleanup = window.api.onXPAwarded((result) => {
+      if (result.overallLevelUp) {
+        setLevelUpBanner(result.overallLevelUp.newLevel)
+      }
+    })
+    return cleanup
+  }, [])
+
   // Notice Board interaction from Phaser
   useEffect(() => {
     const handler = () => setShowNoticeBoard(true)
@@ -61,6 +77,66 @@ function App(): React.JSX.Element {
       EventBus.off('noticeboard:interact', handler)
     }
   }, [])
+
+  // SkillsPanel toggle from EventBus + keyboard
+  useEffect(() => {
+    const handler = () => setShowSkillsPanel((v) => !v)
+    EventBus.on('skills-panel:toggle', handler)
+    return () => {
+      EventBus.off('skills-panel:toggle', handler)
+    }
+  }, [])
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      // Skip if focus is on an input/textarea
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return
+
+      if (e.key === 'p' || e.key === 'P') {
+        setShowSkillsPanel((v) => !v)
+      }
+      if (e.key === 'Escape' && showSkillsPanel) {
+        setShowSkillsPanel(false)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [showSkillsPanel])
+
+  // Hydrate conversation history from SQLite on first dialogue open
+  const hydrateConversation = useCallback(async (agentId: AgentId) => {
+    if (hydratedAgents.current.has(agentId)) return
+
+    try {
+      const messages = await window.api.getConversationHistory(agentId)
+      // Mark as hydrated only after successful fetch
+      hydratedAgents.current.add(agentId)
+      if (messages.length > 0) {
+        conversationManager.hydrateFromPersistence(
+          agentId,
+          messages.map((m) => ({
+            role: m.role as 'user' | 'assistant',
+            content: m.content,
+            timestamp: m.timestamp
+          }))
+        )
+      }
+    } catch (err) {
+      console.error(`[App] Failed to hydrate conversation for ${agentId}:`, err)
+      // Don't mark as hydrated — allow retry on next interaction
+    }
+  }, [])
+
+  useEffect(() => {
+    const handler = (data: { agentId: AgentId }) => {
+      hydrateConversation(data.agentId)
+    }
+    EventBus.on('npc:interact', handler)
+    return () => {
+      EventBus.off('npc:interact', handler)
+    }
+  }, [hydrateConversation])
 
   return (
     <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
@@ -83,6 +159,10 @@ function App(): React.JSX.Element {
           apiKeyVersion={apiKeyVersion}
         />
         {showNoticeBoard && <NoticeBoardPanel onClose={() => setShowNoticeBoard(false)} />}
+        {showSkillsPanel && <SkillsPanel onClose={() => setShowSkillsPanel(false)} />}
+        {levelUpBanner !== null && (
+          <LevelUpBanner level={levelUpBanner} onDone={() => setLevelUpBanner(null)} />
+        )}
         {showApiKeyModal && (
           <ApiKeyModal
             onClose={() => setShowApiKeyModal(false)}

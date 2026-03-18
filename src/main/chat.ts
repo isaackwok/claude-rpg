@@ -8,6 +8,8 @@ import { executeTool } from './tools/tool-executor'
 import { getApprovedFolders, addApprovedFolder, isPathApproved } from './folder-manager'
 import { getParentFolder } from './tools/path-utils'
 import type { AgentId, ToolName, ToolConfirmPayload, PathApprovalPayload } from '../shared/types'
+import type { ProgressionEngine } from './progression-engine'
+import type { SqliteConversationPersistence } from './db/conversation-persistence'
 
 type MessageParam = Anthropic.Messages.MessageParam
 
@@ -70,6 +72,19 @@ interface PendingPathApproval {
   denied: string[]
   remaining: Set<string>
 }
+let progressionEngine: ProgressionEngine | null = null
+let conversationPersistence: SqliteConversationPersistence | null = null
+let dependenciesInitialized = false
+
+export function setChatDependencies(
+  engine: ProgressionEngine,
+  persistence: SqliteConversationPersistence
+): void {
+  progressionEngine = engine
+  conversationPersistence = persistence
+  dependenciesInitialized = true
+}
+
 const pendingPathApprovals = new Map<AgentId, PendingPathApproval>()
 const pendingQueue: Array<{
   agentId: AgentId
@@ -360,6 +375,21 @@ async function executeStream(
     history.push({ role: 'user', content: finalMessage })
   }
 
+  // Warn if chat dependencies were never initialized — likely a startup ordering bug
+  if (!dependenciesInitialized) {
+    console.warn('[chat] setChatDependencies() was never called — persistence and XP are disabled')
+  }
+
+  // Persist user message to SQLite (non-critical — don't interrupt conversation on failure)
+  if (conversationPersistence && typeof finalMessage === 'string') {
+    try {
+      const conv = conversationPersistence.getOrCreateByAgent(agentId, 'player-1')
+      conversationPersistence.addMessage(conv.id, 'user', finalMessage, Date.now())
+    } catch (err) {
+      console.error(`[chat] Failed to persist user message for ${agentId}:`, err)
+    }
+  }
+
   const controller = new AbortController()
   const client = getOrCreateClient(apiKey)
   const toolContext = getAgentToolContext(agentId, getApprovedFolders())
@@ -506,6 +536,33 @@ async function executeStream(
         // stop_reason is 'end_turn' or 'max_tokens' — done
         history.push({ role: 'assistant', content: finalMessage.content })
         continueLoop = false
+
+        // Persist assistant response (non-critical — don't interrupt conversation on failure)
+        if (fullTextResponse && conversationPersistence) {
+          try {
+            const conv = conversationPersistence.getOrCreateByAgent(agentId, 'player-1')
+            conversationPersistence.addMessage(conv.id, 'assistant', fullTextResponse, Date.now())
+          } catch (err) {
+            console.error(`[chat] Failed to persist assistant message for ${agentId}:`, err)
+          }
+        }
+
+        // Award XP (non-critical — don't interrupt conversation on failure)
+        if (fullTextResponse && progressionEngine && config.skills.length > 0) {
+          try {
+            const xpResult = progressionEngine.awardXP(agentId, config.skills)
+            if (!webContents.isDestroyed()) {
+              webContents.send('progression:xp-awarded', { ...xpResult, agentId })
+              if (xpResult.titleChanged) {
+                webContents.send('progression:title-changed', {
+                  newTitle: xpResult.titleChanged
+                })
+              }
+            }
+          } catch (err) {
+            console.error(`[chat] Failed to award XP for ${agentId}:`, err)
+          }
+        }
       }
     }
 
