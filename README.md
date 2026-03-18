@@ -12,6 +12,7 @@ Built as a spatial interface for non-technical users (designers, PMs) to interac
 | Game Engine  | Phaser 3.90 (tilemaps, sprites, arcade physics)  |
 | UI Framework | React 19 (overlay panels — dialogue, menus, HUD) |
 | AI           | Anthropic SDK (Claude conversations + tool use)  |
+| Storage      | SQLite via better-sqlite3 (main process)         |
 | Language     | TypeScript                                       |
 | Build        | Vite via electron-vite (3-process config)        |
 | Maps         | Tiled Map Editor → JSON → Phaser                 |
@@ -26,7 +27,9 @@ src/
 │   ├── api-key.ts         # API key storage (safeStorage)
 │   ├── chat.ts            # Anthropic SDK conversation logic
 │   ├── folder-manager.ts  # Approved folder management
+│   ├── progression-engine.ts  # XP, leveling, title computation
 │   ├── agents/            # NPC system prompts
+│   ├── db/                # SQLite repositories & migrations
 │   └── tools/             # NPC tool definitions & executor
 ├── preload/               # contextBridge (safe IPC channels)
 ├── renderer/src/
@@ -35,7 +38,8 @@ src/
 │   │   ├── entities/      # Player, NPC
 │   │   ├── data/          # NPC registry
 │   │   └── EventBus.ts    # Typed Phaser ↔ React event bus
-│   ├── components/ui/     # DialoguePanel, HUD, ProximityHint, etc.
+│   ├── components/ui/     # DialoguePanel, HUD, SkillsPanel, ProximityHint, etc.
+│   ├── hooks/             # useProgression, useQuests (IPC + EventBus)
 │   ├── services/          # ConversationManager
 │   ├── i18n/              # zh-TW + en locale files
 │   └── App.tsx            # Root component
@@ -102,7 +106,9 @@ NPCs can use tools (read/write files, search the web, run commands) with an appr
 - [x] **Phase 1: Shell & World** — Electron + Phaser tilemap + player movement + NPC sprites + React overlay scaffold
 - [x] **Phase 2: Agent Conversations** — Single-agent NPC dialogue via Anthropic SDK
 - [x] **Phase 2.5: NPC Tool Use** — File operations, web search, command execution with folder approval system
-- [ ] **Phase 3: Progression** — XP, leveling, titles, quest board, SQLite persistence
+- [x] **Phase 3A: Progression Engine** — XP, leveling, dynamic titles, SQLite persistence, HUD expansion
+- [ ] **Phase 3B: Quests & Backpack** — Organic quests, backpack inventory panel, Tavern quest board, title tiers
+- [ ] **Phase 3C: Achievements & Cosmetics** — Achievement system, cosmetic equip system
 - [ ] **Phase 4: Guild Hall** — Custom agent creation
 - [ ] **Phase 5: Party System** — Multi-agent orchestration via Agent SDK
 - [ ] **Phase 6: Onboarding & Polish** — Title screen, API key wizard, character creation, i18n pass
