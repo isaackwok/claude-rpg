@@ -169,18 +169,24 @@ interface QuestDefinition {
 }
 
 interface QuestTrigger {
-  type: 'conversation_count' | 'category_count' | 'daily_count' | 'category_coverage'
+  type:
+    | 'conversation_count'
+    | 'category_count'
+    | 'max_category_count'
+    | 'daily_count'
+    | 'category_coverage'
   skillCategory?: SkillCategory // for category-specific triggers (e.g., 'research' for Knowledge Collector)
   threshold: number // semantics vary by type:
   //   conversation_count: total conversations across all categories
   //   category_count: conversations in a specific skillCategory
+  //   max_category_count: highest conversation count in any single category
   //   daily_count: conversations within a single calendar day
   //   category_coverage: number of distinct categories with >= 1 conversation
 }
 
 interface QuestPrecondition {
-  type: 'conversation_count' | 'category_coverage' // aligned naming with QuestTrigger
-  threshold: number // conversation_count: min convos in any single category
+  type: 'max_category_count' | 'category_coverage'
+  threshold: number // max_category_count: highest convo count in any single category
   // category_coverage: min distinct categories with >= 1 convo
 }
 ```
