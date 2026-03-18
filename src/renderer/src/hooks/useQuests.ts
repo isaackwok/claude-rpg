@@ -5,13 +5,16 @@ import type { PlayerQuest, LocalizedString, QuestVisibility } from '../../../sha
 export function useQuests() {
   const [quests, setQuests] = useState<PlayerQuest[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
     try {
+      setError(null)
       const result = await window.api.getQuests()
       setQuests(result)
     } catch (err) {
       console.error('[useQuests] Failed to fetch quests:', err)
+      setError('Failed to load quests')
     } finally {
       setLoading(false)
     }
@@ -41,7 +44,7 @@ export function useQuests() {
 
     const cleanupDiscovered = window.api.onQuestDiscovered(
       (data: { questDefId: string; visibility: QuestVisibility }) => {
-        refresh()
+        refresh().catch((err) => console.error('[useQuests] refresh after discovery failed:', err))
         EventBus.emit('quest:discovered', {
           questDefId: data.questDefId,
           visibility: data.visibility
@@ -59,5 +62,5 @@ export function useQuests() {
   const activeCount = quests.filter((q) => q.status === 'active' && q.progress > 0).length
   const completedCount = quests.filter((q) => q.status === 'completed').length
 
-  return { quests, loading, refresh, activeCount, completedCount }
+  return { quests, loading, error, refresh, activeCount, completedCount }
 }

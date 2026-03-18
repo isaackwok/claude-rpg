@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useTranslation } from '../../i18n'
 import { QuestCard } from './QuestCard'
 import type { PlayerQuest } from '../../../../shared/types'
@@ -7,14 +7,13 @@ type QuestFilter = 'all' | 'active' | 'completed'
 
 interface QuestsTabProps {
   quests: PlayerQuest[]
+  activeCount: number
+  completedCount: number
 }
 
-export function QuestsTab({ quests }: QuestsTabProps) {
+export function QuestsTab({ quests, activeCount, completedCount }: QuestsTabProps) {
   const { t } = useTranslation()
   const [filter, setFilter] = useState<QuestFilter>('all')
-
-  const activeCount = quests.filter((q) => q.status === 'active').length
-  const completedCount = quests.filter((q) => q.status === 'completed').length
 
   const filtered = quests.filter((q) => {
     if (filter === 'active') return q.status === 'active'
@@ -29,11 +28,14 @@ export function QuestsTab({ quests }: QuestsTabProps) {
     return 0
   })
 
-  const filters: { key: QuestFilter; label: string }[] = [
-    { key: 'all', label: t('quests.filters.all') },
-    { key: 'active', label: t('quests.filters.active') },
-    { key: 'completed', label: t('quests.filters.completed') }
-  ]
+  const filters = useMemo<{ key: QuestFilter; label: string }[]>(
+    () => [
+      { key: 'all', label: t('quests.filters.all') },
+      { key: 'active', label: t('quests.filters.active') },
+      { key: 'completed', label: t('quests.filters.completed') }
+    ],
+    [t]
+  )
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>

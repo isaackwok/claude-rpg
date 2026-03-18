@@ -27,13 +27,13 @@ export function QuestNotification() {
         ...prev,
         { id, type: 'completed', title: data.title, xpReward: data.xpReward }
       ])
-      setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3000)
+      setTimeout(() => setToasts((prev) => prev.filter((toast) => toast.id !== id)), 3000)
     }
 
     const handleDiscovered = () => {
       const id = ++toastId
       setToasts((prev) => [...prev, { id, type: 'discovered' }])
-      setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3000)
+      setTimeout(() => setToasts((prev) => prev.filter((toast) => toast.id !== id)), 3000)
     }
 
     EventBus.on('quest:completed', handleCompleted)

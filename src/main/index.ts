@@ -93,8 +93,12 @@ app.whenReady().then(() => {
   // Ensure player exists
   playerRepo.getOrCreate('player-1')
 
-  // Seed starter quests for the player
-  questEngine.seedStarterQuests('player-1')
+  // Seed starter quests for the player (non-fatal — app works without quests)
+  try {
+    questEngine.seedStarterQuests('player-1')
+  } catch (err) {
+    console.error('[init] Failed to seed starter quests:', err)
+  }
 
   // Wire dependencies into chat and folder manager
   setChatDependencies(progressionEngine, questEngine, conversationPersistence)

@@ -115,6 +115,9 @@ function App(): React.JSX.Element {
       if (e.key === 'b' || e.key === 'B') {
         setShowBackpack((v) => !v)
       }
+      if (e.key === 'q' || e.key === 'Q') {
+        setShowQuestBoard((v) => !v)
+      }
       if (e.key === 'Escape') {
         if (showSkillsPanel) setShowSkillsPanel(false)
         if (showBackpack) setShowBackpack(false)

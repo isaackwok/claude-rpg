@@ -1,14 +1,17 @@
 import { useState } from 'react'
+import { useTranslation } from '../../i18n'
 import { EventBus } from '../../game/EventBus'
 
 export function BackpackButton() {
+  const { t } = useTranslation()
   const [hovered, setHovered] = useState(false)
 
   return (
-    <div
+    <button
       onClick={() => EventBus.emit('backpack:toggle', {})}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      aria-label={`${t('backpack.title')} (B)`}
       style={{
         position: 'absolute',
         bottom: 20,
@@ -26,7 +29,8 @@ export function BackpackButton() {
         fontSize: 28,
         cursor: 'pointer',
         pointerEvents: 'auto',
-        transition: 'border-color 0.2s ease, background 0.2s ease'
+        transition: 'border-color 0.2s ease, background 0.2s ease',
+        padding: 0
       }}
     >
       🎒
@@ -47,9 +51,9 @@ export function BackpackButton() {
             whiteSpace: 'nowrap'
           }}
         >
-          背包(B)
+          {t('backpack.title')}(B)
         </span>
       )}
-    </div>
+    </button>
   )
 }

@@ -138,28 +138,41 @@ export class QuestEngine {
     const maxCategoryCount = this.questRepo.getMaxCategoryCount(playerId)
     const totalConversations = Object.values(counts).reduce((a, b) => a + b, 0)
 
-    return rows.map((row) => {
-      const def = getQuestDefinition(row.questDefId)!
-      return {
-        id: row.id,
-        questDefId: row.questDefId,
-        visibility: row.visibility,
-        status: row.status,
-        repeatCount: row.repeatCount,
-        discoveredAt: row.discoveredAt,
-        completedAt: row.completedAt,
-        definition: def,
-        progress: this.computeProgress(
-          def.trigger,
-          counts,
-          dailyCount,
-          distinctCategories,
-          maxCategoryCount,
-          totalConversations
-        ),
-        target: def.trigger.threshold
-      }
-    })
+    return rows
+      .map((row) => {
+        const def = getQuestDefinition(row.questDefId)
+        if (!def) {
+          console.warn(
+            `[quest-engine] Unknown quest definition "${row.questDefId}" in player data — skipping`
+          )
+          return null
+        }
+        return {
+          id: row.id,
+          questDefId: row.questDefId,
+          visibility: row.visibility,
+          status: row.status,
+          repeatCount: row.repeatCount,
+          discoveredAt: row.discoveredAt,
+          completedAt: row.completedAt,
+          definition: def,
+          progress: this.computeProgress(
+            def.trigger,
+            counts,
+            dailyCount,
+            distinctCategories,
+            maxCategoryCount,
+            totalConversations
+          ),
+          target: def.trigger.threshold
+        }
+      })
+      .filter((q): q is PlayerQuest => q !== null)
+  }
+
+  /** Look up a quest definition by ID. */
+  getQuestDef(id: string): import('../shared/types').QuestDefinition | undefined {
+    return getQuestDefinition(id)
   }
 
   /** Get quest board suggestion based on weakest skill. */
@@ -203,32 +216,9 @@ export class QuestEngine {
     }
   }
 
-  private checkTrigger(
-    trigger: { type: string; skillCategory?: string; threshold: number },
-    counts: Record<string, number>,
-    dailyCount: number,
-    distinctCategories: number,
-    maxCategoryCount: number,
-    totalConversations: number
-  ): boolean {
-    switch (trigger.type) {
-      case 'conversation_count':
-        return totalConversations >= trigger.threshold
-      case 'category_count':
-        return (counts[trigger.skillCategory!] ?? 0) >= trigger.threshold
-      case 'max_category_count':
-        return maxCategoryCount >= trigger.threshold
-      case 'daily_count':
-        return dailyCount >= trigger.threshold
-      case 'category_coverage':
-        return distinctCategories >= trigger.threshold
-      default:
-        return false
-    }
-  }
-
-  private computeProgress(
-    trigger: { type: string; skillCategory?: string; threshold: number },
+  /** Resolve the current counter value for a given trigger type. */
+  private resolveCurrentValue(
+    trigger: import('../shared/types').QuestTrigger,
     counts: Record<string, number>,
     dailyCount: number,
     distinctCategories: number,
@@ -237,17 +227,56 @@ export class QuestEngine {
   ): number {
     switch (trigger.type) {
       case 'conversation_count':
-        return Math.min(totalConversations, trigger.threshold)
+        return totalConversations
       case 'category_count':
-        return Math.min(counts[trigger.skillCategory!] ?? 0, trigger.threshold)
+        return counts[trigger.skillCategory] ?? 0
       case 'max_category_count':
-        return Math.min(maxCategoryCount, trigger.threshold)
+        return maxCategoryCount
       case 'daily_count':
-        return Math.min(dailyCount, trigger.threshold)
+        return dailyCount
       case 'category_coverage':
-        return Math.min(distinctCategories, trigger.threshold)
-      default:
-        return 0
+        return distinctCategories
     }
+  }
+
+  private checkTrigger(
+    trigger: import('../shared/types').QuestTrigger,
+    counts: Record<string, number>,
+    dailyCount: number,
+    distinctCategories: number,
+    maxCategoryCount: number,
+    totalConversations: number
+  ): boolean {
+    return (
+      this.resolveCurrentValue(
+        trigger,
+        counts,
+        dailyCount,
+        distinctCategories,
+        maxCategoryCount,
+        totalConversations
+      ) >= trigger.threshold
+    )
+  }
+
+  private computeProgress(
+    trigger: import('../shared/types').QuestTrigger,
+    counts: Record<string, number>,
+    dailyCount: number,
+    distinctCategories: number,
+    maxCategoryCount: number,
+    totalConversations: number
+  ): number {
+    return Math.min(
+      this.resolveCurrentValue(
+        trigger,
+        counts,
+        dailyCount,
+        distinctCategories,
+        maxCategoryCount,
+        totalConversations
+      ),
+      trigger.threshold
+    )
   }
 }

@@ -8,6 +8,7 @@ import { executeTool } from './tools/tool-executor'
 import { getApprovedFolders, addApprovedFolder, isPathApproved } from './folder-manager'
 import { getParentFolder } from './tools/path-utils'
 import type { AgentId, ToolName, ToolConfirmPayload, PathApprovalPayload } from '../shared/types'
+import { SKILL_CATEGORIES } from '../shared/types'
 import type { ProgressionEngine } from './progression-engine'
 import type { QuestEngine } from './quest-engine'
 import type { SqliteConversationPersistence } from './db/conversation-persistence'
@@ -88,8 +89,6 @@ export function setChatDependencies(
   conversationPersistence = persistence
   dependenciesInitialized = true
 }
-
-export { questEngine }
 
 const pendingPathApprovals = new Map<AgentId, PendingPathApproval>()
 const pendingQueue: Array<{
@@ -566,13 +565,32 @@ async function executeStream(
               }
             }
 
-            // Check quests after XP award
+            // Check quests after XP award — award bonus XP for completed quests
             if (questEngine && !webContents.isDestroyed()) {
               try {
                 const questResult = questEngine.checkQuests('player-1')
                 if (questResult.discovered.length > 0) {
                   for (const d of questResult.discovered) {
                     webContents.send('quests:discovered', d)
+                  }
+                }
+                // Award quest completion XP (empty skillCategories → spread across all)
+                if (questResult.completed.length > 0 && progressionEngine) {
+                  for (const c of questResult.completed) {
+                    const def = questEngine.getQuestDef(c.questDefId)
+                    const categories =
+                      def && def.skillCategories.length > 0 ? def.skillCategories : SKILL_CATEGORIES
+                    const bonusResult = progressionEngine.awardBonusXP(
+                      c.xpReward,
+                      categories,
+                      agentId
+                    )
+                    if (!webContents.isDestroyed()) {
+                      webContents.send('progression:xp-awarded', {
+                        ...bonusResult,
+                        agentId
+                      })
+                    }
                   }
                 }
                 if (questResult.completed.length > 0 || questResult.discovered.length > 0) {

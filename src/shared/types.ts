@@ -118,22 +118,13 @@ export type QuestVisibility = 'hinted' | 'visible'
 /** Quest status */
 export type QuestStatus = 'active' | 'completed'
 
-/** Quest trigger types */
-export interface QuestTrigger {
-  type:
-    | 'conversation_count'
-    | 'category_count'
-    | 'max_category_count'
-    | 'daily_count'
-    | 'category_coverage'
-  skillCategory?: SkillCategory
-  threshold: number
-  // conversation_count: total conversations across all categories
-  // category_count: conversations in a specific skillCategory
-  // max_category_count: highest conversation count in any single category
-  // daily_count: conversations within a single calendar day
-  // category_coverage: number of distinct categories with >= 1 conversation
-}
+/** Quest trigger — discriminated union ensuring skillCategory is required only for category_count */
+export type QuestTrigger =
+  | { type: 'conversation_count'; threshold: number }
+  | { type: 'category_count'; skillCategory: SkillCategory; threshold: number }
+  | { type: 'max_category_count'; threshold: number }
+  | { type: 'daily_count'; threshold: number }
+  | { type: 'category_coverage'; threshold: number }
 
 /** Quest precondition for hidden→visible/hinted transition */
 export interface QuestPrecondition {
@@ -182,6 +173,6 @@ export interface QuestCheckResult {
 export interface QuestBoardSuggestion {
   weakestSkill: SkillCategory
   npcName: LocalizedString
-  agentId: string
+  agentId: AgentId
   message: LocalizedString
 }

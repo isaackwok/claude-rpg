@@ -62,6 +62,60 @@ export class ProgressionEngine {
     private playerId: string
   ) {}
 
+  /** Award bonus XP (e.g. quest rewards) spread evenly across given categories. */
+  awardBonusXP(
+    totalAmount: number,
+    skillCategories: readonly SkillCategory[],
+    agentId: string
+  ): XPAwardResult {
+    if (skillCategories.length === 0 || totalAmount <= 0) {
+      return { awards: [], levelUps: [] }
+    }
+
+    const oldTotals = this.xpRepo.getSkillTotals(this.playerId)
+    const oldOverallXP = Object.values(oldTotals).reduce((a, b) => a + b, 0)
+    const oldOverallLevel = ProgressionEngine.computeOverallLevel(oldOverallXP)
+    const oldTitle = ProgressionEngine.computeTitle(oldTotals, oldOverallLevel)
+
+    const base = Math.floor(totalAmount / skillCategories.length)
+    const remainder = totalAmount % skillCategories.length
+
+    for (let i = 0; i < skillCategories.length; i++) {
+      const amount = base + (i < remainder ? 1 : 0)
+      this.xpRepo.award(this.playerId, skillCategories[i], amount, agentId)
+    }
+
+    const newTotals = this.xpRepo.getSkillTotals(this.playerId)
+    const awards: XPAwardResult['awards'] = []
+    for (let i = 0; i < skillCategories.length; i++) {
+      awards.push({
+        category: skillCategories[i],
+        amount: base + (i < remainder ? 1 : 0),
+        newTotal: newTotals[skillCategories[i]]
+      })
+    }
+
+    const levelUps: XPAwardResult['levelUps'] = []
+    for (const category of skillCategories) {
+      const oldLevel = ProgressionEngine.computeCategoryLevel(oldTotals[category])
+      const newLevel = ProgressionEngine.computeCategoryLevel(newTotals[category])
+      if (newLevel > oldLevel) {
+        levelUps.push({ category, newLevel })
+      }
+    }
+
+    const newOverallXP = Object.values(newTotals).reduce((a, b) => a + b, 0)
+    const newOverallLevel = ProgressionEngine.computeOverallLevel(newOverallXP)
+    const overallLevelUp =
+      newOverallLevel > oldOverallLevel ? { newLevel: newOverallLevel } : undefined
+
+    const newTitle = ProgressionEngine.computeTitle(newTotals, newOverallLevel)
+    const titleChanged =
+      JSON.stringify(newTitle) !== JSON.stringify(oldTitle) ? newTitle : undefined
+
+    return { awards, levelUps, overallLevelUp, titleChanged }
+  }
+
   awardXP(agentId: string, skillCategories: readonly SkillCategory[]): XPAwardResult {
     if (skillCategories.length === 0) {
       return { awards: [], levelUps: [] }

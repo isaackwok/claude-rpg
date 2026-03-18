@@ -18,7 +18,7 @@ interface BackpackPanelProps {
 
 export function BackpackPanel({ onClose }: BackpackPanelProps) {
   const { t } = useTranslation()
-  const { quests } = useQuests()
+  const { quests, activeCount, completedCount } = useQuests()
   const [activeTab, setActiveTab] = useState<BackpackTab>('quests')
   const panelRef = useRef<HTMLDivElement>(null)
 
@@ -73,6 +73,7 @@ export function BackpackPanel({ onClose }: BackpackPanelProps) {
             <button
               key={tab.key}
               onClick={() => tab.available && setActiveTab(tab.key)}
+              aria-disabled={!tab.available}
               title={t(tab.i18nKey) + (tab.available ? '' : ` (${t('backpack.tabs.unavailable')})`)}
               style={{
                 background: activeTab === tab.key ? 'rgba(200, 180, 140, 0.12)' : 'transparent',
@@ -109,7 +110,13 @@ export function BackpackPanel({ onClose }: BackpackPanelProps) {
 
           {/* Tab content */}
           <div style={{ flex: 1, overflow: 'hidden' }}>
-            {activeTab === 'quests' && <QuestsTab quests={quests} />}
+            {activeTab === 'quests' && (
+              <QuestsTab
+                quests={quests}
+                activeCount={activeCount}
+                completedCount={completedCount}
+              />
+            )}
             {!TABS.find((t) => t.key === activeTab)?.available && activeTab !== 'quests' && (
               <div
                 style={{
