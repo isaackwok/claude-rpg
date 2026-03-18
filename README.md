@@ -27,9 +27,11 @@ src/
 │   ├── api-key.ts         # API key storage (safeStorage)
 │   ├── chat.ts            # Anthropic SDK conversation logic
 │   ├── folder-manager.ts  # Approved folder management
-│   ├── progression-engine.ts  # XP, leveling, title computation
+│   ├── progression-engine.ts  # XP, leveling, title computation + tier prefixes
+│   ├── quest-engine.ts    # Quest trigger evaluation, board suggestions
+│   ├── quest-definitions.ts # Static v1 quest definitions (5 quests)
 │   ├── agents/            # NPC system prompts
-│   ├── db/                # SQLite repositories & migrations
+│   ├── db/                # SQLite repositories & migrations (players, xp_ledger, quests)
 │   └── tools/             # NPC tool definitions & executor
 ├── preload/               # contextBridge (safe IPC channels)
 ├── renderer/src/
@@ -38,7 +40,7 @@ src/
 │   │   ├── entities/      # Player, NPC
 │   │   ├── data/          # NPC registry
 │   │   └── EventBus.ts    # Typed Phaser ↔ React event bus
-│   ├── components/ui/     # DialoguePanel, HUD, SkillsPanel, ProximityHint, etc.
+│   ├── components/ui/     # DialoguePanel, HUD, SkillsPanel, BackpackPanel, QuestCard, etc.
 │   ├── hooks/             # useProgression, useQuests (IPC + EventBus)
 │   ├── services/          # ConversationManager
 │   ├── i18n/              # zh-TW + en locale files
@@ -107,7 +109,7 @@ NPCs can use tools (read/write files, search the web, run commands) with an appr
 - [x] **Phase 2: Agent Conversations** — Single-agent NPC dialogue via Anthropic SDK
 - [x] **Phase 2.5: NPC Tool Use** — File operations, web search, command execution with folder approval system
 - [x] **Phase 3A: Progression Engine** — XP, leveling, dynamic titles, SQLite persistence, HUD expansion
-- [ ] **Phase 3B: Quests & Backpack** — Organic quests, backpack inventory panel, Tavern quest board, title tiers
+- [x] **Phase 3B: Quests & Backpack** — Organic quests (5 v1 quests), backpack panel with tab system, quest board suggestions, title tier prefixes, quest notifications
 - [ ] **Phase 3C: Achievements & Cosmetics** — Achievement system, cosmetic equip system
 - [ ] **Phase 4: Guild Hall** — Custom agent creation
 - [ ] **Phase 5: Party System** — Multi-agent orchestration via Agent SDK

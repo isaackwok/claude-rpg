@@ -48,6 +48,13 @@ const titleAdjectives: Record<string, Record<SkillCategory, string>> = {
 const DEFAULT_TITLE: LocalizedString = { 'zh-TW': '新手冒險者', en: 'Novice Adventurer' }
 const XP_PER_INTERACTION = 10
 
+const TITLE_TIERS: { minLevel: number; zhTW: string; en: string }[] = [
+  { minLevel: 20, zhTW: '傳奇', en: 'Legendary' },
+  { minLevel: 15, zhTW: '資深', en: 'Veteran' },
+  { minLevel: 10, zhTW: '熟練', en: 'Skilled' },
+  { minLevel: 5, zhTW: '見習', en: 'Apprentice' }
+]
+
 export class ProgressionEngine {
   constructor(
     private xpRepo: SqliteXPRepository,
@@ -64,7 +71,7 @@ export class ProgressionEngine {
     const oldTotals = this.xpRepo.getSkillTotals(this.playerId)
     const oldOverallXP = Object.values(oldTotals).reduce((a, b) => a + b, 0)
     const oldOverallLevel = ProgressionEngine.computeOverallLevel(oldOverallXP)
-    const oldTitle = ProgressionEngine.computeTitle(oldTotals)
+    const oldTitle = ProgressionEngine.computeTitle(oldTotals, oldOverallLevel)
 
     // Split XP evenly across categories, distribute remainder to first N
     const base = Math.floor(XP_PER_INTERACTION / skillCategories.length)
@@ -105,7 +112,7 @@ export class ProgressionEngine {
       newOverallLevel > oldOverallLevel ? { newLevel: newOverallLevel } : undefined
 
     // Check for title change
-    const newTitle = ProgressionEngine.computeTitle(newTotals)
+    const newTitle = ProgressionEngine.computeTitle(newTotals, newOverallLevel)
     const titleChanged =
       JSON.stringify(newTitle) !== JSON.stringify(oldTitle) ? newTitle : undefined
 
@@ -129,8 +136,8 @@ export class ProgressionEngine {
       id: player.id,
       name: player.name,
       locale: player.locale,
-      title: ProgressionEngine.computeTitle(totals),
       overallLevel: ProgressionEngine.computeOverallLevel(totalXP),
+      title: ProgressionEngine.computeTitle(totals, ProgressionEngine.computeOverallLevel(totalXP)),
       totalXP,
       skills
     }
@@ -146,8 +153,11 @@ export class ProgressionEngine {
     return Math.floor(Math.sqrt(totalXP / 100))
   }
 
-  /** Title = secondary adjective + primary noun, from top 2 skill categories by XP */
-  static computeTitle(skills: Record<SkillCategory, number>): LocalizedString {
+  /** Title = tier prefix + secondary adjective + primary noun, from top 2 skill categories by XP */
+  static computeTitle(
+    skills: Record<SkillCategory, number>,
+    overallLevel?: number
+  ): LocalizedString {
     const withXP = Object.entries(skills)
       .filter(([, xp]) => xp > 0)
       .sort(([, a], [, b]) => b - a)
@@ -159,14 +169,25 @@ export class ProgressionEngine {
     const [primary] = withXP[0]
     const [secondary] = withXP[1]
 
+    const baseZhTW =
+      titleAdjectives['zh-TW'][secondary as SkillCategory] +
+      titleNouns['zh-TW'][primary as SkillCategory]
+    const baseEn =
+      titleAdjectives['en'][secondary as SkillCategory] +
+      ' ' +
+      titleNouns['en'][primary as SkillCategory]
+
+    // Add tier prefix based on overall level
+    const tier =
+      overallLevel !== undefined ? TITLE_TIERS.find((t) => overallLevel >= t.minLevel) : undefined
+
+    if (!tier) {
+      return { 'zh-TW': baseZhTW, en: baseEn }
+    }
+
     return {
-      'zh-TW':
-        titleAdjectives['zh-TW'][secondary as SkillCategory] +
-        titleNouns['zh-TW'][primary as SkillCategory],
-      en:
-        titleAdjectives['en'][secondary as SkillCategory] +
-        ' ' +
-        titleNouns['en'][primary as SkillCategory]
+      'zh-TW': `${tier.zhTW}・${baseZhTW}`,
+      en: `${tier.en} ${baseEn}`
     }
   }
 }

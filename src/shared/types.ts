@@ -109,3 +109,79 @@ export interface PersistedMessage {
   content: string
   timestamp: number
 }
+
+// ── Quest types (Phase 3B) ──────────────────────────────────────
+
+/** Quest visibility in the backpack */
+export type QuestVisibility = 'hinted' | 'visible'
+
+/** Quest status */
+export type QuestStatus = 'active' | 'completed'
+
+/** Quest trigger types */
+export interface QuestTrigger {
+  type:
+    | 'conversation_count'
+    | 'category_count'
+    | 'max_category_count'
+    | 'daily_count'
+    | 'category_coverage'
+  skillCategory?: SkillCategory
+  threshold: number
+  // conversation_count: total conversations across all categories
+  // category_count: conversations in a specific skillCategory
+  // max_category_count: highest conversation count in any single category
+  // daily_count: conversations within a single calendar day
+  // category_coverage: number of distinct categories with >= 1 conversation
+}
+
+/** Quest precondition for hidden→visible/hinted transition */
+export interface QuestPrecondition {
+  type: 'max_category_count' | 'category_coverage'
+  threshold: number
+}
+
+/** Static quest definition (code constant) */
+export interface QuestDefinition {
+  id: string
+  name: LocalizedString
+  description: LocalizedString
+  hintText?: LocalizedString
+  icon: string
+  initialVisibility: 'visible' | 'hidden'
+  precondition?: QuestPrecondition
+  trigger: QuestTrigger
+  xpReward: number
+  skillCategories: SkillCategory[]
+  repeatable: boolean
+}
+
+/** Player's quest state (DB row + computed progress) */
+export interface PlayerQuest {
+  id: string
+  questDefId: string
+  visibility: QuestVisibility
+  status: QuestStatus
+  repeatCount: number
+  discoveredAt: number
+  completedAt: number | null
+  // Computed from definition + xp_ledger:
+  definition: QuestDefinition
+  progress: number // current count toward trigger
+  target: number // trigger threshold
+}
+
+/** Quest check result from QuestEngine */
+export interface QuestCheckResult {
+  discovered: { questDefId: string; visibility: QuestVisibility }[]
+  completed: { questDefId: string; title: LocalizedString; xpReward: number }[]
+  quests: PlayerQuest[]
+}
+
+/** Quest board suggestion */
+export interface QuestBoardSuggestion {
+  weakestSkill: SkillCategory
+  npcName: LocalizedString
+  agentId: string
+  message: LocalizedString
+}

@@ -110,7 +110,50 @@ const api = {
   getConversationHistory: (
     agentId: string
   ): Promise<import('../shared/types').PersistedMessage[]> =>
-    ipcRenderer.invoke('conversations:get-history', agentId)
+    ipcRenderer.invoke('conversations:get-history', agentId),
+
+  // Quests
+  getQuests: (): Promise<import('../shared/types').PlayerQuest[]> =>
+    ipcRenderer.invoke('quests:get-all'),
+  getQuestBoardSuggestion: (): Promise<import('../shared/types').QuestBoardSuggestion | null> =>
+    ipcRenderer.invoke('quests:get-board-suggestion'),
+  onQuestsUpdated: (
+    callback: (data: {
+      quests: import('../shared/types').PlayerQuest[]
+      completed?: {
+        questDefId: string
+        title: import('../shared/types').LocalizedString
+        xpReward: number
+      }[]
+    }) => void
+  ): (() => void) => {
+    const handler = (
+      _event: unknown,
+      data: {
+        quests: import('../shared/types').PlayerQuest[]
+        completed?: {
+          questDefId: string
+          title: import('../shared/types').LocalizedString
+          xpReward: number
+        }[]
+      }
+    ): void => callback(data)
+    ipcRenderer.on('quests:updated', handler)
+    return () => ipcRenderer.removeListener('quests:updated', handler)
+  },
+  onQuestDiscovered: (
+    callback: (data: {
+      questDefId: string
+      visibility: import('../shared/types').QuestVisibility
+    }) => void
+  ): (() => void) => {
+    const handler = (
+      _event: unknown,
+      data: { questDefId: string; visibility: import('../shared/types').QuestVisibility }
+    ): void => callback(data)
+    ipcRenderer.on('quests:discovered', handler)
+    return () => ipcRenderer.removeListener('quests:discovered', handler)
+  }
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

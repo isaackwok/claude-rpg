@@ -24,8 +24,10 @@ export interface GameEvents {
   'camera:focus': { x: number; y: number }
   'xp:gained': { category: SkillCategory; amount: number; newTotal: number; agentId: AgentId }
   'level:up': { category: SkillCategory; newLevel: number; overallLevel: number }
-  'quest:completed': { questId: string; title: LocalizedString }
+  'quest:completed': { questId: string; title: LocalizedString; xpReward: number }
+  'quest:discovered': { questDefId: string; visibility: 'hinted' | 'visible' }
   'title:changed': { newTitle: LocalizedString }
   'noticeboard:interact': Record<string, never>
   'skills-panel:toggle': Record<string, never>
+  'backpack:toggle': Record<string, never>
 }

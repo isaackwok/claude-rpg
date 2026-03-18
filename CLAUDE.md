@@ -33,7 +33,7 @@ npm run format       # Prettier
 
 ### Process Model (Electron 3-process)
 
-- **Main process** (`src/main/`) — Window management, API key storage (safeStorage), Anthropic SDK calls, NPC tool execution, folder approval management. The renderer never sees the raw API key.
+- **Main process** (`src/main/`) — Window management, API key storage (safeStorage), Anthropic SDK calls, NPC tool execution, folder approval management, QuestEngine + ProgressionEngine services. The renderer never sees the raw API key.
 - **Preload** (`src/preload/`) — contextBridge exposing safe IPC channels
 - **Renderer** (`src/renderer/`) — Phaser game + React UI overlays
 - **Shared** (`src/shared/`) — Type definitions shared across all processes (AgentId, ToolName, IPC payloads)
@@ -80,12 +80,10 @@ The project is built in 6 phases, each producing a working deliverable:
 5. **Party System** — Multi-agent orchestration via Agent SDK
 6. **Onboarding & Polish** — Title screen, API key wizard, character creation, i18n pass
 
-Completed: Phase 1 (Shell & World), Phase 2 (Agent Conversations), Phase 2.5 (NPC Tool Use), Phase 3A (Progression Engine)
-Next up: Phase 3B (Quests, Backpack & Title Tiers)
+Completed: Phase 1 (Shell & World), Phase 2 (Agent Conversations), Phase 2.5 (NPC Tool Use), Phase 3A (Progression Engine), Phase 3B (Quests, Backpack & Title Tiers)
+Next up: Phase 3C (Achievements & Cosmetics)
 
-- Scope: organic quests, backpack inventory panel, Tavern quest board, title tier prefixes
+- Phase 3B delivered: organic quest system (5 quests with D+B hybrid visibility), backpack panel with tab system, quest board suggestions, title tier prefixes (Apprentice/Skilled/Veteran/Legendary), QuestEngine service, quest notifications
 - Deferred to 3C: achievements, cosmetics/equip system
-- Spec: `docs/superpowers/specs/2026-03-18-phase3b-quests-backpack-design.md`
-- Plan: `docs/superpowers/plans/2026-03-18-phase3b-quests-backpack.md`
   Full spec: `docs/superpowers/specs/2026-03-16-claude-rpg-design.md`
   Plans & specs: `docs/superpowers/plans/` and `docs/superpowers/specs/`

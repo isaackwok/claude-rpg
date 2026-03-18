@@ -9,6 +9,7 @@ import { getApprovedFolders, addApprovedFolder, isPathApproved } from './folder-
 import { getParentFolder } from './tools/path-utils'
 import type { AgentId, ToolName, ToolConfirmPayload, PathApprovalPayload } from '../shared/types'
 import type { ProgressionEngine } from './progression-engine'
+import type { QuestEngine } from './quest-engine'
 import type { SqliteConversationPersistence } from './db/conversation-persistence'
 
 type MessageParam = Anthropic.Messages.MessageParam
@@ -73,17 +74,22 @@ interface PendingPathApproval {
   remaining: Set<string>
 }
 let progressionEngine: ProgressionEngine | null = null
+let questEngine: QuestEngine | null = null
 let conversationPersistence: SqliteConversationPersistence | null = null
 let dependenciesInitialized = false
 
 export function setChatDependencies(
   engine: ProgressionEngine,
+  quest: QuestEngine,
   persistence: SqliteConversationPersistence
 ): void {
   progressionEngine = engine
+  questEngine = quest
   conversationPersistence = persistence
   dependenciesInitialized = true
 }
+
+export { questEngine }
 
 const pendingPathApprovals = new Map<AgentId, PendingPathApproval>()
 const pendingQueue: Array<{
@@ -557,6 +563,26 @@ async function executeStream(
                 webContents.send('progression:title-changed', {
                   newTitle: xpResult.titleChanged
                 })
+              }
+            }
+
+            // Check quests after XP award
+            if (questEngine && !webContents.isDestroyed()) {
+              try {
+                const questResult = questEngine.checkQuests('player-1')
+                if (questResult.discovered.length > 0) {
+                  for (const d of questResult.discovered) {
+                    webContents.send('quests:discovered', d)
+                  }
+                }
+                if (questResult.completed.length > 0 || questResult.discovered.length > 0) {
+                  webContents.send('quests:updated', {
+                    quests: questResult.quests,
+                    completed: questResult.completed.length > 0 ? questResult.completed : undefined
+                  })
+                }
+              } catch (questErr) {
+                console.error(`[chat] Failed to check quests:`, questErr)
               }
             }
           } catch (err) {

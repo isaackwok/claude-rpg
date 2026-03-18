@@ -46,6 +46,23 @@ const migrations: Record<number, (db: Database.Database) => void> = {
       CREATE INDEX idx_xp_ledger_player_category ON xp_ledger(player_id, skill_category);
       CREATE INDEX idx_messages_conversation ON messages(conversation_id);
     `)
+  },
+
+  2: (db) => {
+    db.exec(`
+      CREATE TABLE quests (
+        id TEXT PRIMARY KEY,
+        player_id TEXT NOT NULL REFERENCES players(id),
+        quest_def_id TEXT NOT NULL,
+        visibility TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'active',
+        repeat_count INTEGER NOT NULL DEFAULT 0,
+        discovered_at INTEGER NOT NULL,
+        completed_at INTEGER,
+        UNIQUE(player_id, quest_def_id)
+      );
+      CREATE INDEX idx_quests_player ON quests(player_id);
+    `)
   }
 }
 

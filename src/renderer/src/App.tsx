@@ -7,6 +7,10 @@ import { ApiKeyModal } from './components/ui/ApiKeyModal'
 import { NoticeBoardPanel } from './components/ui/NoticeBoardPanel'
 import { SkillsPanel } from './components/ui/SkillsPanel'
 import { LevelUpBanner } from './components/ui/LevelUpBanner'
+import { BackpackPanel } from './components/ui/BackpackPanel'
+import { BackpackButton } from './components/ui/BackpackButton'
+import { QuestNotification } from './components/ui/QuestNotification'
+import { QuestBoardPanel } from './components/ui/QuestBoardPanel'
 import { conversationManager } from './services/ConversationManager'
 import { EventBus } from './game/EventBus'
 import type { AgentId } from '../../shared/types'
@@ -16,6 +20,8 @@ function App(): React.JSX.Element {
   const [showApiKeyModal, setShowApiKeyModal] = useState(false)
   const [showNoticeBoard, setShowNoticeBoard] = useState(false)
   const [showSkillsPanel, setShowSkillsPanel] = useState(false)
+  const [showBackpack, setShowBackpack] = useState(false)
+  const [showQuestBoard, setShowQuestBoard] = useState(false)
   const [levelUpBanner, setLevelUpBanner] = useState<number | null>(null)
   const [apiKeyVersion, setApiKeyVersion] = useState(0)
   const hydratedAgents = useRef(new Set<string>())
@@ -78,7 +84,7 @@ function App(): React.JSX.Element {
     }
   }, [])
 
-  // SkillsPanel toggle from EventBus + keyboard
+  // SkillsPanel toggle from EventBus
   useEffect(() => {
     const handler = () => setShowSkillsPanel((v) => !v)
     EventBus.on('skills-panel:toggle', handler)
@@ -87,6 +93,16 @@ function App(): React.JSX.Element {
     }
   }, [])
 
+  // Backpack toggle from EventBus
+  useEffect(() => {
+    const handler = () => setShowBackpack((v) => !v)
+    EventBus.on('backpack:toggle', handler)
+    return () => {
+      EventBus.off('backpack:toggle', handler)
+    }
+  }, [])
+
+  // Keyboard shortcuts for panels
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       // Skip if focus is on an input/textarea
@@ -96,13 +112,18 @@ function App(): React.JSX.Element {
       if (e.key === 'p' || e.key === 'P') {
         setShowSkillsPanel((v) => !v)
       }
-      if (e.key === 'Escape' && showSkillsPanel) {
-        setShowSkillsPanel(false)
+      if (e.key === 'b' || e.key === 'B') {
+        setShowBackpack((v) => !v)
+      }
+      if (e.key === 'Escape') {
+        if (showSkillsPanel) setShowSkillsPanel(false)
+        if (showBackpack) setShowBackpack(false)
+        if (showQuestBoard) setShowQuestBoard(false)
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [showSkillsPanel])
+  }, [showSkillsPanel, showBackpack, showQuestBoard])
 
   // Hydrate conversation history from SQLite on first dialogue open
   const hydrateConversation = useCallback(async (agentId: AgentId) => {
@@ -153,13 +174,17 @@ function App(): React.JSX.Element {
         }}
       >
         <HUD />
+        <BackpackButton />
         <ProximityHint />
         <DialoguePanel
           onRequestApiKey={() => setShowApiKeyModal(true)}
           apiKeyVersion={apiKeyVersion}
         />
+        <QuestNotification />
         {showNoticeBoard && <NoticeBoardPanel onClose={() => setShowNoticeBoard(false)} />}
         {showSkillsPanel && <SkillsPanel onClose={() => setShowSkillsPanel(false)} />}
+        {showBackpack && <BackpackPanel onClose={() => setShowBackpack(false)} />}
+        {showQuestBoard && <QuestBoardPanel onClose={() => setShowQuestBoard(false)} />}
         {levelUpBanner !== null && (
           <LevelUpBanner level={levelUpBanner} onDone={() => setLevelUpBanner(null)} />
         )}

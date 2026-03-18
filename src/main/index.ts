@@ -26,6 +26,8 @@ import { SqliteXPRepository } from './db/xp-repository'
 import { SqliteConversationPersistence } from './db/conversation-persistence'
 import { SqliteFolderRepository } from './db/folder-repository'
 import { ProgressionEngine } from './progression-engine'
+import { SqliteQuestRepository } from './db/quest-repository'
+import { QuestEngine } from './quest-engine'
 
 function createWindow(): void {
   // Create the browser window.
@@ -84,13 +86,18 @@ app.whenReady().then(() => {
   const xpRepo = new SqliteXPRepository(db)
   const conversationPersistence = new SqliteConversationPersistence(db)
   const folderRepo = new SqliteFolderRepository(db)
+  const questRepo = new SqliteQuestRepository(db)
   const progressionEngine = new ProgressionEngine(xpRepo, playerRepo, 'player-1')
+  const questEngine = new QuestEngine(questRepo)
 
   // Ensure player exists
   playerRepo.getOrCreate('player-1')
 
+  // Seed starter quests for the player
+  questEngine.seedStarterQuests('player-1')
+
   // Wire dependencies into chat and folder manager
-  setChatDependencies(progressionEngine, conversationPersistence)
+  setChatDependencies(progressionEngine, questEngine, conversationPersistence)
   initFolderManager(folderRepo)
 
   // Progression IPC handlers
@@ -110,6 +117,24 @@ app.whenReady().then(() => {
       return null
     }
   })
+  // Quest IPC handlers
+  ipcMain.handle('quests:get-all', () => {
+    try {
+      return questEngine.getPlayerQuests('player-1')
+    } catch (err) {
+      console.error('[ipc] quests:get-all failed:', err)
+      return []
+    }
+  })
+  ipcMain.handle('quests:get-board-suggestion', () => {
+    try {
+      return questEngine.getQuestBoardSuggestion('player-1')
+    } catch (err) {
+      console.error('[ipc] quests:get-board-suggestion failed:', err)
+      return null
+    }
+  })
+
   ipcMain.handle('conversations:get-history', (_event, agentId: string) => {
     if (typeof agentId !== 'string') {
       console.warn('[ipc] conversations:get-history received invalid agentId:', agentId)
