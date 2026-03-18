@@ -142,6 +142,7 @@ function MessageBubble({
         style={{
           display: 'inline-block',
           maxWidth: '80%',
+          textAlign: 'left',
           padding: '6px 10px',
           borderRadius: 4,
           fontSize: 14,
@@ -206,7 +207,7 @@ function InputArea({
 }: {
   input: string
   setInput: (v: string | ((prev: string) => string)) => void
-  inputRef: React.RefObject<HTMLInputElement | null>
+  inputRef: React.RefObject<HTMLTextAreaElement | null>
   isBusy: boolean
   send: () => void
   t: (key: string, params?: Record<string, string>) => string
@@ -247,6 +248,7 @@ function InputArea({
   }, [triggerClose, setInput, inputRef])
 
   const inputHeight = 30
+  const maxTextareaHeight = 120
 
   const plusBtnStyle: CSSProperties = {
     width: inputHeight,
@@ -277,26 +279,41 @@ function InputArea({
         alignItems: 'flex-end'
       }}
     >
-      <input
+      <textarea
         ref={inputRef}
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === 'Enter' && !e.shiftKey) send()
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault()
+            send()
+            // Reset height after sending
+            if (inputRef.current) inputRef.current.style.height = `${inputHeight}px`
+          }
+        }}
+        onInput={(e) => {
+          const el = e.currentTarget
+          el.style.height = 'auto'
+          el.style.height = Math.min(el.scrollHeight, maxTextareaHeight) + 'px'
         }}
         placeholder={t('dialogue.inputPlaceholder')}
         disabled={isBusy}
+        rows={1}
         style={{
           flex: 1,
-          height: inputHeight,
+          minHeight: inputHeight,
+          maxHeight: maxTextareaHeight,
           boxSizing: 'border-box',
-          padding: '0 8px',
+          padding: '4px 8px',
           fontFamily: 'monospace',
           fontSize: 14,
           background: 'rgba(255,255,255,0.08)',
           border: '1px solid rgba(200,180,140,0.3)',
           color: '#fff',
-          outline: 'none'
+          outline: 'none',
+          resize: 'none',
+          overflow: 'auto',
+          lineHeight: '22px'
         }}
       />
       {/* Attach menu */}
@@ -417,7 +434,7 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
   const [unreadDividerIndex, setUnreadDividerIndex] = useState<number | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const unreadMarkerRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
   const justOpenedRef = useRef(false)
 
   // Subscribe to ConversationManager changes — version counter ensures React detects mutations
