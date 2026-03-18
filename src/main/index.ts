@@ -94,11 +94,34 @@ app.whenReady().then(() => {
   initFolderManager(folderRepo)
 
   // Progression IPC handlers
-  ipcMain.handle('progression:get-player', () => progressionEngine.getPlayerState())
-  ipcMain.handle('progression:get-skills', () => progressionEngine.getPlayerState().skills)
+  ipcMain.handle('progression:get-player', () => {
+    try {
+      return progressionEngine.getPlayerState()
+    } catch (err) {
+      console.error('[ipc] progression:get-player failed:', err)
+      return null
+    }
+  })
+  ipcMain.handle('progression:get-skills', () => {
+    try {
+      return progressionEngine.getPlayerState().skills
+    } catch (err) {
+      console.error('[ipc] progression:get-skills failed:', err)
+      return null
+    }
+  })
   ipcMain.handle('conversations:get-history', (_event, agentId: string) => {
-    const conv = conversationPersistence.getOrCreateByAgent(agentId, 'player-1')
-    return conversationPersistence.getMessages(conv.id)
+    if (typeof agentId !== 'string') {
+      console.warn('[ipc] conversations:get-history received invalid agentId:', agentId)
+      return []
+    }
+    try {
+      const conv = conversationPersistence.getOrCreateByAgent(agentId, 'player-1')
+      return conversationPersistence.getMessages(conv.id)
+    } catch (err) {
+      console.error(`[ipc] conversations:get-history failed for ${agentId}:`, err)
+      return []
+    }
   })
 
   // IPC test

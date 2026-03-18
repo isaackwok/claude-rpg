@@ -10,22 +10,25 @@ export function initFolderManager(folderRepo: SqliteFolderRepository): void {
   repo = folderRepo
 }
 
+function ensureRepo(): SqliteFolderRepository {
+  if (!repo) {
+    throw new Error('[folder-manager] Not initialized — call initFolderManager() first')
+  }
+  return repo
+}
+
 export function getApprovedFolders(): ApprovedFolder[] {
-  if (!repo) return []
-  return repo.getAll()
+  return ensureRepo().getAll()
 }
 
 export function addApprovedFolder(folderPath: string): ApprovedFolder {
   const normalized = resolve(normalize(folderPath))
-  if (!repo) {
-    return { path: normalized, label: basename(normalized), addedAt: Date.now() }
-  }
-  return repo.add(normalized, basename(normalized))
+  return ensureRepo().add(normalized, basename(normalized))
 }
 
 export function removeApprovedFolder(folderPath: string): void {
   const normalized = resolve(normalize(folderPath))
-  repo?.remove(normalized)
+  ensureRepo().remove(normalized)
 }
 
 export function isPathApproved(filePath: string): boolean {

@@ -74,6 +74,7 @@ interface PendingPathApproval {
 }
 let progressionEngine: ProgressionEngine | null = null
 let conversationPersistence: SqliteConversationPersistence | null = null
+let dependenciesInitialized = false
 
 export function setChatDependencies(
   engine: ProgressionEngine,
@@ -81,6 +82,7 @@ export function setChatDependencies(
 ): void {
   progressionEngine = engine
   conversationPersistence = persistence
+  dependenciesInitialized = true
 }
 
 const pendingPathApprovals = new Map<AgentId, PendingPathApproval>()
@@ -373,10 +375,19 @@ async function executeStream(
     history.push({ role: 'user', content: finalMessage })
   }
 
-  // Persist user message to SQLite
+  // Warn if chat dependencies were never initialized — likely a startup ordering bug
+  if (!dependenciesInitialized) {
+    console.warn('[chat] setChatDependencies() was never called — persistence and XP are disabled')
+  }
+
+  // Persist user message to SQLite (non-critical — don't interrupt conversation on failure)
   if (conversationPersistence && typeof finalMessage === 'string') {
-    const conv = conversationPersistence.getOrCreateByAgent(agentId, 'player-1')
-    conversationPersistence.addMessage(conv.id, 'user', finalMessage, Date.now())
+    try {
+      const conv = conversationPersistence.getOrCreateByAgent(agentId, 'player-1')
+      conversationPersistence.addMessage(conv.id, 'user', finalMessage, Date.now())
+    } catch (err) {
+      console.error(`[chat] Failed to persist user message for ${agentId}:`, err)
+    }
   }
 
   const controller = new AbortController()
@@ -526,21 +537,30 @@ async function executeStream(
         history.push({ role: 'assistant', content: finalMessage.content })
         continueLoop = false
 
-        // Persist assistant response and award XP
+        // Persist assistant response (non-critical — don't interrupt conversation on failure)
         if (fullTextResponse && conversationPersistence) {
-          const conv = conversationPersistence.getOrCreateByAgent(agentId, 'player-1')
-          conversationPersistence.addMessage(conv.id, 'assistant', fullTextResponse, Date.now())
+          try {
+            const conv = conversationPersistence.getOrCreateByAgent(agentId, 'player-1')
+            conversationPersistence.addMessage(conv.id, 'assistant', fullTextResponse, Date.now())
+          } catch (err) {
+            console.error(`[chat] Failed to persist assistant message for ${agentId}:`, err)
+          }
         }
 
+        // Award XP (non-critical — don't interrupt conversation on failure)
         if (fullTextResponse && progressionEngine && config.skills.length > 0) {
-          const xpResult = progressionEngine.awardXP(agentId, config.skills)
-          if (!webContents.isDestroyed()) {
-            webContents.send('progression:xp-awarded', { ...xpResult, agentId })
-            if (xpResult.titleChanged) {
-              webContents.send('progression:title-changed', {
-                newTitle: xpResult.titleChanged
-              })
+          try {
+            const xpResult = progressionEngine.awardXP(agentId, config.skills)
+            if (!webContents.isDestroyed()) {
+              webContents.send('progression:xp-awarded', { ...xpResult, agentId })
+              if (xpResult.titleChanged) {
+                webContents.send('progression:title-changed', {
+                  newTitle: xpResult.titleChanged
+                })
+              }
             }
+          } catch (err) {
+            console.error(`[chat] Failed to award XP for ${agentId}:`, err)
           }
         }
       }

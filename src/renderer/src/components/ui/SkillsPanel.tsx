@@ -95,7 +95,7 @@ export function SkillsPanel({ onClose }: SkillsPanelProps) {
             {playerState.name}
           </div>
           <div style={{ fontSize: 14, color: '#a89060', marginTop: 4 }}>
-            {title} · Lv.{overallLevel}
+            {title} · {t('hud.level', { level: String(overallLevel) })}
           </div>
         </div>
 
@@ -115,7 +115,9 @@ export function SkillsPanel({ onClose }: SkillsPanelProps) {
                 <span style={{ width: 56, fontSize: 12 }}>
                   {t(`skills.categories.${category}`)}
                 </span>
-                <span style={{ width: 40, fontSize: 12, color: '#a89060' }}>Lv.{skill.level}</span>
+                <span style={{ width: 40, fontSize: 12, color: '#a89060' }}>
+                  {t('hud.level', { level: String(skill.level) })}
+                </span>
                 <span
                   style={{
                     flex: 1,

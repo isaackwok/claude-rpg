@@ -27,12 +27,15 @@ export function HUD() {
 
   // XP glow effect
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>
     const cleanup = window.api.onXPAwarded(() => {
       setGlowing(true)
-      const timer = setTimeout(() => setGlowing(false), 1500)
-      return () => clearTimeout(timer)
+      timer = setTimeout(() => setGlowing(false), 1500)
     })
-    return cleanup
+    return () => {
+      cleanup()
+      clearTimeout(timer)
+    }
   }, [])
 
   const handleClick = useCallback(() => {

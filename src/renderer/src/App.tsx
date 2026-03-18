@@ -107,18 +107,24 @@ function App(): React.JSX.Element {
   // Hydrate conversation history from SQLite on first dialogue open
   const hydrateConversation = useCallback(async (agentId: AgentId) => {
     if (hydratedAgents.current.has(agentId)) return
-    hydratedAgents.current.add(agentId)
 
-    const messages = await window.api.getConversationHistory(agentId)
-    if (messages.length > 0) {
-      conversationManager.hydrateFromPersistence(
-        agentId,
-        messages.map((m) => ({
-          role: m.role as 'user' | 'assistant',
-          content: m.content,
-          timestamp: m.timestamp
-        }))
-      )
+    try {
+      const messages = await window.api.getConversationHistory(agentId)
+      // Mark as hydrated only after successful fetch
+      hydratedAgents.current.add(agentId)
+      if (messages.length > 0) {
+        conversationManager.hydrateFromPersistence(
+          agentId,
+          messages.map((m) => ({
+            role: m.role as 'user' | 'assistant',
+            content: m.content,
+            timestamp: m.timestamp
+          }))
+        )
+      }
+    } catch (err) {
+      console.error(`[App] Failed to hydrate conversation for ${agentId}:`, err)
+      // Don't mark as hydrated — allow retry on next interaction
     }
   }, [])
 

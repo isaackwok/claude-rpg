@@ -66,21 +66,24 @@ export class ProgressionEngine {
     const oldOverallLevel = ProgressionEngine.computeOverallLevel(oldOverallXP)
     const oldTitle = ProgressionEngine.computeTitle(oldTotals)
 
-    // Split XP evenly across categories
-    const perCategory = Math.floor(XP_PER_INTERACTION / skillCategories.length)
+    // Split XP evenly across categories, distribute remainder to first N
+    const base = Math.floor(XP_PER_INTERACTION / skillCategories.length)
+    const remainder = XP_PER_INTERACTION % skillCategories.length
     const awards: XPAwardResult['awards'] = []
 
-    for (const category of skillCategories) {
-      this.xpRepo.award(this.playerId, category, perCategory, agentId)
+    for (let i = 0; i < skillCategories.length; i++) {
+      const amount = base + (i < remainder ? 1 : 0)
+      this.xpRepo.award(this.playerId, skillCategories[i], amount, agentId)
     }
 
     // Get new totals after awarding
     const newTotals = this.xpRepo.getSkillTotals(this.playerId)
 
-    for (const category of skillCategories) {
+    for (let i = 0; i < skillCategories.length; i++) {
+      const category = skillCategories[i]
       awards.push({
         category,
-        amount: perCategory,
+        amount: base + (i < remainder ? 1 : 0),
         newTotal: newTotals[category]
       })
     }

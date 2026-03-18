@@ -7,9 +7,14 @@ export function useProgression() {
   const [loading, setLoading] = useState(true)
 
   const refresh = useCallback(async () => {
-    const state = await window.api.getPlayerState()
-    setPlayerState(state)
-    setLoading(false)
+    try {
+      const state = await window.api.getPlayerState()
+      setPlayerState(state)
+    } catch (err) {
+      console.error('[useProgression] Failed to fetch player state:', err)
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => {
