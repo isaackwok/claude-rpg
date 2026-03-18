@@ -86,6 +86,50 @@
     "postedOn": "Posted on",
     "close": "Close"
   },
+  "hud": {
+    "level": "Lv.{{level}}"
+  },
+  "skills": {
+    "title": "Skills Overview",
+    "totalXP": "Total XP",
+    "nextLevel": "Next Level",
+    "close": "ESC Close",
+    "categories": {
+      "writing": "Writing",
+      "data": "Data",
+      "visual": "Visual",
+      "code": "Code",
+      "research": "Research",
+      "organization": "Organization",
+      "communication": "Communication"
+    }
+  },
+  "xp": {
+    "gained": "+{{amount}} XP",
+    "levelUp": "Level Up! Lv.{{level}}",
+    "overallLevelUp": "Level {{level}}!"
+  },
+  "titles": {
+    "default": "Novice Adventurer",
+    "nouns": {
+      "writing": "Wordsmith",
+      "data": "Alchemist",
+      "visual": "Mage",
+      "code": "Sorcerer",
+      "research": "Seeker",
+      "organization": "Commander",
+      "communication": "Diplomat"
+    },
+    "adjectives": {
+      "writing": "Eloquent",
+      "data": "Analytical",
+      "visual": "Arcane",
+      "code": "Mystic",
+      "research": "Learned",
+      "organization": "Strategic",
+      "communication": "Charismatic"
+    }
+  },
   "npcs": {
     "elder": "Elder Edmond",
     "guildMaster": "Guild Master Nile",

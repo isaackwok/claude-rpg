@@ -8,6 +8,8 @@ import { executeTool } from './tools/tool-executor'
 import { getApprovedFolders, addApprovedFolder, isPathApproved } from './folder-manager'
 import { getParentFolder } from './tools/path-utils'
 import type { AgentId, ToolName, ToolConfirmPayload, PathApprovalPayload } from '../shared/types'
+import type { ProgressionEngine } from './progression-engine'
+import type { SqliteConversationPersistence } from './db/conversation-persistence'
 
 type MessageParam = Anthropic.Messages.MessageParam
 
@@ -70,6 +72,17 @@ interface PendingPathApproval {
   denied: string[]
   remaining: Set<string>
 }
+let progressionEngine: ProgressionEngine | null = null
+let conversationPersistence: SqliteConversationPersistence | null = null
+
+export function setChatDependencies(
+  engine: ProgressionEngine,
+  persistence: SqliteConversationPersistence
+): void {
+  progressionEngine = engine
+  conversationPersistence = persistence
+}
+
 const pendingPathApprovals = new Map<AgentId, PendingPathApproval>()
 const pendingQueue: Array<{
   agentId: AgentId
@@ -360,6 +373,12 @@ async function executeStream(
     history.push({ role: 'user', content: finalMessage })
   }
 
+  // Persist user message to SQLite
+  if (conversationPersistence && typeof finalMessage === 'string') {
+    const conv = conversationPersistence.getOrCreateByAgent(agentId, 'player-1')
+    conversationPersistence.addMessage(conv.id, 'user', finalMessage, Date.now())
+  }
+
   const controller = new AbortController()
   const client = getOrCreateClient(apiKey)
   const toolContext = getAgentToolContext(agentId, getApprovedFolders())
@@ -506,6 +525,24 @@ async function executeStream(
         // stop_reason is 'end_turn' or 'max_tokens' — done
         history.push({ role: 'assistant', content: finalMessage.content })
         continueLoop = false
+
+        // Persist assistant response and award XP
+        if (fullTextResponse && conversationPersistence) {
+          const conv = conversationPersistence.getOrCreateByAgent(agentId, 'player-1')
+          conversationPersistence.addMessage(conv.id, 'assistant', fullTextResponse, Date.now())
+        }
+
+        if (fullTextResponse && progressionEngine && config.skills.length > 0) {
+          const xpResult = progressionEngine.awardXP(agentId, config.skills)
+          if (!webContents.isDestroyed()) {
+            webContents.send('progression:xp-awarded', { ...xpResult, agentId })
+            if (xpResult.titleChanged) {
+              webContents.send('progression:title-changed', {
+                newTitle: xpResult.titleChanged
+              })
+            }
+          }
+        }
       }
     }
 

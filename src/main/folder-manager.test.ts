@@ -1,106 +1,74 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { readFileSync, writeFileSync, existsSync } from 'fs'
-
-vi.mock('fs', () => ({
-  readFileSync: vi.fn(),
-  writeFileSync: vi.fn(),
-  existsSync: vi.fn()
-}))
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import Database from 'better-sqlite3'
+import { runMigrations } from './db/migrations'
+import { SqliteFolderRepository } from './db/folder-repository'
+import {
+  getApprovedFolders,
+  addApprovedFolder,
+  removeApprovedFolder,
+  isPathApproved,
+  initFolderManager
+} from './folder-manager'
 
 vi.mock('electron', () => ({
   app: { getPath: vi.fn(() => '/mock/userData') },
   dialog: { showOpenDialog: vi.fn() }
 }))
 
-const mockedReadFileSync = vi.mocked(readFileSync)
-const mockedWriteFileSync = vi.mocked(writeFileSync)
-const mockedExistsSync = vi.mocked(existsSync)
+describe('folder-manager (SQLite-backed)', () => {
+  let db: Database.Database
 
-import {
-  getApprovedFolders,
-  addApprovedFolder,
-  removeApprovedFolder,
-  isPathApproved
-} from './folder-manager'
-
-describe('folder-manager', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
-    mockedExistsSync.mockReturnValue(false)
+    db = new Database(':memory:')
+    db.pragma('foreign_keys = ON')
+    runMigrations(db)
+    const repo = new SqliteFolderRepository(db)
+    initFolderManager(repo)
   })
 
+  afterEach(() => db.close())
+
   describe('getApprovedFolders', () => {
-    it('returns empty array when file does not exist', () => {
-      mockedExistsSync.mockReturnValue(false)
-      expect(getApprovedFolders()).toEqual([])
-    })
-
-    it('returns parsed folders when file exists', () => {
-      const folders = [{ path: '/home/user/project', label: 'project', addedAt: 1000 }]
-      mockedExistsSync.mockReturnValue(true)
-      mockedReadFileSync.mockReturnValue(JSON.stringify(folders) as never)
-      expect(getApprovedFolders()).toEqual(folders)
-    })
-
-    it('returns empty array on corrupted JSON', () => {
-      mockedExistsSync.mockReturnValue(true)
-      mockedReadFileSync.mockReturnValue('not json' as never)
+    it('returns empty array when no folders added', () => {
       expect(getApprovedFolders()).toEqual([])
     })
   })
 
   describe('addApprovedFolder', () => {
-    it('adds a new folder and saves', () => {
-      mockedExistsSync.mockReturnValue(false)
+    it('adds a new folder', () => {
       const result = addApprovedFolder('/home/user/project')
       expect(result.path).toBe('/home/user/project')
       expect(result.label).toBe('project')
       expect(result.addedAt).toBeGreaterThan(0)
-      expect(mockedWriteFileSync).toHaveBeenCalled()
     })
 
     it('returns existing folder without duplicating', () => {
-      const existing = [{ path: '/home/user/project', label: 'project', addedAt: 1000 }]
-      mockedExistsSync.mockReturnValue(true)
-      mockedReadFileSync.mockReturnValue(JSON.stringify(existing) as never)
-
-      const result = addApprovedFolder('/home/user/project')
-      expect(result).toEqual(existing[0])
-      // Should not write because it's a duplicate
-      expect(mockedWriteFileSync).not.toHaveBeenCalled()
+      const first = addApprovedFolder('/home/user/project')
+      const second = addApprovedFolder('/home/user/project')
+      expect(second.addedAt).toBe(first.addedAt)
+      expect(getApprovedFolders()).toHaveLength(1)
     })
 
     it('normalizes the path before adding', () => {
-      mockedExistsSync.mockReturnValue(false)
       const result = addApprovedFolder('/home/user/../user/project/')
-      // resolve(normalize(...)) should produce a clean path
       expect(result.path).toBe('/home/user/project')
     })
   })
 
   describe('removeApprovedFolder', () => {
-    it('removes the specified folder and saves', () => {
-      const folders = [
-        { path: '/home/user/project', label: 'project', addedAt: 1000 },
-        { path: '/tmp/workspace', label: 'workspace', addedAt: 2000 }
-      ]
-      mockedExistsSync.mockReturnValue(true)
-      mockedReadFileSync.mockReturnValue(JSON.stringify(folders) as never)
-
+    it('removes the specified folder', () => {
+      addApprovedFolder('/home/user/project')
+      addApprovedFolder('/tmp/workspace')
       removeApprovedFolder('/home/user/project')
-      expect(mockedWriteFileSync).toHaveBeenCalled()
-      const saved = JSON.parse(mockedWriteFileSync.mock.calls[0][1] as string)
-      expect(saved).toHaveLength(1)
-      expect(saved[0].path).toBe('/tmp/workspace')
+      const folders = getApprovedFolders()
+      expect(folders).toHaveLength(1)
+      expect(folders[0].path).toBe('/tmp/workspace')
     })
   })
 
   describe('isPathApproved', () => {
-    const folders = [{ path: '/home/user/project', label: 'project', addedAt: 1000 }]
-
     beforeEach(() => {
-      mockedExistsSync.mockReturnValue(true)
-      mockedReadFileSync.mockReturnValue(JSON.stringify(folders) as never)
+      addApprovedFolder('/home/user/project')
     })
 
     it('returns true for a path inside an approved folder', () => {
@@ -116,12 +84,11 @@ describe('folder-manager', () => {
     })
 
     it('returns false for a sibling path sharing a prefix', () => {
-      // /home/user/project2 should NOT match /home/user/project
       expect(isPathApproved('/home/user/project2/file.ts')).toBe(false)
     })
 
     it('returns false when no folders are approved', () => {
-      mockedExistsSync.mockReturnValue(false)
+      removeApprovedFolder('/home/user/project')
       expect(isPathApproved('/home/user/project/file.ts')).toBe(false)
     })
   })

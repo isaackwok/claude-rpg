@@ -86,6 +86,50 @@
     "postedOn": "張貼於",
     "close": "關閉"
   },
+  "hud": {
+    "level": "Lv.{{level}}"
+  },
+  "skills": {
+    "title": "技能總覽",
+    "totalXP": "總經驗值",
+    "nextLevel": "下一級",
+    "close": "ESC 關閉",
+    "categories": {
+      "writing": "寫作",
+      "data": "數據",
+      "visual": "視覺",
+      "code": "程式",
+      "research": "研究",
+      "organization": "組織",
+      "communication": "溝通"
+    }
+  },
+  "xp": {
+    "gained": "+{{amount}} XP",
+    "levelUp": "升級！Lv.{{level}}",
+    "overallLevelUp": "等級 {{level}}！"
+  },
+  "titles": {
+    "default": "新手冒險者",
+    "nouns": {
+      "writing": "文匠",
+      "data": "煉金師",
+      "visual": "法師",
+      "code": "巫師",
+      "research": "求知者",
+      "organization": "統帥",
+      "communication": "使者"
+    },
+    "adjectives": {
+      "writing": "文雅",
+      "data": "精算",
+      "visual": "幻象",
+      "code": "奧術",
+      "research": "博學",
+      "organization": "戰略",
+      "communication": "親和"
+    }
+  },
   "npcs": {
     "elder": "長老 艾德蒙",
     "guildMaster": "會長 乃爾",

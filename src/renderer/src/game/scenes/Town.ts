@@ -3,6 +3,7 @@ import { Player } from '../entities/Player'
 import { NPC } from '../entities/NPC'
 import { BUILT_IN_NPCS } from '../data/npcs'
 import { EventBus } from '../EventBus'
+import type { SkillCategory } from '../types'
 
 export class Town extends Scene {
   private player!: Player
@@ -13,6 +14,12 @@ export class Town extends Scene {
   private currentZone: string | null = null
   private zones: { zone: Phaser.GameObjects.Zone; zoneId: string; zoneName: string }[] = []
   private onDialogueClosed!: () => void
+  private onXPGained!: (data: { category: SkillCategory; amount: number; agentId: string }) => void
+  private onLevelUp!: (data: {
+    category: SkillCategory
+    newLevel: number
+    overallLevel: number
+  }) => void
   private noticeBoardZone!: Phaser.GameObjects.Zone
   private playerNearNoticeBoard = false
 
@@ -96,6 +103,64 @@ export class Town extends Scene {
     }
     EventBus.on('dialogue:closed', this.onDialogueClosed)
 
+    // Floating XP text on xp:gained
+    this.onXPGained = (data) => {
+      const npc = this.npcs.find((n) => n.agentDef.id === data.agentId)
+      const x = npc ? npc.x : this.player.x
+      const y = npc ? npc.y - 16 : this.player.y - 16
+
+      const color = this.getSkillColor(data.category)
+      const text = this.add.text(x, y, `+${data.amount} XP`, {
+        fontFamily: 'monospace',
+        fontSize: '10px',
+        color,
+        stroke: '#000000',
+        strokeThickness: 2
+      })
+      text.setOrigin(0.5)
+      text.setDepth(10000)
+
+      this.tweens.add({
+        targets: text,
+        y: y - 40,
+        alpha: 0,
+        duration: 1500,
+        ease: 'Power2',
+        onComplete: () => text.destroy()
+      })
+    }
+    EventBus.on('xp:gained', this.onXPGained)
+
+    // Level-up celebration text
+    this.onLevelUp = (data) => {
+      const icon = this.getSkillIcon(data.category)
+      const text = this.add.text(
+        this.cameras.main.width / 2,
+        this.cameras.main.height / 2 - 40,
+        `${icon} Level Up! Lv.${data.newLevel}`,
+        {
+          fontFamily: 'monospace',
+          fontSize: '16px',
+          color: '#ffd700',
+          stroke: '#000000',
+          strokeThickness: 3
+        }
+      )
+      text.setOrigin(0.5)
+      text.setScrollFactor(0)
+      text.setDepth(10000)
+
+      this.tweens.add({
+        targets: text,
+        y: text.y - 30,
+        alpha: 0,
+        duration: 2000,
+        ease: 'Power2',
+        onComplete: () => text.destroy()
+      })
+    }
+    EventBus.on('level:up', this.onLevelUp)
+
     // Camera
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1)
     this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels)
@@ -171,8 +236,36 @@ export class Town extends Scene {
     }
   }
 
+  private getSkillColor(category: SkillCategory): string {
+    const colors: Record<SkillCategory, string> = {
+      writing: '#e8b44c',
+      research: '#5bb5e8',
+      code: '#a78bfa',
+      data: '#4ade80',
+      communication: '#f472b6',
+      organization: '#fb923c',
+      visual: '#c084fc'
+    }
+    return colors[category] ?? '#c4a46c'
+  }
+
+  private getSkillIcon(category: SkillCategory): string {
+    const icons: Record<SkillCategory, string> = {
+      writing: '\u270d\ufe0f',
+      research: '\ud83d\udd0d',
+      code: '\ud83d\udcbb',
+      data: '\ud83d\udcca',
+      communication: '\ud83d\udcac',
+      organization: '\ud83d\udccb',
+      visual: '\ud83c\udfa8'
+    }
+    return icons[category] ?? ''
+  }
+
   shutdown(): void {
     EventBus.off('dialogue:closed', this.onDialogueClosed)
+    EventBus.off('xp:gained', this.onXPGained)
+    EventBus.off('level:up', this.onLevelUp)
   }
 
   update(): void {

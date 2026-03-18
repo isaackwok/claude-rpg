@@ -1,7 +1,6 @@
 import { EventBus } from '../game/EventBus'
 import type { AgentId, MessageRole } from '../../../shared/types'
 
-// TODO(phase-3): Replace InMemoryConversationRepository with SQLiteConversationRepository
 export interface IConversationRepository {
   subscribe(listener: Listener): () => void
   getVersion(): number
@@ -25,6 +24,7 @@ export interface IConversationRepository {
   ): void
   markToolExecuting(agentId: AgentId, toolName: string): void
   markPathApproval(agentId: AgentId, paths: string[]): void
+  hydrateFromPersistence(agentId: AgentId, messages: Message[]): void
 }
 
 export type ConversationStatus =
@@ -48,7 +48,6 @@ export interface Conversation {
   readonly status: ConversationStatus
   readonly hasUnread: boolean
   readonly firstUnreadIndex: number | null
-  // TODO(phase-3): Add id, playerId, skillCategory, xpEarned, status, timestamps
 }
 
 export interface Message {
@@ -241,8 +240,15 @@ class InMemoryConversationRepository implements IConversationRepository {
     conv.status = { state: 'path-approval', paths }
     this.notify()
   }
+
+  hydrateFromPersistence(agentId: AgentId, messages: Message[]): void {
+    const conv = this.getMutableConversation(agentId)
+    // Skip if conversation already has messages (don't overwrite live session data)
+    if (conv.messages.length > 0) return
+    conv.messages.push(...messages)
+    this.notify()
+  }
 }
 
-// Singleton instance
-// TODO(phase-3): Replace with SQLite-backed implementation
+// Singleton instance — in-memory for hot state, SQLite hydration on first dialogue open
 export const conversationManager = new InMemoryConversationRepository()

@@ -1,16 +1,7 @@
 import type { LocalizedString } from '../i18n/types'
-import type { AgentId } from '../../../shared/types'
+import type { AgentId, SkillCategory } from '../../../shared/types'
 
-export type { AgentId }
-
-export type SkillCategory =
-  | 'writing'
-  | 'data'
-  | 'visual'
-  | 'code'
-  | 'research'
-  | 'organization'
-  | 'communication'
+export type { AgentId, SkillCategory }
 
 export interface AgentDef {
   readonly id: AgentId
@@ -31,9 +22,10 @@ export interface GameEvents {
   'npc:spawn': { agent: AgentDef }
   'npc:remove': { agentId: AgentId }
   'camera:focus': { x: number; y: number }
-  'xp:gained': { category: SkillCategory; amount: number; newTotal: number }
-  'level:up': { category: SkillCategory; newLevel: number }
+  'xp:gained': { category: SkillCategory; amount: number; newTotal: number; agentId: AgentId }
+  'level:up': { category: SkillCategory; newLevel: number; overallLevel: number }
   'quest:completed': { questId: string; title: LocalizedString }
   'title:changed': { newTitle: LocalizedString }
   'noticeboard:interact': Record<string, never>
+  'skills-panel:toggle': Record<string, never>
 }

@@ -1,4 +1,4 @@
-import type { AgentId, ApprovedFolder } from '../../shared/types'
+import type { AgentId, ApprovedFolder, SkillCategory } from '../../shared/types'
 import { AGENT_TOOLS } from '../tools/tool-definitions'
 
 export interface AgentConfig {
@@ -7,6 +7,7 @@ export interface AgentConfig {
   readonly model: string
   readonly maxTokens: number
   readonly temperature: number
+  readonly skills: readonly SkillCategory[]
 }
 
 const DEFAULT_MODEL = 'claude-sonnet-4-5-20250929'
@@ -49,7 +50,8 @@ const BUILT_IN_AGENTS: AgentConfig[] = [
 重要：用玩家使用的語言回覆。保持角色扮演，但要真正有幫助。` + WORLD_KNOWLEDGE,
     model: DEFAULT_MODEL,
     maxTokens: DEFAULT_MAX_TOKENS,
-    temperature: DEFAULT_TEMPERATURE
+    temperature: DEFAULT_TEMPERATURE,
+    skills: ['research']
   },
   {
     id: 'guildMaster',
@@ -63,7 +65,8 @@ const BUILT_IN_AGENTS: AgentConfig[] = [
 重要：用玩家使用的語言回覆。保持角色扮演，但要真正有幫助。` + WORLD_KNOWLEDGE,
     model: DEFAULT_MODEL,
     maxTokens: DEFAULT_MAX_TOKENS,
-    temperature: DEFAULT_TEMPERATURE
+    temperature: DEFAULT_TEMPERATURE,
+    skills: []
   },
   {
     id: 'scholar',
@@ -77,7 +80,8 @@ const BUILT_IN_AGENTS: AgentConfig[] = [
 重要：用玩家使用的語言回覆。保持角色扮演，但要真正有幫助。` + WORLD_KNOWLEDGE,
     model: DEFAULT_MODEL,
     maxTokens: DEFAULT_MAX_TOKENS,
-    temperature: DEFAULT_TEMPERATURE
+    temperature: DEFAULT_TEMPERATURE,
+    skills: ['research']
   },
   {
     id: 'scribe',
@@ -91,7 +95,8 @@ const BUILT_IN_AGENTS: AgentConfig[] = [
 重要：用玩家使用的語言回覆。保持角色扮演，但要真正有幫助。` + WORLD_KNOWLEDGE,
     model: DEFAULT_MODEL,
     maxTokens: DEFAULT_MAX_TOKENS,
-    temperature: DEFAULT_TEMPERATURE
+    temperature: DEFAULT_TEMPERATURE,
+    skills: ['writing']
   },
   {
     id: 'merchant',
@@ -105,7 +110,8 @@ const BUILT_IN_AGENTS: AgentConfig[] = [
 重要：用玩家使用的語言回覆。保持角色扮演，但要真正有幫助。` + WORLD_KNOWLEDGE,
     model: DEFAULT_MODEL,
     maxTokens: DEFAULT_MAX_TOKENS,
-    temperature: DEFAULT_TEMPERATURE
+    temperature: DEFAULT_TEMPERATURE,
+    skills: ['data']
   },
   {
     id: 'commander',
@@ -119,7 +125,8 @@ const BUILT_IN_AGENTS: AgentConfig[] = [
 重要：用玩家使用的語言回覆。保持角色扮演，但要真正有幫助。` + WORLD_KNOWLEDGE,
     model: DEFAULT_MODEL,
     maxTokens: DEFAULT_MAX_TOKENS,
-    temperature: DEFAULT_TEMPERATURE
+    temperature: DEFAULT_TEMPERATURE,
+    skills: ['organization']
   },
   {
     id: 'artisan',
@@ -133,7 +140,8 @@ const BUILT_IN_AGENTS: AgentConfig[] = [
 重要：用玩家使用的語言回覆。保持角色扮演，但要真正有幫助。` + WORLD_KNOWLEDGE,
     model: DEFAULT_MODEL,
     maxTokens: DEFAULT_MAX_TOKENS,
-    temperature: DEFAULT_TEMPERATURE
+    temperature: DEFAULT_TEMPERATURE,
+    skills: ['visual']
   },
   {
     id: 'herald',
@@ -147,7 +155,8 @@ const BUILT_IN_AGENTS: AgentConfig[] = [
 重要：用玩家使用的語言回覆。保持角色扮演，但要真正有幫助。` + WORLD_KNOWLEDGE,
     model: DEFAULT_MODEL,
     maxTokens: DEFAULT_MAX_TOKENS,
-    temperature: DEFAULT_TEMPERATURE
+    temperature: DEFAULT_TEMPERATURE,
+    skills: ['communication']
   },
   {
     id: 'wizard',
@@ -161,7 +170,8 @@ const BUILT_IN_AGENTS: AgentConfig[] = [
 重要：用玩家使用的語言回覆。保持角色扮演，但要真正有幫助。` + WORLD_KNOWLEDGE,
     model: DEFAULT_MODEL,
     maxTokens: DEFAULT_MAX_TOKENS,
-    temperature: DEFAULT_TEMPERATURE
+    temperature: DEFAULT_TEMPERATURE,
+    skills: ['code']
   },
   {
     id: 'bartender',
@@ -175,7 +185,8 @@ const BUILT_IN_AGENTS: AgentConfig[] = [
 重要：用玩家使用的語言回覆。保持角色扮演，但要真正有幫助。` + WORLD_KNOWLEDGE,
     model: DEFAULT_MODEL,
     maxTokens: DEFAULT_MAX_TOKENS,
-    temperature: DEFAULT_TEMPERATURE
+    temperature: DEFAULT_TEMPERATURE,
+    skills: []
   }
 ]
 

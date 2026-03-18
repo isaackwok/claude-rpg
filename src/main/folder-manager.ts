@@ -1,58 +1,36 @@
-import { app, dialog } from 'electron'
-import { readFileSync, writeFileSync, existsSync } from 'fs'
-import { join, basename, resolve, normalize } from 'path'
+import { dialog } from 'electron'
+import { basename, resolve, normalize } from 'path'
 import type { ApprovedFolder } from '../shared/types'
+import type { SqliteFolderRepository } from './db/folder-repository'
 
-const FILENAME = 'approved-folders.json'
+let repo: SqliteFolderRepository | null = null
 
-function getFilePath(): string {
-  return join(app.getPath('userData'), FILENAME)
-}
-
-function load(): ApprovedFolder[] {
-  const filePath = getFilePath()
-  if (!existsSync(filePath)) return []
-  try {
-    return JSON.parse(readFileSync(filePath, 'utf-8'))
-  } catch {
-    return []
-  }
-}
-
-function save(folders: ApprovedFolder[]): void {
-  writeFileSync(getFilePath(), JSON.stringify(folders, null, 2), 'utf-8')
+/** Initialize folder manager with SQLite backing. Must be called before other functions. */
+export function initFolderManager(folderRepo: SqliteFolderRepository): void {
+  repo = folderRepo
 }
 
 export function getApprovedFolders(): ApprovedFolder[] {
-  return load()
+  if (!repo) return []
+  return repo.getAll()
 }
 
 export function addApprovedFolder(folderPath: string): ApprovedFolder {
   const normalized = resolve(normalize(folderPath))
-  const folders = load()
-
-  const existing = folders.find((f) => f.path === normalized)
-  if (existing) return existing
-
-  const folder: ApprovedFolder = {
-    path: normalized,
-    label: basename(normalized),
-    addedAt: Date.now()
+  if (!repo) {
+    return { path: normalized, label: basename(normalized), addedAt: Date.now() }
   }
-  folders.push(folder)
-  save(folders)
-  return folder
+  return repo.add(normalized, basename(normalized))
 }
 
 export function removeApprovedFolder(folderPath: string): void {
   const normalized = resolve(normalize(folderPath))
-  const folders = load().filter((f) => f.path !== normalized)
-  save(folders)
+  repo?.remove(normalized)
 }
 
 export function isPathApproved(filePath: string): boolean {
   const normalized = resolve(normalize(filePath))
-  const folders = load()
+  const folders = getApprovedFolders()
   return folders.some((f) => normalized === f.path || normalized.startsWith(f.path + '/'))
 }
 
