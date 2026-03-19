@@ -35,6 +35,9 @@ export class Home extends BaseScene {
   }
 
   create(data?: { spawnX?: number; spawnY?: number; fromScene?: string }): void {
+    // Reset instance state — Phaser reuses scene instances
+    this.wallRects = []
+
     // ── Draw room with Phaser graphics ──────────────────────────────────────
 
     // Floor
@@ -155,6 +158,7 @@ export class Home extends BaseScene {
   }
 
   update(): void {
+    if (this._transitioning) return
     this.player.update()
     this.depthSort()
     if (this.decorationManager?.isActive) {
@@ -196,6 +200,6 @@ export class Home extends BaseScene {
 }
 
 // Town-side coordinates where player spawns after leaving Home.
-// Matches the home portal position in Town.ts.
-export const HOME_TOWN_PORTAL_X = 10 * 16 + 8
-export const HOME_TOWN_PORTAL_Y = 48 * 16 + 8
+// Must match the home portal position in Town.ts (col 39, row 34 — south of town square).
+export const HOME_TOWN_PORTAL_X = 39 * 16 + 8
+export const HOME_TOWN_PORTAL_Y = 35 * 16 + 8 // one tile below the portal so player doesn't re-enter

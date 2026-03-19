@@ -11,11 +11,16 @@ import type { OverlayLayer } from '../../../../shared/cosmetic-types'
  */
 export abstract class BaseScene extends Scene {
   protected player!: Player
-  private _transitioning = false
+  protected _transitioning = false
   private _beforeUnloadHandler: (() => void) | null = null
+  private _mapCenterX = 0
+  private _mapCenterY = 0
 
   /** Create the player sprite at the given world position. */
   protected createPlayer(x: number, y: number): void {
+    // Reset transition guard — Phaser reuses scene instances across scene.start() calls
+    this._transitioning = false
+
     this.player = new Player(this, x, y)
 
     // Safety-net: save position if the window is closed unexpectedly
@@ -64,13 +69,33 @@ export abstract class BaseScene extends Scene {
    * @param mapHeight Total pixel height of the tilemap
    */
   protected setupCamera(mapWidth: number, mapHeight: number): void {
-    this.cameras.main.startFollow(this.player, true, 0.1, 0.1)
-    this.cameras.main.setBounds(0, 0, mapWidth, mapHeight)
-    // Don't re-set physics world bounds here — subclasses may set them before calling setupCamera
-    this.cameras.main.setBackgroundColor('#1a1a2e')
-    this.cameras.main.setZoom(2)
-    // Center the camera on small maps that are smaller than the viewport
-    this.cameras.main.centerOn(mapWidth / 2, mapHeight / 2)
+    const cam = this.cameras.main
+    cam.setZoom(2)
+    cam.setBackgroundColor('#1a1a2e')
+
+    // Effective viewport size at current zoom
+    const viewW = cam.width / cam.zoom
+    const viewH = cam.height / cam.zoom
+
+    // For small maps (smaller than viewport), use negative bounds offset so
+    // the camera can center the map instead of anchoring to the top-left.
+    const boundsX = mapWidth < viewW ? -(viewW - mapWidth) / 2 : 0
+    const boundsY = mapHeight < viewH ? -(viewH - mapHeight) / 2 : 0
+    const boundsW = mapWidth < viewW ? viewW : mapWidth
+    const boundsH = mapHeight < viewH ? viewH : mapHeight
+
+    cam.setBounds(boundsX, boundsY, boundsW, boundsH)
+    cam.startFollow(this.player, true, 0.1, 0.1)
+
+    // Store map center for R-key reset
+    this._mapCenterX = mapWidth / 2
+    this._mapCenterY = mapHeight / 2
+
+    // DEV: R key resets player to map center (testing aid)
+    this.input.keyboard?.on('keydown-R', () => {
+      this.player.setPosition(this._mapCenterX, this._mapCenterY)
+      console.log(`[DEV] Player reset to map center (${this._mapCenterX}, ${this._mapCenterY})`)
+    })
   }
 
   /**

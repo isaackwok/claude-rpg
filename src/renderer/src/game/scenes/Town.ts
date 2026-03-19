@@ -27,6 +27,13 @@ export class Town extends BaseScene {
   }
 
   create(data?: { spawnX?: number; spawnY?: number; fromScene?: string }): void {
+    // Reset instance state — Phaser reuses scene instances across scene.start() calls
+    this.npcs = []
+    this.zones = []
+    this.dialogueOpen = false
+    this.currentZone = null
+    this.playerNearNoticeBoard = false
+
     // Create tilemap
     const map = this.make.tilemap({ key: 'town-map' })
     const tileset = map.addTilesetImage('town-tileset', 'town-tileset')!
@@ -297,7 +304,7 @@ export class Town extends BaseScene {
   }
 
   update(): void {
-    if (this.dialogueOpen) return
+    if (this._transitioning || this.dialogueOpen) return
 
     this.player.update()
 
