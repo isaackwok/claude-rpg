@@ -16,7 +16,9 @@ import type { Conversation, Message } from '../../services/ConversationManager'
 import type { AgentId } from '../../game/types'
 import { renderMarkdown } from '../../utils/renderMarkdown'
 import { ToolConfirmDialog } from './ToolConfirmDialog'
+import { BookPickerModal } from './BookPickerModal'
 import { CloseButton } from './CloseButton'
+import type { BookItem } from '../../../../shared/item-types'
 
 interface DialogueState {
   agentId: AgentId
@@ -102,15 +104,49 @@ function MessageBubble({
   msg,
   isLastAssistant,
   isStreaming,
-  t
+  t,
+  agentId,
+  previousUserMessage,
+  category,
+  locale
 }: {
   msg: Message
   isLastAssistant: boolean
   isStreaming: boolean
-  t: (key: string) => string
+  t: (key: string, params?: Record<string, string>) => string
+  agentId?: string
+  previousUserMessage?: string
+  category?: string
+  locale?: string
 }) {
   const [copied, setCopied] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
   const isAssistant = msg.role === 'assistant'
+
+  const handleSaveToBackpack = async (): Promise<void> => {
+    if (saving || saved || !agentId || !locale) return
+    setSaving(true)
+    try {
+      const npc = BUILT_IN_NPCS.find((n) => n.id === agentId)
+      const npcName = npc?.name[locale] ?? npc?.name['zh-TW'] ?? agentId
+      const book = await window.api.addBookItem({
+        markdownContent: msg.content,
+        sourceAgentId: agentId,
+        sourceQuestion: previousUserMessage ?? '',
+        category: category ?? 'general',
+        locale,
+        npcName
+      })
+      setSaved(true)
+      EventBus.emit('item:added', { item: book })
+      setTimeout(() => setSaved(false), 2000)
+    } catch (err) {
+      console.error('[DialoguePanel] Failed to save to backpack:', err)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const html = useMemo(() => {
     if (!isAssistant) return ''
@@ -191,6 +227,31 @@ function MessageBubble({
                 ? t('dialogue.copyFailed')
                 : t('dialogue.copy')}
           </button>
+          <button
+            onClick={handleSaveToBackpack}
+            disabled={saving}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: saved
+                ? 'rgba(140, 200, 140, 0.8)'
+                : saving
+                  ? 'rgba(200, 180, 140, 0.25)'
+                  : 'rgba(200, 180, 140, 0.4)',
+              cursor: saving ? 'wait' : 'pointer',
+              fontFamily: 'monospace',
+              fontSize: 11,
+              padding: '2px 4px',
+              marginLeft: 4,
+              transition: 'color 0.2s'
+            }}
+          >
+            {saved
+              ? `✓ ${t('dialogue.addToBackpack')}`
+              : saving
+                ? t('dialogue.addingToBackpack')
+                : `🎒 ${t('dialogue.addToBackpack')}`}
+          </button>
         </div>
       )}
     </div>
@@ -204,7 +265,10 @@ function InputArea({
   inputRef,
   isBusy,
   send,
-  t
+  t,
+  attachedBooks,
+  onAttachBooks,
+  onRemoveBook
 }: {
   input: string
   setInput: (v: string | ((prev: string) => string)) => void
@@ -212,9 +276,13 @@ function InputArea({
   isBusy: boolean
   send: () => void
   t: (key: string, params?: Record<string, string>) => string
+  attachedBooks: BookItem[]
+  onAttachBooks: (books: BookItem[]) => void
+  onRemoveBook: (id: string) => void
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [closing, setClosing] = useState(false)
+  const [bookPickerOpen, setBookPickerOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
   const triggerClose = useCallback(() => {
@@ -270,130 +338,216 @@ function InputArea({
   }
 
   return (
-    <div
-      style={{
-        padding: '8px 16px',
-        borderTop: '1px solid rgba(200, 180, 140, 0.3)',
-        display: 'flex',
-        gap: 8,
-        flexShrink: 0,
-        alignItems: 'flex-end'
-      }}
-    >
-      <textarea
-        ref={inputRef}
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault()
-            send()
-            // Reset height after sending
-            if (inputRef.current) inputRef.current.style.height = `${inputHeight}px`
-          }
-        }}
-        onInput={(e) => {
-          const el = e.currentTarget
-          el.style.height = 'auto'
-          el.style.height = Math.min(el.scrollHeight, maxTextareaHeight) + 'px'
-        }}
-        placeholder={t('dialogue.inputPlaceholder')}
-        disabled={isBusy}
-        rows={1}
-        style={{
-          flex: 1,
-          minHeight: inputHeight,
-          maxHeight: maxTextareaHeight,
-          boxSizing: 'border-box',
-          padding: '4px 8px',
-          fontFamily: 'monospace',
-          fontSize: 14,
-          background: 'rgba(255,255,255,0.08)',
-          border: '1px solid rgba(200,180,140,0.3)',
-          color: '#fff',
-          outline: 'none',
-          resize: 'none',
-          overflow: 'auto',
-          lineHeight: '22px'
-        }}
-      />
-      {/* Attach menu */}
-      <div ref={containerRef} style={{ position: 'relative', flexShrink: 0 }}>
-        {menuOpen && (
-          <div
-            style={{
-              position: 'absolute',
-              bottom: 34,
-              right: 0,
-              minWidth: 160,
-              background: 'rgba(20, 20, 40, 0.96)',
-              border: '1px solid rgba(200, 180, 140, 0.4)',
-              borderRadius: 4,
-              padding: '4px 0',
-              animation: closing
-                ? 'attachMenuOut 0.12s ease-in forwards'
-                : 'attachMenuIn 0.15s ease-out',
-              zIndex: 10
-            }}
-          >
-            <button
-              onMouseDown={handlePickFiles}
+    <>
+      {/* Attached book pills */}
+      {attachedBooks.length > 0 && (
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 4,
+            padding: '4px 16px 0',
+            flexShrink: 0
+          }}
+        >
+          {attachedBooks.map((book) => (
+            <span
+              key={book.id}
               style={{
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
-                gap: 8,
-                width: '100%',
-                padding: '7px 12px',
-                background: 'none',
-                border: 'none',
-                color: '#ddd',
+                gap: 4,
+                padding: '2px 8px',
+                borderRadius: 12,
+                background: 'rgba(200, 180, 140, 0.08)',
+                border: '1px solid rgba(200, 180, 140, 0.3)',
+                color: '#c4a46c',
                 fontFamily: 'monospace',
-                fontSize: 13,
-                cursor: 'pointer',
-                textAlign: 'left'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(200, 180, 140, 0.15)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'none'
+                fontSize: 11
               }}
             >
-              <span style={{ fontSize: 14 }}>+</span>
-              {t('dialogue.attachFiles')}
-            </button>
-          </div>
-        )}
-        <button
-          onClick={() => {
-            if (menuOpen) triggerClose()
-            else setMenuOpen(true)
-          }}
-          disabled={isBusy}
-          style={plusBtnStyle}
-          title={t('dialogue.attachFiles')}
-        >
-          +
-        </button>
-      </div>
-      <button
-        onClick={send}
-        disabled={isBusy || !input.trim()}
+              📖 {book.name.length > 20 ? book.name.slice(0, 20) + '…' : book.name}
+              <button
+                onClick={() => onRemoveBook(book.id)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'rgba(200, 180, 140, 0.6)',
+                  cursor: 'pointer',
+                  padding: 0,
+                  fontSize: 11,
+                  lineHeight: 1
+                }}
+              >
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      <div
         style={{
-          height: inputHeight,
-          boxSizing: 'border-box',
-          padding: '0 16px',
-          fontFamily: 'monospace',
-          fontSize: 14,
-          background: isBusy ? 'rgba(100,100,100,0.3)' : 'rgba(200,180,140,0.3)',
-          border: '1px solid rgba(200,180,140,0.6)',
-          color: '#c4a46c',
-          cursor: isBusy ? 'wait' : 'pointer'
+          padding: '8px 16px',
+          borderTop: '1px solid rgba(200, 180, 140, 0.3)',
+          display: 'flex',
+          gap: 8,
+          flexShrink: 0,
+          alignItems: 'flex-end'
         }}
       >
-        {t('dialogue.send')}
-      </button>
-    </div>
+        <textarea
+          ref={inputRef}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault()
+              send()
+              // Reset height after sending
+              if (inputRef.current) inputRef.current.style.height = `${inputHeight}px`
+            }
+          }}
+          onInput={(e) => {
+            const el = e.currentTarget
+            el.style.height = 'auto'
+            el.style.height = Math.min(el.scrollHeight, maxTextareaHeight) + 'px'
+          }}
+          placeholder={t('dialogue.inputPlaceholder')}
+          disabled={isBusy}
+          rows={1}
+          style={{
+            flex: 1,
+            minHeight: inputHeight,
+            maxHeight: maxTextareaHeight,
+            boxSizing: 'border-box',
+            padding: '4px 8px',
+            fontFamily: 'monospace',
+            fontSize: 14,
+            background: 'rgba(255,255,255,0.08)',
+            border: '1px solid rgba(200,180,140,0.3)',
+            color: '#fff',
+            outline: 'none',
+            resize: 'none',
+            overflow: 'auto',
+            lineHeight: '22px'
+          }}
+        />
+        {/* Attach menu */}
+        <div ref={containerRef} style={{ position: 'relative', flexShrink: 0 }}>
+          {menuOpen && (
+            <div
+              style={{
+                position: 'absolute',
+                bottom: 34,
+                right: 0,
+                minWidth: 160,
+                background: 'rgba(20, 20, 40, 0.96)',
+                border: '1px solid rgba(200, 180, 140, 0.4)',
+                borderRadius: 4,
+                padding: '4px 0',
+                animation: closing
+                  ? 'attachMenuOut 0.12s ease-in forwards'
+                  : 'attachMenuIn 0.15s ease-out',
+                zIndex: 10
+              }}
+            >
+              <button
+                onMouseDown={handlePickFiles}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  width: '100%',
+                  padding: '7px 12px',
+                  background: 'none',
+                  border: 'none',
+                  color: '#ddd',
+                  fontFamily: 'monospace',
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  textAlign: 'left'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(200, 180, 140, 0.15)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'none'
+                }}
+              >
+                <span style={{ fontSize: 14 }}>+</span>
+                {t('dialogue.attachFiles')}
+              </button>
+              <button
+                onMouseDown={() => {
+                  triggerClose()
+                  setBookPickerOpen(true)
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  width: '100%',
+                  padding: '7px 12px',
+                  background: 'none',
+                  border: 'none',
+                  color: '#ddd',
+                  fontFamily: 'monospace',
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  textAlign: 'left'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(200, 180, 140, 0.15)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'none'
+                }}
+              >
+                <span style={{ fontSize: 14 }}>📖</span>
+                {t('dialogue.referenceBooks')}
+              </button>
+            </div>
+          )}
+          <button
+            onClick={() => {
+              if (menuOpen) triggerClose()
+              else setMenuOpen(true)
+            }}
+            disabled={isBusy}
+            style={plusBtnStyle}
+            title={t('dialogue.attachFiles')}
+          >
+            +
+          </button>
+        </div>
+        <button
+          onClick={send}
+          disabled={isBusy || !input.trim()}
+          style={{
+            height: inputHeight,
+            boxSizing: 'border-box',
+            padding: '0 16px',
+            fontFamily: 'monospace',
+            fontSize: 14,
+            background: isBusy ? 'rgba(100,100,100,0.3)' : 'rgba(200,180,140,0.3)',
+            border: '1px solid rgba(200,180,140,0.6)',
+            color: '#c4a46c',
+            cursor: isBusy ? 'wait' : 'pointer'
+          }}
+        >
+          {t('dialogue.send')}
+        </button>
+      </div>
+      {bookPickerOpen && (
+        <BookPickerModal
+          onAttach={(books) => {
+            onAttachBooks(books)
+            setBookPickerOpen(false)
+          }}
+          onClose={() => setBookPickerOpen(false)}
+        />
+      )}
+    </>
   )
 }
 
@@ -432,6 +586,7 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
   const [input, setInput] = useState('')
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null)
   const [expanded, setExpanded] = useState(false)
+  const [attachedBooks, setAttachedBooks] = useState<BookItem[]>([])
   const [unreadDividerIndex, setUnreadDividerIndex] = useState<number | null>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const unreadMarkerRef = useRef<HTMLDivElement>(null)
@@ -486,6 +641,7 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
       setDialogue(null)
       setInput('')
       setExpanded(false)
+      setAttachedBooks([])
     }
   }, [dialogue])
 
@@ -539,7 +695,18 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
       return
     }
     const text = input.trim()
+    // Prepend attached book context if any
+    let finalText = text
+    if (attachedBooks.length > 0) {
+      const referenceLabel = t('dialogue.referenceLabel')
+      const colon = locale === 'en' ? ': ' : '：'
+      const bookBlocks = attachedBooks
+        .map((b) => `[📖 ${referenceLabel}${colon}${b.name}]\n${b.markdownContent}`)
+        .join('\n---\n')
+      finalText = `${bookBlocks}\n---\n\n${text}`
+    }
     setInput('')
+    setAttachedBooks([])
     setUnreadDividerIndex(null)
     userScrolledRef.current = false
     conversationManager.appendMessage(dialogue.agentId, {
@@ -548,8 +715,8 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
       timestamp: Date.now()
     })
     conversationManager.markWaiting(dialogue.agentId)
-    window.api.sendMessage(dialogue.agentId, text, locale)
-  }, [dialogue, input, hasApiKey, locale, onRequestApiKey])
+    window.api.sendMessage(dialogue.agentId, finalText, locale)
+  }, [dialogue, input, hasApiKey, locale, onRequestApiKey, attachedBooks, t])
 
   if (!dialogue) return null
 
@@ -659,6 +826,19 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
               isLastAssistant={msg.role === 'assistant' && i === messages.length - 1}
               isStreaming={isStreaming}
               t={t}
+              agentId={dialogue.agentId}
+              previousUserMessage={
+                msg.role === 'assistant'
+                  ? (messages
+                      .slice(0, i)
+                      .filter((m) => m.role === 'user')
+                      .at(-1)?.content ?? '')
+                  : undefined
+              }
+              category={
+                BUILT_IN_NPCS.find((n) => n.id === dialogue.agentId)?.skills?.[0] ?? 'general'
+              }
+              locale={locale}
             />
           </Fragment>
         ))}
@@ -831,6 +1011,14 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
           isBusy={isBusy}
           send={send}
           t={t}
+          attachedBooks={attachedBooks}
+          onAttachBooks={(books) =>
+            setAttachedBooks((prev) => [
+              ...prev,
+              ...books.filter((b) => !prev.some((p) => p.id === b.id))
+            ])
+          }
+          onRemoveBook={(id) => setAttachedBooks((prev) => prev.filter((b) => b.id !== id))}
         />
       )}
 
