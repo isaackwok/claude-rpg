@@ -354,6 +354,7 @@ export class Town extends Scene {
         if (this.currentZone !== zoneId) {
           this.currentZone = zoneId
           EventBus.emit('zone:entered', { zoneId, zoneName })
+          window.api?.recordZoneVisit(zoneId)
         }
         return
       }
