@@ -80,7 +80,7 @@ export function BookPickerModal({ onAttach, onClose }: BookPickerModalProps): Re
         {/* Header */}
         <div
           style={{
-            padding: '14px 20px 10px',
+            padding: '16px 24px 12px',
             borderBottom: '1px solid rgba(200, 180, 140, 0.2)',
             display: 'flex',
             justifyContent: 'space-between',
@@ -100,7 +100,7 @@ export function BookPickerModal({ onAttach, onClose }: BookPickerModalProps): Re
             style={{
               display: 'flex',
               gap: 6,
-              padding: '8px 20px',
+              padding: '10px 24px',
               flexWrap: 'wrap',
               flexShrink: 0
             }}
@@ -150,7 +150,7 @@ export function BookPickerModal({ onAttach, onClose }: BookPickerModalProps): Re
           style={{
             flex: 1,
             overflowY: 'auto',
-            padding: '4px 20px',
+            padding: '8px 24px',
             display: 'flex',
             flexDirection: 'column',
             gap: 4
@@ -238,7 +238,7 @@ export function BookPickerModal({ onAttach, onClose }: BookPickerModalProps): Re
         {/* Footer */}
         <div
           style={{
-            padding: '10px 20px',
+            padding: '14px 24px',
             borderTop: '1px solid rgba(200, 180, 140, 0.2)',
             display: 'flex',
             justifyContent: 'space-between',
