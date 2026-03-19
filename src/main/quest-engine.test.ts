@@ -113,17 +113,16 @@ describe('QuestEngine', () => {
     // writing and research have XP, so first zero-XP category is 'data'
 
     const suggestion = engine.getQuestBoardSuggestion(PLAYER_ID)
-    expect(suggestion).not.toBeNull()
-    expect(suggestion!.weakestSkill).toBe('data')
-    expect(suggestion!.agentId).toBe('merchant')
-    expect(suggestion!.npcName.en).toBe('Merchant Marco')
+    expect(suggestion.weakestSkill).toBe('data')
+    expect(suggestion.agentId).toBe('merchant')
+    expect(suggestion.npcName.en).toBe('Merchant Marco')
   })
 
   it('picks first SKILL_CATEGORIES entry when all skills are zero', () => {
     const suggestion = engine.getQuestBoardSuggestion(PLAYER_ID)
     // All zero — first in SKILL_CATEGORIES is 'writing'
-    expect(suggestion!.weakestSkill).toBe('writing')
-    expect(suggestion!.agentId).toBe('scribe')
+    expect(suggestion.weakestSkill).toBe('writing')
+    expect(suggestion.agentId).toBe('scribe')
   })
 
   // ── Repeatable quest lifecycle ──────────────────────────────────────

@@ -89,7 +89,7 @@ export class QuestEngine {
       const row = existing.find((q) => q.questDefId === def.id)
 
       // Check hidden -> hinted/visible promotion
-      if (!row && def.initialVisibility === 'hidden' && def.precondition) {
+      if (!row && def.initialVisibility === 'hidden') {
         if (this.checkPrecondition(def.precondition, maxCategoryCount, distinctCategories)) {
           const visibility: QuestVisibility = def.hintText ? 'hinted' : 'visible'
           this.questRepo.upsert({
@@ -118,17 +118,21 @@ export class QuestEngine {
           totalConversations
         )
         if (triggerMet) {
-          this.questRepo.complete(row.id, Date.now())
-          completed.push({
-            questDefId: def.id,
-            title: def.name,
-            xpReward: def.xpReward
-          })
-          justCompleted.add(def.id)
+          try {
+            this.questRepo.complete(row.id, Date.now())
+            completed.push({
+              questDefId: def.id,
+              title: def.name,
+              xpReward: def.xpReward
+            })
+            justCompleted.add(def.id)
 
-          // Reset repeatable quests for next evaluation cycle
-          if (def.repeatable) {
-            this.questRepo.resetForRepeat(row.id)
+            // Reset repeatable quests for next evaluation cycle
+            if (def.repeatable) {
+              this.questRepo.resetForRepeat(row.id)
+            }
+          } catch (err) {
+            console.error(`[quest-engine] Failed to complete quest ${def.id}:`, err)
           }
         }
       }

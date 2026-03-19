@@ -26,6 +26,7 @@ export function useQuests() {
     const cleanupUpdated = window.api.onQuestsUpdated(
       (data: { quests: PlayerQuest[]; completed?: CompletedQuest[] }) => {
         setQuests(data.quests)
+        setError(null)
 
         if (data.completed) {
           for (const c of data.completed) {

@@ -599,6 +599,14 @@ async function executeStream(
                         `[chat] Failed to award bonus XP for quest ${c.questDefId}:`,
                         bonusErr
                       )
+                      if (!webContents.isDestroyed()) {
+                        webContents.send('quests:error', {
+                          error:
+                            bonusErr instanceof Error
+                              ? bonusErr.message
+                              : `bonus-xp-failed:${c.questDefId}`
+                        })
+                      }
                     }
                   }
                 }
