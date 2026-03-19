@@ -48,13 +48,15 @@ interface AchievementDefinition {
 type AchievementTrigger =
   | { type: 'overall_level'; level: number }
   | { type: 'category_level'; category: SkillCategory; level: number }
+  | { type: 'any_category_level'; level: number } // any single category reaching this level
   | { type: 'tier_unlock'; tier: string }
   | { type: 'zones_visited'; count: number }
-  | { type: 'all_zones_visited' }
-  | { type: 'all_npcs_interacted' }
-  | { type: 'all_quests_discovered' }
-  | { type: 'tool_used'; toolType: ToolName }
-  | { type: 'all_tools_used' }
+  | { type: 'all_zones_visited' } // all zones defined in tilemap object layer
+  | { type: 'all_npcs_interacted' } // all NPCs defined in BUILT_IN_NPCS
+  | { type: 'all_quests_discovered' } // all quest definitions in QUEST_DEFINITIONS
+  | { type: 'tool_used'; toolType: ToolName } // specific ToolName (e.g., 'read_file', 'web_search')
+  | { type: 'tool_group_used'; group: 'file' | 'search' | 'command' } // any tool in group
+  | { type: 'all_tool_groups_used' } // all 3 groups (file, search, command)
 ```
 
 ### Starter Set (12 achievements)
@@ -65,14 +67,16 @@ type AchievementTrigger =
 | `rising-star`      | progression | overall_level: 10       | 冉冉新星 / Rising Star      | apprentice-hat  | 100 |
 | `veteran-path`     | progression | overall_level: 15       | 老練之路 / Veteran's Path   | veteran-cape    | 150 |
 | `legendary-hero`   | progression | overall_level: 20       | 傳奇英雄 / Legendary Hero   | legendary-aura  | 200 |
-| `skill-master`     | progression | category_level: any, 10 | 技藝精通 / Skill Master     | champion-hat    | 100 |
+| `skill-master`     | progression | any_category_level: 10  | 技藝精通 / Skill Master     | champion-hat    | 100 |
 | `town-explorer`    | exploration | zones_visited: 3        | 城鎮探索者 / Town Explorer  | —               | 50  |
 | `cartographer`     | exploration | all_zones_visited       | 製圖師 / Cartographer       | town-banner     | 100 |
 | `social-butterfly` | exploration | all_npcs_interacted     | 交際達人 / Social Butterfly | npc-statue      | 100 |
 | `quest-seeker`     | exploration | all_quests_discovered   | 任務獵人 / Quest Seeker     | —               | 75  |
-| `tool-initiate`    | tool_use    | tool_used: file_ops     | 工具入門 / Tool Initiate    | —               | 30  |
-| `researcher`       | tool_use    | tool_used: web_search   | 調查員 / Researcher         | —               | 30  |
-| `tech-savvy`       | tool_use    | all_tools_used          | 科技達人 / Tech Savvy       | garden-item     | 75  |
+| `tool-initiate`    | tool_use    | tool_group_used: file   | 工具入門 / Tool Initiate    | —               | 30  |
+| `researcher`       | tool_use    | tool_group_used: search | 調查員 / Researcher         | —               | 30  |
+| `tech-savvy`       | tool_use    | all_tool_groups_used    | 科技達人 / Tech Savvy       | garden-item     | 75  |
+
+Tool groups map to `ToolName` values: **file** = `read_file`, `write_file`, `edit_file`, `list_files`; **search** = `web_search`; **command** = `run_command`. Using any tool in the group counts.
 
 ### AchievementEngine (Main Process)
 
@@ -188,7 +192,7 @@ AI-generated pixel art with manual cleanup. Each cosmetic needs:
 - Small 12x12 tile interior map created in Tiled
 - Pre-designed walls, floor, basic furniture (bed, desk, shelves) as base layer
 - Floor tiles marked as placeable for decorations
-- Portal object back to MainScene (door)
+- Portal object back to Town scene (door)
 
 ### Home Entrance in Town
 
@@ -222,14 +226,14 @@ AI-generated pixel art with manual cleanup. Each cosmetic needs:
 
 ```
 BaseScene (shared logic)
-├── MainScene (existing town map + NPCs)
-├── HomeScene (player home + decorations)
-└── Future: GuildHallScene, QuestLocationScene, etc.
+├── Town (existing town map + NPCs, currently src/renderer/src/game/scenes/Town.ts)
+├── Home (player home + decorations)
+└── Future: GuildHall, QuestLocation, etc.
 ```
 
 ### BaseScene
 
-Extracted from the current MainScene, contains shared logic:
+Extracted from the current `Town` scene, contains shared logic:
 
 - Player sprite creation + overlay rendering
 - Keyboard input (movement, panel hotkeys)
@@ -261,7 +265,7 @@ Extracted from the current MainScene, contains shared logic:
 
 - On scene transition or game close → save `last_scene`, `last_x`, `last_y` to `players` table
 - On game start → read saved position, start the correct scene at saved coordinates
-- Default (first launch): `MainScene` at the existing spawn point
+- Default (first launch): `Town` scene at the existing spawn point
 - Saving triggers: `beforeunload` event, scene switch, explicit save via IPC
 
 ---
@@ -271,13 +275,11 @@ Extracted from the current MainScene, contains shared logic:
 ```sql
 -- Achievement tracking
 CREATE TABLE achievements (
-  id TEXT PRIMARY KEY,
   player_id TEXT NOT NULL REFERENCES players(id),
   achievement_def_id TEXT NOT NULL,
   unlocked_at INTEGER NOT NULL,
-  UNIQUE(player_id, achievement_def_id)
+  PRIMARY KEY(player_id, achievement_def_id)
 );
-CREATE INDEX idx_achievements_player ON achievements(player_id);
 
 -- Zone visit tracking (for exploration achievements)
 CREATE TABLE player_zones (
@@ -295,14 +297,13 @@ CREATE TABLE player_tool_usage (
   UNIQUE(player_id, tool_type)
 );
 
--- Cosmetics inventory and equip state
+-- Cosmetics inventory and equip state (equipped applies to overlays only; decoration placement tracked in home_decorations)
 CREATE TABLE cosmetics (
-  id TEXT PRIMARY KEY,
   player_id TEXT NOT NULL REFERENCES players(id),
   cosmetic_def_id TEXT NOT NULL,
   unlocked_at INTEGER NOT NULL,
   equipped INTEGER NOT NULL DEFAULT 0,
-  UNIQUE(player_id, cosmetic_def_id)
+  PRIMARY KEY(player_id, cosmetic_def_id)
 );
 CREATE INDEX idx_cosmetics_player ON cosmetics(player_id);
 
@@ -318,7 +319,7 @@ CREATE TABLE home_decorations (
 );
 
 -- Position persistence
-ALTER TABLE players ADD COLUMN last_scene TEXT DEFAULT 'MainScene';
+ALTER TABLE players ADD COLUMN last_scene TEXT DEFAULT 'Town';
 ALTER TABLE players ADD COLUMN last_x REAL;
 ALTER TABLE players ADD COLUMN last_y REAL;
 ```
@@ -504,7 +505,7 @@ Modified files:
 ```
 src/shared/types.ts            — Add achievement/cosmetic types, export new interfaces
 src/renderer/src/game/types.ts — Add new GameEvents
-src/renderer/src/game/scenes/MainScene.ts — Extract to BaseScene, add portal support
+src/renderer/src/game/scenes/Town.ts — Extract to BaseScene, add portal support
 src/renderer/src/components/ui/BackpackPanel.tsx — Enable achievements + cosmetics tabs
 src/main/db/migrations.ts      — Add Migration 3
 src/main/chat.ts               — Integration points for achievement checks
