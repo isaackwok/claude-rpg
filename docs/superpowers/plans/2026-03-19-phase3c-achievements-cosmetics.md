@@ -209,16 +209,20 @@ Create `src/main/achievement-engine.ts`. Core methods:
 - `checkToolUse(playerId)`: Similar for tool_use triggers using repo tool types and TOOL_GROUP_MAP.
 - `getAchievements(playerId)`: Return all definitions merged with unlock status.
 
-Private `evaluateTrigger()` method uses switch on `trigger.type`:
+Private `evaluateTrigger()` method uses switch on `trigger.type` — **must handle all 11 variants** for TypeScript exhaustiveness:
 
 - `overall_level`: `playerState.overallLevel >= trigger.level`
+- `category_level`: `playerState.skills[trigger.category].level >= trigger.level`
 - `any_category_level`: `Object.values(playerState.skills).some(s => s.level >= trigger.level)`
+- `tier_unlock`: `playerState.overallLevel >= TITLE_TIERS.find(t => t.en === trigger.tier)?.minLevel`
 - `zones_visited`: `repo.getZoneVisitCount(playerId) >= trigger.count`
 - `all_zones_visited`: compare visited count against total zones (pass total as constructor param)
 - `all_npcs_interacted`: compare interacted count against BUILT_IN_NPCS count (7)
 - `all_quests_discovered`: compare discovered count against QUEST_DEFINITIONS count (5)
+- `tool_used`: check if `trigger.toolType` exists in used tool types
 - `tool_group_used`: check if any tool in `TOOL_GROUP_MAP[trigger.group]` exists in used tools
 - `all_tool_groups_used`: check all 3 groups have at least one tool used
+- Add `default: return false` as safety fallback
 
 - [ ] **Step 4: Run tests to verify they pass**
 
