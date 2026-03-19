@@ -185,9 +185,7 @@ const api = {
     ipcRenderer.on('cosmetics:updated', handler)
     return () => ipcRenderer.removeListener('cosmetics:updated', handler)
   },
-  onCosmeticUnlocked: (
-    callback: (data: { cosmeticDefId: string }) => void
-  ): (() => void) => {
+  onCosmeticUnlocked: (callback: (data: { cosmeticDefId: string }) => void): (() => void) => {
     const handler = (_event: unknown, data: { cosmeticDefId: string }): void => callback(data)
     ipcRenderer.on('cosmetics:unlocked', handler)
     return () => ipcRenderer.removeListener('cosmetics:unlocked', handler)

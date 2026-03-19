@@ -1,4 +1,8 @@
-import type { AchievementCheckResult, AchievementTrigger, PlayerAchievement } from '../shared/achievement-types'
+import type {
+  AchievementCheckResult,
+  AchievementTrigger,
+  PlayerAchievement
+} from '../shared/achievement-types'
 import { TOOL_GROUP_MAP } from '../shared/achievement-types'
 import { ACHIEVEMENT_DEFINITIONS } from './achievement-definitions'
 import type { SqliteAchievementRepository } from './db/achievement-repository'

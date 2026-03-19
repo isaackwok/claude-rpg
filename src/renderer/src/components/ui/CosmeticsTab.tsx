@@ -20,7 +20,12 @@ const OVERLAY_SLOTS: { layer: OverlayLayer; i18nKey: string }[] = [
   { layer: 'aura', i18nKey: 'cosmetics.slots.aura' }
 ]
 
-export function CosmeticsTab({ cosmetics, equipped, onEquip, onUnequip }: CosmeticsTabProps) {
+export function CosmeticsTab({
+  cosmetics,
+  equipped,
+  onEquip,
+  onUnequip
+}: CosmeticsTabProps): React.JSX.Element {
   const { t } = useTranslation()
   const [subTab, setSubTab] = useState<CosmeticSubTab>('overlays')
 
@@ -177,7 +182,9 @@ export function CosmeticsTab({ cosmetics, equipped, onEquip, onUnequip }: Cosmet
           </div>
 
           {/* Cosmetic list */}
-          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div
+            style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}
+          >
             {filtered.map((cosmetic) => (
               <CosmeticItem
                 key={cosmetic.cosmeticDefId}

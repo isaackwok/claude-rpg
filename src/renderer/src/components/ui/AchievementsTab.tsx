@@ -15,7 +15,11 @@ const CATEGORIES: { key: AchievementCategory; icon: string; i18nKey: string }[] 
   { key: 'tool_use', icon: '🔧', i18nKey: 'achievements.categories.tool_use' }
 ]
 
-export function AchievementsTab({ achievements, unlockedCount, totalCount }: AchievementsTabProps) {
+export function AchievementsTab({
+  achievements,
+  unlockedCount,
+  totalCount
+}: AchievementsTabProps): React.JSX.Element {
   const { t, locale } = useTranslation()
 
   return (
@@ -44,9 +48,7 @@ export function AchievementsTab({ achievements, unlockedCount, totalCount }: Ach
         }}
       >
         {CATEGORIES.map((cat) => {
-          const catAchievements = achievements.filter(
-            (a) => a.definition.category === cat.key
-          )
+          const catAchievements = achievements.filter((a) => a.definition.category === cat.key)
 
           // Unlocked first, then locked
           const sorted = [...catAchievements].sort((a, b) => {

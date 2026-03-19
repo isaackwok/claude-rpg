@@ -230,7 +230,9 @@ app.whenReady().then(() => {
   ipcMain.handle('player:get-position', () => {
     const row = db
       .prepare('SELECT last_scene, last_x, last_y FROM players WHERE id = ?')
-      .get('player-1') as { last_scene: string | null; last_x: number | null; last_y: number | null } | undefined
+      .get('player-1') as
+      | { last_scene: string | null; last_x: number | null; last_y: number | null }
+      | undefined
     if (!row || row.last_x === null || row.last_y === null) return null
     return { scene: row.last_scene, x: row.last_x, y: row.last_y }
   })

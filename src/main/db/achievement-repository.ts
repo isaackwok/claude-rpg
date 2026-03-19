@@ -68,9 +68,7 @@ export class SqliteAchievementRepository {
   /** Returns the number of distinct NPCs the player has interacted with. */
   getInteractedNpcCount(playerId: string): number {
     const row = this.db
-      .prepare(
-        `SELECT COUNT(DISTINCT agent_id) as count FROM conversations WHERE player_id = ?`
-      )
+      .prepare(`SELECT COUNT(DISTINCT agent_id) as count FROM conversations WHERE player_id = ?`)
       .get(playerId) as { count: number }
     return row.count
   }

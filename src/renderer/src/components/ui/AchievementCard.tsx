@@ -5,7 +5,7 @@ interface AchievementCardProps {
   locale: string
 }
 
-export function AchievementCard({ achievement, locale }: AchievementCardProps) {
+export function AchievementCard({ achievement, locale }: AchievementCardProps): React.JSX.Element {
   const { definition: def, unlocked } = achievement
 
   const title = def.title[locale] ?? def.title['zh-TW'] ?? ''
@@ -65,9 +65,7 @@ export function AchievementCard({ achievement, locale }: AchievementCardProps) {
           {def.description[locale] ?? def.description['zh-TW'] ?? ''}
         </div>
         {unlocked && def.cosmeticReward && (
-          <div style={{ fontSize: 9, color: '#c4a46c', marginTop: 1 }}>
-            🎨 {def.cosmeticReward}
-          </div>
+          <div style={{ fontSize: 9, color: '#c4a46c', marginTop: 1 }}>🎨 {def.cosmeticReward}</div>
         )}
       </div>
 

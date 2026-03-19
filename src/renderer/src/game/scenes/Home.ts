@@ -38,13 +38,7 @@ export class Home extends BaseScene {
     // ── Draw room with Phaser graphics ──────────────────────────────────────
 
     // Floor
-    const floor = this.add.rectangle(
-      ROOM_W / 2,
-      ROOM_H / 2,
-      ROOM_W,
-      ROOM_H,
-      COL_FLOOR
-    )
+    const floor = this.add.rectangle(ROOM_W / 2, ROOM_H / 2, ROOM_W, ROOM_H, COL_FLOOR)
     floor.setDepth(0)
 
     // Wall graphics (visual)
@@ -122,28 +116,21 @@ export class Home extends BaseScene {
     })
 
     // ── DecorationManager ────────────────────────────────────────────────────
-    this.decorationManager = new DecorationManager(
-      this,
-      MAP_COLS,
-      MAP_ROWS,
-      TILE,
-      (tileX, tileY) => this.isPlaceableTile(tileX, tileY)
+    this.decorationManager = new DecorationManager(this, MAP_COLS, MAP_ROWS, TILE, (tileX, tileY) =>
+      this.isPlaceableTile(tileX, tileY)
     )
 
     // Load previously saved placements
     this.decorationManager.loadPlacements()
 
     // Click handler for decoration placement
-    this.input.on(
-      'pointerdown',
-      (pointer: Phaser.Input.Pointer) => {
-        if (this.decorationManager.isActive) {
-          const worldX = pointer.worldX
-          const worldY = pointer.worldY
-          this.decorationManager.handleClick(worldX, worldY)
-        }
+    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (this.decorationManager.isActive) {
+        const worldX = pointer.worldX
+        const worldY = pointer.worldY
+        this.decorationManager.handleClick(worldX, worldY)
       }
-    )
+    })
 
     // D key toggles decoration mode
     this.input.keyboard?.on('keydown-D', () => {

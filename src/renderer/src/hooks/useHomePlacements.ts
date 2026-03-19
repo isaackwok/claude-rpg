@@ -1,7 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { HomePlacement } from '../../../shared/cosmetic-types'
 
-export function useHomePlacements() {
+export function useHomePlacements(): {
+  placements: HomePlacement[]
+  loading: boolean
+  place: (cosmeticDefId: string, tileX: number, tileY: number) => Promise<void>
+  remove: (cosmeticDefId: string) => Promise<void>
+  refresh: () => Promise<void>
+} {
   const [placements, setPlacements] = useState<HomePlacement[]>([])
   const [loading, setLoading] = useState(true)
 

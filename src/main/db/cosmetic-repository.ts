@@ -28,9 +28,7 @@ export class SqliteCosmeticRepository {
   /** Returns all unlocked cosmetics for the player. */
   getAll(playerId: string): UnlockedCosmetic[] {
     const rows = this.db
-      .prepare(
-        `SELECT cosmetic_def_id, unlocked_at, equipped FROM cosmetics WHERE player_id = ?`
-      )
+      .prepare(`SELECT cosmetic_def_id, unlocked_at, equipped FROM cosmetics WHERE player_id = ?`)
       .all(playerId) as { cosmetic_def_id: string; unlocked_at: number; equipped: number }[]
     return rows.map((r) => ({
       cosmeticDefId: r.cosmetic_def_id,
@@ -103,9 +101,7 @@ export class SqliteCosmeticRepository {
   /** Returns all home decoration placements for the player. */
   getPlacements(playerId: string): HomePlacement[] {
     const rows = this.db
-      .prepare(
-        `SELECT cosmetic_def_id, tile_x, tile_y FROM home_decorations WHERE player_id = ?`
-      )
+      .prepare(`SELECT cosmetic_def_id, tile_x, tile_y FROM home_decorations WHERE player_id = ?`)
       .all(playerId) as { cosmetic_def_id: string; tile_x: number; tile_y: number }[]
     return rows.map((r) => ({
       cosmeticDefId: r.cosmetic_def_id,

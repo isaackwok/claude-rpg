@@ -21,7 +21,7 @@ interface BackpackPanelProps {
   onClose: () => void
 }
 
-export function BackpackPanel({ onClose }: BackpackPanelProps) {
+export function BackpackPanel({ onClose }: BackpackPanelProps): React.JSX.Element {
   const { t, locale } = useTranslation()
   const { quests, loading, error, refresh, activeCount, completedCount } = useQuests()
   const { achievements, unlockedCount, totalCount } = useAchievements()
@@ -29,7 +29,7 @@ export function BackpackPanel({ onClose }: BackpackPanelProps) {
   const [activeTab, setActiveTab] = useState<BackpackTab>('quests')
   const panelRef = useRef<HTMLDivElement>(null)
 
-  const handleBackdropClick = (e: React.MouseEvent) => {
+  const handleBackdropClick = (e: React.MouseEvent): void => {
     if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
       onClose()
     }

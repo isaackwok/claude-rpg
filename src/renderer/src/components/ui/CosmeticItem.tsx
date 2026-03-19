@@ -8,7 +8,7 @@ interface CosmeticItemProps {
   locale: string
 }
 
-export function CosmeticItem({ cosmetic, onEquip, onUnequip }: CosmeticItemProps) {
+export function CosmeticItem({ cosmetic, onEquip, onUnequip }: CosmeticItemProps): React.JSX.Element {
   const { t, locale } = useTranslation()
   const { definition: def, unlocked, equipped } = cosmetic
 

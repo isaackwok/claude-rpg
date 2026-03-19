@@ -187,9 +187,12 @@ export class Town extends BaseScene {
     // Roof
     homeGfx.fillStyle(0x5c3a1e)
     homeGfx.fillTriangle(
-      homePortalX, homePortalY - 12,
-      homePortalX - 9, homePortalY - 5,
-      homePortalX + 9, homePortalY - 5
+      homePortalX,
+      homePortalY - 12,
+      homePortalX - 9,
+      homePortalY - 5,
+      homePortalX + 9,
+      homePortalY - 5
     )
     // Door
     homeGfx.fillStyle(0x3e2510)

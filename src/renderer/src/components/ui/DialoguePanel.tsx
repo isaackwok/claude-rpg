@@ -217,6 +217,14 @@ function InputArea({
   const [closing, setClosing] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
+  const triggerClose = useCallback(() => {
+    setClosing(true)
+    setTimeout(() => {
+      setMenuOpen(false)
+      setClosing(false)
+    }, 120)
+  }, [])
+
   useEffect(() => {
     if (!menuOpen) return
     const handler = (e: MouseEvent): void => {
@@ -226,15 +234,7 @@ function InputArea({
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
-  }, [menuOpen])
-
-  const triggerClose = useCallback(() => {
-    setClosing(true)
-    setTimeout(() => {
-      setMenuOpen(false)
-      setClosing(false)
-    }, 120)
-  }, [])
+  }, [menuOpen, triggerClose])
 
   const handlePickFiles = useCallback(async () => {
     triggerClose()

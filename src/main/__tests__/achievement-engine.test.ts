@@ -7,7 +7,10 @@ import { AchievementEngine } from '../achievement-engine'
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function makePlayerState(overrides: Partial<PlayerState> = {}): PlayerState {
-  const skillLevel = (level: number) => ({ xp: level * level * 50, level })
+  const skillLevel = (level: number): { xp: number; level: number } => ({
+    xp: level * level * 50,
+    level
+  })
   return {
     id: 'player-1',
     name: 'Isaac',

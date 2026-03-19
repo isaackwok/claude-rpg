@@ -10,7 +10,7 @@ import { useTranslation } from '../../i18n'
  * - When decoration mode is active (D key / button click) shows a toolbar
  *   listing unlocked decoration-type cosmetics for placement selection
  */
-export function HomeHUD() {
+export function HomeHUD(): React.JSX.Element | null {
   const { t } = useTranslation()
   const { cosmetics } = useCosmetics()
   const [inHomeScene, setInHomeScene] = useState(false)
@@ -19,7 +19,7 @@ export function HomeHUD() {
 
   // Track scene changes
   useEffect(() => {
-    const handler = (data: { sceneName: string }) => {
+    const handler = (data: { sceneName: string }): void => {
       setInHomeScene(data.sceneName === 'Home')
       if (data.sceneName !== 'Home') {
         setDecorateActive(false)
@@ -34,7 +34,7 @@ export function HomeHUD() {
 
   // Track decoration mode toggled from Phaser (D key / ESC)
   useEffect(() => {
-    const handler = (data: { active: boolean }) => {
+    const handler = (data: { active: boolean }): void => {
       setDecorateActive(data.active)
       if (!data.active) {
         setSelectedId(null)
@@ -60,7 +60,7 @@ export function HomeHUD() {
   }, [])
 
   const handleCosmeticSelect = useCallback(
-    (cosmeticDefId: string) => {
+    (cosmeticDefId: string): void => {
       const newId = selectedId === cosmeticDefId ? null : cosmeticDefId
       setSelectedId(newId)
       // Notify DecorationManager via a custom EventBus event
@@ -79,9 +79,7 @@ export function HomeHUD() {
   if (!inHomeScene) return null
 
   // Filter unlocked decorations
-  const decorations = cosmetics.filter(
-    (c) => c.unlocked && c.definition.type === 'decoration'
-  )
+  const decorations = cosmetics.filter((c) => c.unlocked && c.definition.type === 'decoration')
 
   return (
     <div
@@ -127,7 +125,9 @@ export function HomeHUD() {
           </span>
 
           {decorations.length === 0 ? (
-            <span style={{ fontSize: 11, color: 'rgba(200, 180, 140, 0.4)', fontFamily: 'monospace' }}>
+            <span
+              style={{ fontSize: 11, color: 'rgba(200, 180, 140, 0.4)', fontFamily: 'monospace' }}
+            >
               —
             </span>
           ) : (
@@ -183,12 +183,8 @@ export function HomeHUD() {
       <button
         onClick={handleDecorateButtonClick}
         style={{
-          background: decorateActive
-            ? 'rgba(196, 164, 108, 0.25)'
-            : 'rgba(10, 10, 30, 0.85)',
-          border: decorateActive
-            ? '2px solid #c4a46c'
-            : '2px solid rgba(200, 180, 140, 0.4)',
+          background: decorateActive ? 'rgba(196, 164, 108, 0.25)' : 'rgba(10, 10, 30, 0.85)',
+          border: decorateActive ? '2px solid #c4a46c' : '2px solid rgba(200, 180, 140, 0.4)',
           borderRadius: 6,
           padding: '6px 12px',
           color: decorateActive ? '#c4a46c' : 'rgba(200, 180, 140, 0.7)',
@@ -203,9 +199,7 @@ export function HomeHUD() {
         }}
       >
         <span>🏠</span>
-        <span>
-          {decorateActive ? t('home.exitDecorate') : t('home.decorateHint')}
-        </span>
+        <span>{decorateActive ? t('home.exitDecorate') : t('home.decorateHint')}</span>
       </button>
     </div>
   )

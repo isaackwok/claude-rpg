@@ -2,7 +2,14 @@ import { useState, useEffect, useCallback } from 'react'
 import { EventBus } from '../game/EventBus'
 import type { PlayerAchievement, AchievementCheckResult } from '../../../shared/achievement-types'
 
-export function useAchievements() {
+export function useAchievements(): {
+  achievements: PlayerAchievement[]
+  loading: boolean
+  error: string | null
+  refresh: () => Promise<void>
+  unlockedCount: number
+  totalCount: number
+} {
   const [achievements, setAchievements] = useState<PlayerAchievement[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

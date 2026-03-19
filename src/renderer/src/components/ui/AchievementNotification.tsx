@@ -12,13 +12,13 @@ interface AchievementToast {
 // Module-level counter ensures unique toast IDs across component re-mounts
 let toastId = 0
 
-export function AchievementNotification() {
+export function AchievementNotification(): React.JSX.Element | null {
   const { t, locale } = useTranslation()
   const [toasts, setToasts] = useState<AchievementToast[]>([])
   const timersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set())
 
   useEffect(() => {
-    const addAutoRemoveToast = (toast: AchievementToast) => {
+    const addAutoRemoveToast = (toast: AchievementToast): void => {
       setToasts((prev) => [...prev, toast])
       const timer = setTimeout(() => {
         setToasts((prev) => prev.filter((t) => t.id !== toast.id))
@@ -31,7 +31,7 @@ export function AchievementNotification() {
       achievementDefId: string
       title: LocalizedString
       cosmeticReward?: { id: string; title: LocalizedString; type: 'overlay' | 'decoration' }
-    }) => {
+    }): void => {
       addAutoRemoveToast({
         id: ++toastId,
         title: data.title,
@@ -40,10 +40,11 @@ export function AchievementNotification() {
     }
 
     EventBus.on('achievement:unlocked', handleUnlocked)
+    const timers = timersRef.current
     return () => {
       EventBus.off('achievement:unlocked', handleUnlocked)
-      for (const timer of timersRef.current) clearTimeout(timer)
-      timersRef.current.clear()
+      for (const timer of timers) clearTimeout(timer)
+      timers.clear()
     }
   }, [])
 

@@ -1,7 +1,15 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { PlayerCosmetic } from '../../../shared/cosmetic-types'
 
-export function useCosmetics() {
+export function useCosmetics(): {
+  cosmetics: PlayerCosmetic[]
+  loading: boolean
+  error: string | null
+  equip: (cosmeticDefId: string) => Promise<void>
+  unequip: (cosmeticDefId: string) => Promise<void>
+  equipped: PlayerCosmetic[]
+  refresh: () => Promise<void>
+} {
   const [cosmetics, setCosmetics] = useState<PlayerCosmetic[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
