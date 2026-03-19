@@ -14,6 +14,8 @@ import type {
   QuestBoardSuggestion,
   QuestVisibility
 } from '../shared/types'
+import type { PlayerAchievement, AchievementCheckResult } from '../shared/achievement-types'
+import type { PlayerCosmetic, HomePlacement } from '../shared/cosmetic-types'
 
 interface ChatAPI {
   // API key
@@ -61,6 +63,26 @@ interface ChatAPI {
     callback: (data: { questDefId: string; visibility: QuestVisibility }) => void
   ): () => void
   onQuestsError(callback: (data: { error: string }) => void): () => void
+  // Achievements
+  getAchievements(): Promise<PlayerAchievement[]>
+  onAchievementsUnlocked(
+    callback: (unlocked: AchievementCheckResult['unlocked']) => void
+  ): () => void
+  // Cosmetics
+  getCosmetics(): Promise<PlayerCosmetic[]>
+  equipCosmetic(cosmeticDefId: string): Promise<void>
+  unequipCosmetic(cosmeticDefId: string): Promise<void>
+  onCosmeticsUpdated(callback: (cosmetics: PlayerCosmetic[]) => void): () => void
+  onCosmeticUnlocked(callback: (data: { cosmeticDefId: string }) => void): () => void
+  // Home decorations
+  getHomePlacements(): Promise<HomePlacement[]>
+  placeDecoration(cosmeticDefId: string, tileX: number, tileY: number): Promise<void>
+  removeDecoration(cosmeticDefId: string): Promise<void>
+  // Zone tracking
+  recordZoneVisit(zoneId: string): Promise<void>
+  // Position persistence
+  savePosition(scene: string, x: number, y: number): Promise<void>
+  getPosition(): Promise<{ scene: string | null; x: number; y: number } | null>
 }
 
 declare global {
