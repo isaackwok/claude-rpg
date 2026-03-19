@@ -81,6 +81,14 @@ export interface BookItem extends ItemBase {
 }
 
 export type Item = BookItem
+
+export interface IItemRepository {
+  getItems(playerId: string): Item[]
+  addBookItem(item: Omit<BookItem, 'id' | 'createdAt'>): BookItem
+  updateItemName(itemId: string, name: string): void
+  deleteItem(itemId: string): void
+  getItemCount(playerId: string, sourceAgentId?: string): number
+}
 ```
 
 - [ ] **Step 2: Re-export from shared/types.ts**
@@ -327,13 +335,13 @@ Create `src/main/db/item-repository.ts`. Follow pattern of `cosmetic-repository.
 
 ```typescript
 import Database from 'better-sqlite3'
-import type { BookItem, Item } from '../../shared/item-types'
+import type { BookItem, IItemRepository, Item } from '../../shared/item-types'
 
 function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2)
 }
 
-export class SqliteItemRepository {
+export class SqliteItemRepository implements IItemRepository {
   constructor(private db: Database.Database) {}
 
   getItems(playerId: string): Item[] {
@@ -651,29 +659,23 @@ ipcMain.handle(
       sourceQuestion: payload.sourceQuestion,
       preview
     })
-    for (const wc of webContents.getAllWebContents()) {
-      wc.send('items:updated')
-    }
+    BrowserWindow.getAllWindows()[0]?.webContents.send('items:updated')
     return book
   }
 )
 
 ipcMain.handle('items:update-name', (_e, itemId: string, name: string) => {
   itemRepo.updateItemName(itemId, name)
-  for (const wc of webContents.getAllWebContents()) {
-    wc.send('items:updated')
-  }
+  BrowserWindow.getAllWindows()[0]?.webContents.send('items:updated')
 })
 
 ipcMain.handle('items:delete', (_e, itemId: string) => {
   itemRepo.deleteItem(itemId)
-  for (const wc of webContents.getAllWebContents()) {
-    wc.send('items:updated')
-  }
+  BrowserWindow.getAllWindows()[0]?.webContents.send('items:updated')
 })
 ```
 
-Ensure `webContents` is imported from `electron` (check existing imports — it may already be available via `BrowserWindow`; if not, add `import { ..., webContents } from 'electron'`).
+This follows the existing pattern used by cosmetics handlers (e.g., line 172, 189). `BrowserWindow` is already imported.
 
 - [ ] **Step 2: Add item channels to preload**
 
@@ -974,7 +976,7 @@ const {
 ```
 
 4. Add `activeTab === 'items'` branch in the content area (after `activeTab === 'cosmetics'`), with loading/error states matching the quests pattern.
-5. Change initial `activeTab` default from `'quests'` to `'items'` (line 29).
+5. Keep initial `activeTab` default as `'quests'` (line 29) — no change to existing UX.
 
 - [ ] **Step 4: Run typecheck and dev server**
 
@@ -1001,7 +1003,28 @@ git commit -m "feat(3d): add ItemsTab, BookDetailModal, enable items tab in back
 
 - [ ] **Step 1: Create ItemNotification component**
 
-Create `src/renderer/src/components/ui/ItemNotification.tsx`. Follow `src/renderer/src/components/ui/QuestNotification.tsx` pattern exactly:
+Create `src/renderer/src/components/ui/ItemNotification.tsx`. Follow `src/renderer/src/components/ui/QuestNotification.tsx` pattern exactly.
+
+**Note:** The `fadeInOut` keyframe animation used by `QuestNotification` and `AchievementNotification` is not defined anywhere in the codebase (pre-existing gap). Add a `<style>` block inside `ItemNotification` to define it:
+
+```css
+@keyframes fadeInOut {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+```
 
 ```typescript
 import { useEffect, useRef, useState } from 'react'
@@ -1312,17 +1335,18 @@ onRemoveBook={(id) => setAttachedBooks((prev) => prev.filter((b) => b.id !== id)
 4. Modify the send function to prepend book context:
 
 ```typescript
-const buildMessageWithContext = (text: string): string => {
+const buildMessageWithContext = (text: string, currentLocale: string): string => {
   if (attachedBooks.length === 0) return text
   const referenceLabel = t('dialogue.referenceLabel')
+  const colon = currentLocale === 'en' ? ': ' : '：'
   const bookBlocks = attachedBooks
-    .map((b) => `[📖 ${referenceLabel}：${b.name}]\n${b.markdownContent}`)
+    .map((b) => `[📖 ${referenceLabel}${colon}${b.name}]\n${b.markdownContent}`)
     .join('\n---\n')
   return `${bookBlocks}\n---\n\n${text}`
 }
 ```
 
-Use `buildMessageWithContext(input)` instead of `input` when calling `window.api.sendMessage`. Clear `attachedBooks` after sending.
+In the `send` callback, wrap `text` with `const finalText = buildMessageWithContext(text, locale)` and use `finalText` when calling `window.api.sendMessage(dialogue.agentId, finalText, locale)`. Clear `attachedBooks` with `setAttachedBooks([])` after the send call. Add `attachedBooks` to the `useCallback` dependency array.
 
 - [ ] **Step 4: Run typecheck and test manually**
 

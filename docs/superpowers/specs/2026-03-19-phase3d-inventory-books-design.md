@@ -244,13 +244,13 @@ The `playerId` is hardcoded to `'player-1'` in the main process handlers, matchi
 
 Channel naming follows the existing `namespace:action` convention (e.g., `quests:get-all`, `cosmetics:equip`).
 
-| Channel             | Direction       | Payload                                                                | Returns    |
-| ------------------- | --------------- | ---------------------------------------------------------------------- | ---------- |
-| `items:get-all`     | renderer → main | (none)                                                                 | `Item[]`   |
-| `items:add-book`    | renderer → main | `{ markdownContent, sourceAgentId, sourceQuestion, category, locale }` | `BookItem` |
-| `items:update-name` | renderer → main | `{ itemId, name }`                                                     | `void`     |
-| `items:delete`      | renderer → main | `{ itemId }`                                                           | `void`     |
-| `items:updated`     | main → renderer | push event                                                             | `void`     |
+| Channel             | Direction       | Payload                                                                         | Returns    |
+| ------------------- | --------------- | ------------------------------------------------------------------------------- | ---------- |
+| `items:get-all`     | renderer → main | (none)                                                                          | `Item[]`   |
+| `items:add-book`    | renderer → main | `{ markdownContent, sourceAgentId, sourceQuestion, category, locale, npcName }` | `BookItem` |
+| `items:update-name` | renderer → main | `{ itemId, name }`                                                              | `void`     |
+| `items:delete`      | renderer → main | `{ itemId }`                                                                    | `void`     |
+| `items:updated`     | main → renderer | push event                                                                      | `void`     |
 
 ### Repository Interface
 
