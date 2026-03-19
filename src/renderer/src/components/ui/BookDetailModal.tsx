@@ -3,6 +3,7 @@ import { useTranslation } from '../../i18n'
 import { BUILT_IN_NPCS } from '../../game/data/npcs'
 import { renderMarkdown } from '../../utils/renderMarkdown'
 import { CloseButton } from './CloseButton'
+import { categoryLabel } from './ItemsTab'
 import type { BookItem } from '../../../../shared/item-types'
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -175,7 +176,7 @@ export function BookDetailModal({
                 color: CATEGORY_COLORS[item.category] ?? '#888'
               }}
             >
-              {item.category === 'general' ? t('items.categoryGeneral') : item.category}
+              {categoryLabel(item.category, t)}
             </span>
             <span>{dateStr}</span>
           </div>

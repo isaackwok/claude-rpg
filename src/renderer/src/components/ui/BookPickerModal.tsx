@@ -3,6 +3,7 @@ import { useTranslation } from '../../i18n'
 import { useItems } from '../../hooks/useItems'
 import { BUILT_IN_NPCS } from '../../game/data/npcs'
 import { CloseButton } from './CloseButton'
+import { categoryLabel } from './ItemsTab'
 import type { BookItem } from '../../../../shared/item-types'
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -138,7 +139,7 @@ export function BookPickerModal({ onAttach, onClose }: BookPickerModalProps): Re
                   cursor: 'pointer'
                 }}
               >
-                {cat === 'general' ? t('items.categoryGeneral') : cat}
+                {categoryLabel(cat, t)}
               </button>
             ))}
           </div>

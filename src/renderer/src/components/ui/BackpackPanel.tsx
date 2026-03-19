@@ -36,7 +36,7 @@ export function BackpackPanel({ onClose }: BackpackPanelProps): React.JSX.Elemen
     updateName,
     deleteItem
   } = useItems()
-  const [activeTab, setActiveTab] = useState<BackpackTab>('quests')
+  const [activeTab, setActiveTab] = useState<BackpackTab>('items')
   const panelRef = useRef<HTMLDivElement>(null)
 
   const handleBackdropClick = (e: React.MouseEvent): void => {

@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useTranslation } from '../../i18n'
-import { BUILT_IN_NPCS } from '../../game/data/npcs'
 import { BookDetailModal } from './BookDetailModal'
 import type { Item, BookItem } from '../../../../shared/item-types'
 
@@ -15,27 +14,27 @@ const CATEGORY_COLORS: Record<string, string> = {
   general: '#888'
 }
 
+const CATEGORY_I18N: Record<string, string> = {
+  writing: 'items.categoryWriting',
+  research: 'items.categoryResearch',
+  code: 'items.categoryCode',
+  data: 'items.categoryData',
+  communication: 'items.categoryCommunication',
+  organization: 'items.categoryOrganization',
+  visual: 'items.categoryVisual',
+  general: 'items.categoryGeneral'
+}
+
+export function categoryLabel(category: string, t: (key: string) => string): string {
+  const key = CATEGORY_I18N[category]
+  return key ? t(key) : category
+}
+
 interface ItemsTabProps {
   items: Item[]
   locale: string
   onUpdateName: (itemId: string, name: string) => Promise<void>
   onDeleteItem: (itemId: string) => Promise<void>
-}
-
-function resolveNpcName(agentId: string, locale: string): string {
-  const npc = BUILT_IN_NPCS.find((n) => n.id === agentId)
-  return npc?.name[locale] ?? npc?.name['zh-TW'] ?? agentId
-}
-
-function relativeTime(timestamp: number, locale: string): string {
-  const diff = Date.now() - timestamp
-  const minutes = Math.floor(diff / 60000)
-  if (minutes < 1) return locale === 'en' ? 'Just now' : '剛才'
-  if (minutes < 60) return locale === 'en' ? `${minutes}m ago` : `${minutes}分鐘前`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return locale === 'en' ? `${hours}h ago` : `${hours}小時前`
-  const days = Math.floor(hours / 24)
-  return locale === 'en' ? `${days}d ago` : `${days}天前`
 }
 
 export function ItemsTab({
@@ -47,14 +46,15 @@ export function ItemsTab({
   const { t } = useTranslation()
   const [filter, setFilter] = useState<string>('all')
   const [selectedItem, setSelectedItem] = useState<BookItem | null>(null)
+  const [hoveredId, setHoveredId] = useState<string | null>(null)
 
   const categories = Array.from(new Set(items.map((i) => i.category)))
   const filtered = filter === 'all' ? items : items.filter((i) => i.category === filter)
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       {/* Header */}
-      <div style={{ marginBottom: 12 }}>
+      <div style={{ marginBottom: 12, flexShrink: 0 }}>
         <div style={{ fontSize: 18, fontWeight: 'bold', color: '#e8d5a8' }}>
           📦 {t('items.title')}
         </div>
@@ -104,78 +104,74 @@ export function ItemsTab({
                 cursor: 'pointer'
               }}
             >
-              {cat === 'general' ? t('items.categoryGeneral') : cat}
+              {categoryLabel(cat, t)}
             </button>
           ))}
         </div>
       )}
 
-      {/* Items list */}
-      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {filtered.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => setSelectedItem(item as BookItem)}
-            style={{
-              display: 'flex',
-              gap: 10,
-              padding: '8px 10px',
-              background: 'rgba(200, 180, 140, 0.08)',
-              border: '1px solid rgba(200, 180, 140, 0.15)',
-              borderRadius: 4,
-              cursor: 'pointer',
-              textAlign: 'left',
-              color: '#c4a46c',
-              fontFamily: 'monospace',
-              width: '100%'
-            }}
-          >
-            <span style={{ fontSize: 20, flexShrink: 0 }}>{item.icon}</span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div
+      {/* Items grid — scrollable vertically */}
+      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0 }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, 52px)',
+            gap: 6
+          }}
+        >
+          {filtered.map((item) => (
+            <div key={item.id} style={{ position: 'relative' }}>
+              <button
+                onClick={() => setSelectedItem(item as BookItem)}
+                onMouseEnter={() => setHoveredId(item.id)}
+                onMouseLeave={() => setHoveredId(null)}
                 style={{
-                  fontSize: 13,
-                  fontWeight: 'bold',
-                  color: '#e8d5a8',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap'
+                  width: 52,
+                  height: 52,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'rgba(200, 180, 140, 0.08)',
+                  border: `1px solid ${
+                    hoveredId === item.id ? 'rgba(200, 180, 140, 0.5)' : 'rgba(200, 180, 140, 0.15)'
+                  }`,
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                  fontSize: 24,
+                  padding: 0,
+                  transition: 'border-color 0.15s, background 0.15s',
+                  ...(hoveredId === item.id ? { background: 'rgba(200, 180, 140, 0.15)' } : {})
                 }}
               >
-                {item.name}
-              </div>
-              <div style={{ fontSize: 11, color: '#a89060', marginTop: 2 }}>
-                {resolveNpcName((item as BookItem).sourceAgentId, locale)} ·{' '}
-                {relativeTime(item.createdAt, locale)}
-              </div>
-              <div
-                style={{
-                  fontSize: 11,
-                  color: 'rgba(200, 180, 140, 0.5)',
-                  marginTop: 2,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                {(item as BookItem).preview}
-              </div>
+                {item.icon}
+              </button>
+              {/* Tooltip on hover */}
+              {hoveredId === item.id && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: '100%',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    marginBottom: 4,
+                    padding: '4px 8px',
+                    background: 'rgba(10, 10, 30, 0.95)',
+                    border: '1px solid rgba(200, 180, 140, 0.4)',
+                    borderRadius: 4,
+                    fontSize: 11,
+                    fontFamily: 'monospace',
+                    color: '#e8d5a8',
+                    whiteSpace: 'nowrap',
+                    pointerEvents: 'none',
+                    zIndex: 10
+                  }}
+                >
+                  {item.name}
+                </div>
+              )}
             </div>
-            <span
-              style={{
-                fontSize: 10,
-                padding: '2px 6px',
-                borderRadius: 8,
-                background: `${CATEGORY_COLORS[item.category] ?? '#888'}22`,
-                color: CATEGORY_COLORS[item.category] ?? '#888',
-                alignSelf: 'flex-start',
-                flexShrink: 0
-              }}
-            >
-              {item.category === 'general' ? t('items.categoryGeneral') : item.category}
-            </span>
-          </button>
-        ))}
+          ))}
+        </div>
 
         {filtered.length === 0 && (
           <div
