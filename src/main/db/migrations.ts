@@ -63,6 +63,55 @@ const migrations: Record<number, (db: Database.Database) => void> = {
       );
       CREATE INDEX idx_quests_player ON quests(player_id);
     `)
+  },
+
+  3: (db) => {
+    db.exec(`
+      CREATE TABLE achievements (
+        player_id TEXT NOT NULL REFERENCES players(id),
+        achievement_def_id TEXT NOT NULL,
+        unlocked_at INTEGER NOT NULL,
+        PRIMARY KEY(player_id, achievement_def_id)
+      );
+
+      CREATE TABLE player_zones (
+        player_id TEXT NOT NULL REFERENCES players(id),
+        zone_id TEXT NOT NULL,
+        first_visited_at INTEGER NOT NULL,
+        UNIQUE(player_id, zone_id)
+      );
+
+      CREATE TABLE player_tool_usage (
+        player_id TEXT NOT NULL REFERENCES players(id),
+        tool_type TEXT NOT NULL,
+        first_used_at INTEGER NOT NULL,
+        UNIQUE(player_id, tool_type)
+      );
+
+      CREATE TABLE cosmetics (
+        player_id TEXT NOT NULL REFERENCES players(id),
+        cosmetic_def_id TEXT NOT NULL,
+        unlocked_at INTEGER NOT NULL,
+        equipped INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY(player_id, cosmetic_def_id)
+      );
+      CREATE INDEX idx_cosmetics_player ON cosmetics(player_id);
+
+      CREATE TABLE home_decorations (
+        id TEXT PRIMARY KEY,
+        player_id TEXT NOT NULL REFERENCES players(id),
+        cosmetic_def_id TEXT NOT NULL,
+        tile_x INTEGER NOT NULL,
+        tile_y INTEGER NOT NULL,
+        placed_at INTEGER NOT NULL,
+        UNIQUE(player_id, cosmetic_def_id),
+        UNIQUE(player_id, tile_x, tile_y)
+      );
+
+      ALTER TABLE players ADD COLUMN last_scene TEXT DEFAULT 'Town';
+      ALTER TABLE players ADD COLUMN last_x REAL;
+      ALTER TABLE players ADD COLUMN last_y REAL;
+    `)
   }
 }
 
