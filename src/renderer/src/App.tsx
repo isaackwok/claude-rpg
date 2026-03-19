@@ -109,16 +109,16 @@ function App(): React.JSX.Element {
       const tag = (e.target as HTMLElement)?.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA') return
 
-      if (e.key === 'p' || e.key === 'P') {
+      if (e.code === 'KeyP') {
         setShowSkillsPanel((v) => !v)
       }
-      if (e.key === 'b' || e.key === 'B') {
+      if (e.code === 'KeyB') {
         setShowBackpack((v) => !v)
       }
-      if (e.key === 'q' || e.key === 'Q') {
+      if (e.code === 'KeyQ') {
         setShowQuestBoard((v) => !v)
       }
-      if (e.key === 'Escape') {
+      if (e.code === 'Escape') {
         if (showSkillsPanel) setShowSkillsPanel(false)
         if (showBackpack) setShowBackpack(false)
         if (showQuestBoard) setShowQuestBoard(false)
