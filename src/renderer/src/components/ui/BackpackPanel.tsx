@@ -1,7 +1,11 @@
 import { useState, useRef } from 'react'
 import { useTranslation } from '../../i18n'
 import { useQuests } from '../../hooks/useQuests'
+import { useAchievements } from '../../hooks/useAchievements'
+import { useCosmetics } from '../../hooks/useCosmetics'
 import { QuestsTab } from './QuestsTab'
+import { AchievementsTab } from './AchievementsTab'
+import { CosmeticsTab } from './CosmeticsTab'
 import { CloseButton } from './CloseButton'
 
 type BackpackTab = 'items' | 'quests' | 'achievements' | 'cosmetics'
@@ -9,8 +13,8 @@ type BackpackTab = 'items' | 'quests' | 'achievements' | 'cosmetics'
 const TABS: { key: BackpackTab; icon: string; i18nKey: string; available: boolean }[] = [
   { key: 'items', icon: '📦', i18nKey: 'backpack.tabs.items', available: false },
   { key: 'quests', icon: '📜', i18nKey: 'backpack.tabs.quests', available: true },
-  { key: 'achievements', icon: '🏆', i18nKey: 'backpack.tabs.achievements', available: false },
-  { key: 'cosmetics', icon: '👘', i18nKey: 'backpack.tabs.cosmetics', available: false }
+  { key: 'achievements', icon: '🏆', i18nKey: 'backpack.tabs.achievements', available: true },
+  { key: 'cosmetics', icon: '👘', i18nKey: 'backpack.tabs.cosmetics', available: true }
 ]
 
 interface BackpackPanelProps {
@@ -18,8 +22,10 @@ interface BackpackPanelProps {
 }
 
 export function BackpackPanel({ onClose }: BackpackPanelProps) {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
   const { quests, loading, error, refresh, activeCount, completedCount } = useQuests()
+  const { achievements, unlockedCount, totalCount } = useAchievements()
+  const { cosmetics, equipped, equip, unequip } = useCosmetics()
   const [activeTab, setActiveTab] = useState<BackpackTab>('quests')
   const panelRef = useRef<HTMLDivElement>(null)
 
@@ -160,7 +166,23 @@ export function BackpackPanel({ onClose }: BackpackPanelProps) {
                   completedCount={completedCount}
                 />
               ))}
-            {!TABS.find((t) => t.key === activeTab)?.available && activeTab !== 'quests' && (
+            {activeTab === 'achievements' && (
+              <AchievementsTab
+                achievements={achievements}
+                unlockedCount={unlockedCount}
+                totalCount={totalCount}
+              />
+            )}
+            {activeTab === 'cosmetics' && (
+              <CosmeticsTab
+                cosmetics={cosmetics}
+                equipped={equipped}
+                onEquip={equip}
+                onUnequip={unequip}
+                locale={locale}
+              />
+            )}
+            {!TABS.find((t) => t.key === activeTab)?.available && (
               <div
                 style={{
                   display: 'flex',

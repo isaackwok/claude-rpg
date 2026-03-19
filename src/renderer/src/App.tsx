@@ -10,6 +10,7 @@ import { LevelUpBanner } from './components/ui/LevelUpBanner'
 import { BackpackPanel } from './components/ui/BackpackPanel'
 import { BackpackButton } from './components/ui/BackpackButton'
 import { QuestNotification } from './components/ui/QuestNotification'
+import { AchievementNotification } from './components/ui/AchievementNotification'
 import { QuestBoardPanel } from './components/ui/QuestBoardPanel'
 import { conversationManager } from './services/ConversationManager'
 import { EventBus } from './game/EventBus'
@@ -184,6 +185,7 @@ function App(): React.JSX.Element {
           apiKeyVersion={apiKeyVersion}
         />
         <QuestNotification />
+        <AchievementNotification />
         {showNoticeBoard && <NoticeBoardPanel onClose={() => setShowNoticeBoard(false)} />}
         {showSkillsPanel && <SkillsPanel onClose={() => setShowSkillsPanel(false)} />}
         {showBackpack && <BackpackPanel onClose={() => setShowBackpack(false)} />}
