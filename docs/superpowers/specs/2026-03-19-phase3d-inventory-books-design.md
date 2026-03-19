@@ -114,17 +114,19 @@ When saving a book:
 - `markdown_content` → assistant message raw content
 - `source_agent_id` → current NPC's agent ID
 - `source_question` → user message immediately preceding this response
-- `category` → NPC's skill domain (from agent definitions)
+- `category` → NPC's skill domain (from agent definitions in renderer). For NPCs without a `skills` array (e.g., Guild Master, Bartender), use `'general'` as fallback category
 - `preview` → first ~100 chars, markdown stripped
 - `icon` → `'📖'`
 
+**Note:** The renderer resolves the NPC skill domain to a category string before sending via IPC, since `BUILT_IN_NPCS` data lives in the renderer process.
+
 ### Context Injection via "+" Menu
 
-**New menu item:** `"📖 參考書籍"` / `"📖 Reference Books"` added below the existing "📁 Files/Folders" option.
+**New menu item:** `"📖 參考書籍"` / `"📖 Reference Books"` added below the existing file picker option in the "+" dropdown.
 
 **Flow:**
 
-1. User clicks "+" → sees "Files/Folders" and "Reference Books"
+1. User clicks "+" → sees file picker option and "Reference Books"
 2. Clicking "Reference Books" opens a **BookPickerModal**
 3. Modal shows all inventory books, grouped/filterable by category (skill domain, color-coded)
 4. Each book displays: icon, name, source NPC, preview snippet, checkbox
@@ -134,7 +136,8 @@ When saving a book:
 8. On send, attached books are prepended as context:
 
 ```
-[📖 參考資料：{book name}]
+[📖 參考資料：{book name}]        ← zh-TW
+[📖 Reference: {book name}]      ← en (locale-aware)
 {full markdown content}
 ---
 [📖 參考資料：{book name 2}]
@@ -143,6 +146,8 @@ When saving a book:
 
 {user's actual message}
 ```
+
+**Injection format is locale-aware** — the `[📖 ...]` header uses the user's current locale to avoid mixing languages in the prompt sent to Claude.
 
 **Pill styling:**
 
@@ -182,36 +187,37 @@ Flip `available: false` → `true` for the items tab in `BackpackPanel.tsx`.
 
 ### New Files
 
-| Layer         | File                                                 | Purpose                                                                       |
-| ------------- | ---------------------------------------------------- | ----------------------------------------------------------------------------- |
-| Shared types  | `src/shared/item-types.ts`                           | `ItemBase`, `BookItem`, `Item` union, `ItemType`                              |
-| DB migration  | `src/main/db/migrations.ts`                          | Migration 4: `items` + `book_items` tables                                    |
-| Repository    | `src/main/db/item-repository.ts`                     | CRUD for items + book_items (JOIN queries)                                    |
-| IPC handlers  | `src/main/index.ts` (extend)                         | `getItems`, `addBookItem`, `updateItemName`, `deleteItem`, `generateBookName` |
-| Preload       | `src/preload/index.ts` (extend)                      | Expose item IPC channels on `window.api`                                      |
-| Hook          | `src/renderer/src/hooks/useItems.ts`                 | Fetch on mount, listen for push updates, refresh                              |
-| Tab component | `src/renderer/src/components/ui/ItemsTab.tsx`        | Inventory list + category filter                                              |
-| Detail modal  | `src/renderer/src/components/ui/BookDetailModal.tsx` | View, edit name, delete                                                       |
-| Book picker   | `src/renderer/src/components/ui/BookPickerModal.tsx` | Multi-select for context injection                                            |
-| i18n          | Both locale files (extend)                           | Item-related strings                                                          |
+| Layer         | File                                                  | Purpose                                                                |
+| ------------- | ----------------------------------------------------- | ---------------------------------------------------------------------- |
+| Shared types  | `src/shared/item-types.ts`                            | `ItemBase`, `BookItem`, `Item` union, `ItemType`                       |
+| DB migration  | `src/main/db/migrations.ts`                           | Migration 4: `items` + `book_items` tables                             |
+| Repository    | `src/main/db/item-repository.ts`                      | CRUD for items + book_items (JOIN queries)                             |
+| IPC handlers  | `src/main/index.ts` (extend)                          | `getItems`, `addBookItem`, `updateItemName`, `deleteItem`              |
+| Preload       | `src/preload/index.ts` (extend)                       | Expose item IPC channels on `window.api`                               |
+| Hook          | `src/renderer/src/hooks/useItems.ts`                  | Fetch on mount, listen for push updates, refresh                       |
+| Tab component | `src/renderer/src/components/ui/ItemsTab.tsx`         | Inventory list + category filter                                       |
+| Detail modal  | `src/renderer/src/components/ui/BookDetailModal.tsx`  | View, edit name, delete                                                |
+| Book picker   | `src/renderer/src/components/ui/BookPickerModal.tsx`  | Multi-select for context injection                                     |
+| Notification  | `src/renderer/src/components/ui/ItemNotification.tsx` | Toast for book save confirmation (follows `QuestNotification` pattern) |
+| i18n          | Both locale files (extend)                            | Item-related strings                                                   |
 
 ### Modified Files
 
-| File                             | Change                                                                                                                                         |
-| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `BackpackPanel.tsx`              | Enable items tab (`available: true`), render `ItemsTab`                                                                                        |
-| `DialoguePanel.tsx`              | Add `🎒` button to `MessageBubble`, add "Reference Books" to "+" menu, render attached book pills in `InputArea`, prepend book context on send |
-| `src/renderer/src/game/types.ts` | New EventBus events: `item:added`, `item:deleted`                                                                                              |
+| File                             | Change                                                                                                                                                                                                      |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `BackpackPanel.tsx`              | Enable items tab (`available: true`), render `ItemsTab`                                                                                                                                                     |
+| `DialoguePanel.tsx`              | Add `🎒` button to `MessageBubble` (extend props: `agentId`, `previousUserMessage`, `category`), add "Reference Books" to "+" menu, render attached book pills in `InputArea`, prepend book context on send |
+| `src/renderer/src/game/types.ts` | New EventBus events: `'item:added': { item: BookItem }`, `'item:deleted': { itemId: string }`                                                                                                               |
 
 ### Data Flows
 
 **Add to backpack:**
 
 ```
-🎒 click → IPC generateBookName(content, locale) → Haiku call → name returned
-         → IPC addBookItem(payload) → SQLite INSERT (items + book_items)
-         → IPC push to renderer → useItems refresh → EventBus item:added
-         → toast notification
+🎒 click → IPC addBookItem(payload) → main process: Haiku name gen (or fallback)
+         → SQLite INSERT (items + book_items) → return BookItem
+         → IPC push items-updated → useItems refresh → EventBus item:added
+         → ItemNotification toast
 ```
 
 **View/manage inventory:**
@@ -232,14 +238,17 @@ Open backpack → items tab → IPC getItems() → SQLite SELECT JOIN
 
 ### IPC Channels (New)
 
-| Channel              | Direction       | Payload                                                                          | Returns    |
-| -------------------- | --------------- | -------------------------------------------------------------------------------- | ---------- |
-| `get-items`          | renderer → main | `playerId`                                                                       | `Item[]`   |
-| `add-book-item`      | renderer → main | `{ playerId, markdownContent, sourceAgentId, sourceQuestion, category, locale }` | `BookItem` |
-| `update-item-name`   | renderer → main | `{ itemId, name }`                                                               | `void`     |
-| `delete-item`        | renderer → main | `{ itemId }`                                                                     | `void`     |
-| `generate-book-name` | renderer → main | `{ content, locale }`                                                            | `string`   |
-| `items-updated`      | main → renderer | push event                                                                       | `void`     |
+Name generation is performed atomically inside `add-book-item` — no separate IPC call. The main process handles the Haiku call (or fallback) and returns the completed `BookItem` with its generated name. This avoids race conditions and unnecessary round-trips.
+
+The `playerId` is hardcoded to `'player-1'` in the main process handlers, matching the existing pattern used by quests, achievements, and cosmetics. The renderer does not send `playerId`.
+
+| Channel            | Direction       | Payload                                                                | Returns    |
+| ------------------ | --------------- | ---------------------------------------------------------------------- | ---------- |
+| `get-items`        | renderer → main | (none)                                                                 | `Item[]`   |
+| `add-book-item`    | renderer → main | `{ markdownContent, sourceAgentId, sourceQuestion, category, locale }` | `BookItem` |
+| `update-item-name` | renderer → main | `{ itemId, name }`                                                     | `void`     |
+| `delete-item`      | renderer → main | `{ itemId }`                                                           | `void`     |
+| `items-updated`    | main → renderer | push event                                                             | `void`     |
 
 ### Repository Interface
 
@@ -262,6 +271,9 @@ export interface IItemRepository {
 - **i18n for names:** Haiku prompt includes user locale. Fallback templates also respect locale.
 - **No item limits:** Users can save unlimited books. No artificial cap.
 - **Duplicate saves:** Allowed. Each save creates a distinct book entry.
+- **Attached books on dialogue close:** Attached book pills are ephemeral — cleared when the dialogue panel closes, same as the text input. This is consistent with the current file attachment behavior.
+- **NPCs without skill domains:** Guild Master and Bartender have no `skills` array. Use `'general'` as fallback category, with a neutral color for the badge.
+- **Migration coordination:** This adds Migration 4. If concurrent work on another branch also adds Migration 4, the later merge will need to renumber.
 
 ## Out of Scope (Future)
 
