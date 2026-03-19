@@ -272,21 +272,6 @@ export function BookDetailModal({
               {t('items.delete')}
             </button>
           )}
-          <button
-            onClick={onClose}
-            style={{
-              background: 'rgba(200, 180, 140, 0.15)',
-              border: '1px solid rgba(200, 180, 140, 0.3)',
-              borderRadius: 4,
-              padding: '4px 16px',
-              color: '#c4a46c',
-              fontFamily: 'monospace',
-              fontSize: 12,
-              cursor: 'pointer'
-            }}
-          >
-            {t('items.close')}
-          </button>
         </div>
       </div>
     </div>

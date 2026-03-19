@@ -4,12 +4,18 @@ import { SKILL_CATEGORIES, type SkillCategory } from '../../shared/types'
 export class SqliteXPRepository {
   constructor(private db: Database.Database) {}
 
-  award(playerId: string, skillCategory: SkillCategory, amount: number, agentId: string): void {
+  award(
+    playerId: string,
+    skillCategory: SkillCategory,
+    amount: number,
+    agentId: string,
+    source: 'conversation' | 'quest_bonus' | 'achievement_bonus' = 'conversation'
+  ): void {
     this.db
       .prepare(
-        'INSERT INTO xp_ledger (player_id, skill_category, amount, agent_id, created_at) VALUES (?, ?, ?, ?, ?)'
+        'INSERT INTO xp_ledger (player_id, skill_category, amount, agent_id, created_at, source) VALUES (?, ?, ?, ?, ?, ?)'
       )
-      .run(playerId, skillCategory, amount, agentId, Date.now())
+      .run(playerId, skillCategory, amount, agentId, Date.now(), source)
   }
 
   getSkillTotals(playerId: string): Record<SkillCategory, number> {

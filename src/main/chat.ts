@@ -720,7 +720,8 @@ async function executeStream(
                       const bonusResult = progressionEngine.awardBonusXP(
                         a.xpReward,
                         SKILL_CATEGORIES,
-                        agentId
+                        agentId,
+                        'achievement_bonus'
                       )
                       if (bonusResult && !webContents.isDestroyed()) {
                         webContents.send('progression:xp-awarded', bonusResult)

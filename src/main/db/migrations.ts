@@ -114,6 +114,12 @@ const migrations: Record<number, (db: Database.Database) => void> = {
     `)
   },
 
+  // Add source column to xp_ledger to distinguish conversation XP from bonus XP.
+  // Quest progress must only count 'conversation' rows, not quest/achievement bonus rows.
+  5: (db) => {
+    db.exec(`ALTER TABLE xp_ledger ADD COLUMN source TEXT NOT NULL DEFAULT 'conversation'`)
+  },
+
   4: (db) => {
     db.exec(`
       CREATE TABLE items (

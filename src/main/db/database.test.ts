@@ -31,7 +31,7 @@ describe('database migrations', () => {
     runMigrations(db)
 
     const version = db.pragma('user_version', { simple: true })
-    expect(version).toBe(4)
+    expect(version).toBe(5)
   })
 
   it('is idempotent — running twice does not error', () => {
