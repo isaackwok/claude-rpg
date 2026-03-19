@@ -3,15 +3,17 @@ import { useTranslation } from '../../i18n'
 import { useQuests } from '../../hooks/useQuests'
 import { useAchievements } from '../../hooks/useAchievements'
 import { useCosmetics } from '../../hooks/useCosmetics'
+import { useItems } from '../../hooks/useItems'
 import { QuestsTab } from './QuestsTab'
 import { AchievementsTab } from './AchievementsTab'
 import { CosmeticsTab } from './CosmeticsTab'
+import { ItemsTab } from './ItemsTab'
 import { CloseButton } from './CloseButton'
 
 type BackpackTab = 'items' | 'quests' | 'achievements' | 'cosmetics'
 
 const TABS: { key: BackpackTab; icon: string; i18nKey: string; available: boolean }[] = [
-  { key: 'items', icon: '📦', i18nKey: 'backpack.tabs.items', available: false },
+  { key: 'items', icon: '📦', i18nKey: 'backpack.tabs.items', available: true },
   { key: 'quests', icon: '📜', i18nKey: 'backpack.tabs.quests', available: true },
   { key: 'achievements', icon: '🏆', i18nKey: 'backpack.tabs.achievements', available: true },
   { key: 'cosmetics', icon: '👘', i18nKey: 'backpack.tabs.cosmetics', available: true }
@@ -26,6 +28,14 @@ export function BackpackPanel({ onClose }: BackpackPanelProps): React.JSX.Elemen
   const { quests, loading, error, refresh, activeCount, completedCount } = useQuests()
   const { achievements, unlockedCount, totalCount } = useAchievements()
   const { cosmetics, equipped, equip, unequip } = useCosmetics()
+  const {
+    items,
+    loading: itemsLoading,
+    error: itemsError,
+    refresh: refreshItems,
+    updateName,
+    deleteItem
+  } = useItems()
   const [activeTab, setActiveTab] = useState<BackpackTab>('quests')
   const panelRef = useRef<HTMLDivElement>(null)
 
@@ -182,6 +192,56 @@ export function BackpackPanel({ onClose }: BackpackPanelProps): React.JSX.Elemen
                 locale={locale}
               />
             )}
+            {activeTab === 'items' &&
+              (itemsLoading ? (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    height: '100%',
+                    color: '#a89060',
+                    fontSize: 13
+                  }}
+                >
+                  ...
+                </div>
+              ) : itemsError ? (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    height: '100%',
+                    gap: 12
+                  }}
+                >
+                  <div style={{ color: '#a89060', fontSize: 13 }}>{itemsError}</div>
+                  <button
+                    onClick={() => refreshItems()}
+                    style={{
+                      background: 'rgba(200, 180, 140, 0.15)',
+                      border: '1px solid rgba(200, 180, 140, 0.3)',
+                      borderRadius: 4,
+                      padding: '4px 12px',
+                      color: '#c4a46c',
+                      fontFamily: 'monospace',
+                      fontSize: 12,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {t('common.retry')}
+                  </button>
+                </div>
+              ) : (
+                <ItemsTab
+                  items={items}
+                  locale={locale}
+                  onUpdateName={updateName}
+                  onDeleteItem={deleteItem}
+                />
+              ))}
             {!TABS.find((t) => t.key === activeTab)?.available && (
               <div
                 style={{
