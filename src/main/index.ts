@@ -217,7 +217,7 @@ app.whenReady().then(() => {
         markdownContent: string
         sourceAgentId: string
         sourceQuestion: string
-        category: string
+        category: import('../shared/item-types').ItemCategory
         locale: string
         npcName: string
       }

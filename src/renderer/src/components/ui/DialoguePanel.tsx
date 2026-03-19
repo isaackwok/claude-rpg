@@ -64,19 +64,13 @@ function MessageBubble({
   isLastAssistant,
   isStreaming,
   t,
-  agentId,
-  previousUserMessage,
-  category,
-  locale
+  onSaveToBackpack
 }: {
   msg: Message
   isLastAssistant: boolean
   isStreaming: boolean
   t: (key: string, params?: Record<string, string>) => string
-  agentId?: string
-  previousUserMessage?: string
-  category?: string
-  locale?: string
+  onSaveToBackpack?: () => Promise<void>
 }) {
   const [copied, setCopied] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -84,21 +78,11 @@ function MessageBubble({
   const isAssistant = msg.role === 'assistant'
 
   const handleSaveToBackpack = async (): Promise<void> => {
-    if (saving || saved || !agentId || !locale) return
+    if (saving || saved || !onSaveToBackpack) return
     setSaving(true)
     try {
-      const npc = BUILT_IN_NPCS.find((n) => n.id === agentId)
-      const npcName = npc?.name[locale] ?? npc?.name['zh-TW'] ?? agentId
-      const book = await window.api.addBookItem({
-        markdownContent: msg.content,
-        sourceAgentId: agentId,
-        sourceQuestion: previousUserMessage ?? '',
-        category: category ?? 'general',
-        locale,
-        npcName
-      })
+      await onSaveToBackpack()
       setSaved(true)
-      EventBus.emit('item:added', { item: book })
       setTimeout(() => setSaved(false), 2000)
     } catch (err) {
       console.error('[DialoguePanel] Failed to save to backpack:', err)
@@ -214,6 +198,46 @@ function MessageBubble({
         </div>
       )}
     </div>
+  )
+}
+
+/** Reusable menu item for the attach dropdown */
+function AttachMenuItem({
+  onMouseDown,
+  icon,
+  label
+}: {
+  onMouseDown: () => void
+  icon: string
+  label: string
+}) {
+  return (
+    <button
+      onMouseDown={onMouseDown}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        width: '100%',
+        padding: '7px 12px',
+        background: 'none',
+        border: 'none',
+        color: '#ddd',
+        fontFamily: 'monospace',
+        fontSize: 13,
+        cursor: 'pointer',
+        textAlign: 'left'
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = 'rgba(200, 180, 140, 0.15)'
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = 'none'
+      }}
+    >
+      <span style={{ fontSize: 14 }}>{icon}</span>
+      {label}
+    </button>
   )
 }
 
@@ -434,61 +458,19 @@ function InputArea({
                 zIndex: 10
               }}
             >
-              <button
+              <AttachMenuItem
                 onMouseDown={handlePickFiles}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  width: '100%',
-                  padding: '7px 12px',
-                  background: 'none',
-                  border: 'none',
-                  color: '#ddd',
-                  fontFamily: 'monospace',
-                  fontSize: 13,
-                  cursor: 'pointer',
-                  textAlign: 'left'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(200, 180, 140, 0.15)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'none'
-                }}
-              >
-                <span style={{ fontSize: 14 }}>📁</span>
-                {t('dialogue.attachFiles')}
-              </button>
-              <button
+                icon="📁"
+                label={t('dialogue.attachFiles')}
+              />
+              <AttachMenuItem
                 onMouseDown={() => {
                   triggerClose()
                   setBookPickerOpen(true)
                 }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  width: '100%',
-                  padding: '7px 12px',
-                  background: 'none',
-                  border: 'none',
-                  color: '#ddd',
-                  fontFamily: 'monospace',
-                  fontSize: 13,
-                  cursor: 'pointer',
-                  textAlign: 'left'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(200, 180, 140, 0.15)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'none'
-                }}
-              >
-                <span style={{ fontSize: 14 }}>📖</span>
-                {t('dialogue.referenceBooks')}
-              </button>
+                icon="📖"
+                label={t('dialogue.referenceBooks')}
+              />
             </div>
           )}
           <button
@@ -835,19 +817,29 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
               isLastAssistant={msg.role === 'assistant' && i === messages.length - 1}
               isStreaming={isStreaming}
               t={t}
-              agentId={dialogue.agentId}
-              previousUserMessage={
+              onSaveToBackpack={
                 msg.role === 'assistant'
-                  ? (messages
-                      .slice(0, i)
-                      .filter((m) => m.role === 'user')
-                      .at(-1)?.content ?? '')
+                  ? async () => {
+                      const npcDef = BUILT_IN_NPCS.find((n) => n.id === dialogue.agentId)
+                      const npcName =
+                        npcDef?.name[locale] ?? npcDef?.name['zh-TW'] ?? dialogue.agentId
+                      const prevQuestion =
+                        messages
+                          .slice(0, i)
+                          .filter((m) => m.role === 'user')
+                          .at(-1)?.content ?? ''
+                      const book = await window.api.addBookItem({
+                        markdownContent: msg.content,
+                        sourceAgentId: dialogue.agentId,
+                        sourceQuestion: prevQuestion,
+                        category: npcDef?.skills?.[0] ?? 'general',
+                        locale,
+                        npcName
+                      })
+                      EventBus.emit('item:added', { item: book })
+                    }
                   : undefined
               }
-              category={
-                BUILT_IN_NPCS.find((n) => n.id === dialogue.agentId)?.skills?.[0] ?? 'general'
-              }
-              locale={locale}
             />
           </Fragment>
         ))}

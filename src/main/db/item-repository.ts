@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3'
-import type { BookItem, IItemRepository, Item } from '../../shared/item-types'
+import type { BookItem, IItemRepository, Item, ItemCategory } from '../../shared/item-types'
 
 function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2)
@@ -38,7 +38,7 @@ export class SqliteItemRepository implements IItemRepository {
       type: r.type as 'book',
       name: r.name,
       icon: r.icon,
-      category: r.category,
+      category: r.category as ItemCategory,
       createdAt: r.created_at,
       markdownContent: r.markdown_content,
       sourceAgentId: r.source_agent_id,

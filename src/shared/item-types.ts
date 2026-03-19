@@ -1,4 +1,7 @@
+import type { SkillCategory } from './types'
+
 export type ItemType = 'book'
+export type ItemCategory = SkillCategory | 'general'
 
 export interface ItemBase {
   id: string
@@ -6,7 +9,7 @@ export interface ItemBase {
   type: ItemType
   name: string
   icon: string
-  category: string
+  category: ItemCategory
   createdAt: number
 }
 
