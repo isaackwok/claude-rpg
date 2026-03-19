@@ -104,39 +104,19 @@ app.whenReady().then(() => {
   setChatDependencies(progressionEngine, questEngine, conversationPersistence)
   initFolderManager(folderRepo)
 
-  // Progression IPC handlers
+  // Progression IPC handlers — let errors propagate so the renderer can handle them
   ipcMain.handle('progression:get-player', () => {
-    try {
-      return progressionEngine.getPlayerState()
-    } catch (err) {
-      console.error('[ipc] progression:get-player failed:', err)
-      return null
-    }
+    return progressionEngine.getPlayerState()
   })
   ipcMain.handle('progression:get-skills', () => {
-    try {
-      return progressionEngine.getPlayerState().skills
-    } catch (err) {
-      console.error('[ipc] progression:get-skills failed:', err)
-      return null
-    }
+    return progressionEngine.getPlayerState().skills
   })
   // Quest IPC handlers
   ipcMain.handle('quests:get-all', () => {
-    try {
-      return questEngine.getPlayerQuests('player-1')
-    } catch (err) {
-      console.error('[ipc] quests:get-all failed:', err)
-      return []
-    }
+    return questEngine.getPlayerQuests('player-1')
   })
   ipcMain.handle('quests:get-board-suggestion', () => {
-    try {
-      return questEngine.getQuestBoardSuggestion('player-1')
-    } catch (err) {
-      console.error('[ipc] quests:get-board-suggestion failed:', err)
-      return null
-    }
+    return questEngine.getQuestBoardSuggestion('player-1')
   })
 
   ipcMain.handle('conversations:get-history', (_event, agentId: string) => {

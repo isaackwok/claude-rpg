@@ -104,4 +104,176 @@ describe('ProgressionEngine', () => {
     expect(state.skills.writing.xp).toBe(10)
     expect(state.skills.code.xp).toBe(0)
   })
+
+  // ── awardBonusXP ──────────────────────────────────────
+
+  describe('awardBonusXP', () => {
+    it('returns empty result for zero amount', () => {
+      const result = engine.awardBonusXP(0, ['research'], 'quest')
+      expect(result.awards).toHaveLength(0)
+      expect(result.levelUps).toHaveLength(0)
+    })
+
+    it('returns empty result for empty categories', () => {
+      const result = engine.awardBonusXP(100, [], 'quest')
+      expect(result.awards).toHaveLength(0)
+    })
+
+    it('awards bonus XP to a single category', () => {
+      const result = engine.awardBonusXP(30, ['research'], 'quest')
+      expect(result.awards).toHaveLength(1)
+      expect(result.awards[0]).toEqual({ category: 'research', amount: 30, newTotal: 30 })
+    })
+
+    it('splits bonus XP across multiple categories with remainder', () => {
+      const result = engine.awardBonusXP(100, ['research', 'writing', 'code'], 'quest')
+      expect(result.awards).toHaveLength(3)
+      // 100 / 3 = 33 base, remainder 1 → first category gets 34
+      expect(result.awards[0]).toEqual({ category: 'research', amount: 34, newTotal: 34 })
+      expect(result.awards[1]).toEqual({ category: 'writing', amount: 33, newTotal: 33 })
+      expect(result.awards[2]).toEqual({ category: 'code', amount: 33, newTotal: 33 })
+    })
+
+    it('detects category level-up from bonus XP', () => {
+      // Level 1 requires 50 XP
+      const result = engine.awardBonusXP(50, ['research'], 'quest')
+      expect(result.levelUps).toEqual([{ category: 'research', newLevel: 1 }])
+    })
+
+    it('detects overall level-up from bonus XP', () => {
+      // Overall level 1 requires 100 total XP
+      const result = engine.awardBonusXP(100, ['research'], 'quest')
+      expect(result.overallLevelUp).toEqual({ newLevel: 1 })
+    })
+
+    it('detects title change from bonus XP', () => {
+      // Give initial XP to 2 categories so we have a title
+      for (let i = 0; i < 5; i++) engine.awardXP('scholar', ['research']) // 50 XP
+      for (let i = 0; i < 3; i++) engine.awardXP('scribe', ['writing']) // 30 XP
+      const oldState = engine.getPlayerState()
+      expect(oldState.title['en']).toBe('Eloquent Seeker')
+
+      // Award enough bonus XP to writing to flip primary/secondary
+      const result = engine.awardBonusXP(100, ['writing'], 'quest')
+      // writing now 130 XP > research 50 XP → primary=writing, secondary=research
+      expect(result.titleChanged).toBeDefined()
+      expect(result.titleChanged!['en']).toContain('Wordsmith')
+    })
+
+    it('returns no title change when title stays the same', () => {
+      for (let i = 0; i < 5; i++) engine.awardXP('scholar', ['research']) // 50 XP
+      for (let i = 0; i < 3; i++) engine.awardXP('scribe', ['writing']) // 30 XP
+
+      // Small bonus that doesn't change rankings
+      const result = engine.awardBonusXP(5, ['research'], 'quest')
+      expect(result.titleChanged).toBeUndefined()
+    })
+  })
+
+  // ── computeTitle tier prefixes ──────────────────────────────────────
+
+  describe('computeTitle tier prefixes', () => {
+    it('returns no prefix when overallLevel is undefined', () => {
+      const skills = {
+        writing: 100,
+        research: 60,
+        data: 0,
+        visual: 0,
+        code: 0,
+        organization: 0,
+        communication: 0
+      }
+      const title = ProgressionEngine.computeTitle(skills, undefined)
+      expect(title['en']).toBe('Learned Wordsmith')
+      expect(title['zh-TW']).toBe('博學文匠')
+    })
+
+    it('returns no prefix when overallLevel < 5', () => {
+      const skills = {
+        writing: 100,
+        research: 60,
+        data: 0,
+        visual: 0,
+        code: 0,
+        organization: 0,
+        communication: 0
+      }
+      const title = ProgressionEngine.computeTitle(skills, 4)
+      expect(title['en']).toBe('Learned Wordsmith')
+    })
+
+    it('returns Apprentice prefix at overallLevel 5', () => {
+      const skills = {
+        writing: 100,
+        research: 60,
+        data: 0,
+        visual: 0,
+        code: 0,
+        organization: 0,
+        communication: 0
+      }
+      const title = ProgressionEngine.computeTitle(skills, 5)
+      expect(title['en']).toBe('Apprentice Learned Wordsmith')
+      expect(title['zh-TW']).toBe('見習・博學文匠')
+    })
+
+    it('returns Skilled prefix at overallLevel 10', () => {
+      const skills = {
+        writing: 100,
+        research: 60,
+        data: 0,
+        visual: 0,
+        code: 0,
+        organization: 0,
+        communication: 0
+      }
+      const title = ProgressionEngine.computeTitle(skills, 10)
+      expect(title['en']).toBe('Skilled Learned Wordsmith')
+      expect(title['zh-TW']).toBe('熟練・博學文匠')
+    })
+
+    it('returns Veteran prefix at overallLevel 15', () => {
+      const skills = {
+        writing: 100,
+        research: 60,
+        data: 0,
+        visual: 0,
+        code: 0,
+        organization: 0,
+        communication: 0
+      }
+      const title = ProgressionEngine.computeTitle(skills, 15)
+      expect(title['en']).toBe('Veteran Learned Wordsmith')
+      expect(title['zh-TW']).toBe('資深・博學文匠')
+    })
+
+    it('returns Legendary prefix at overallLevel 20', () => {
+      const skills = {
+        writing: 100,
+        research: 60,
+        data: 0,
+        visual: 0,
+        code: 0,
+        organization: 0,
+        communication: 0
+      }
+      const title = ProgressionEngine.computeTitle(skills, 20)
+      expect(title['en']).toBe('Legendary Learned Wordsmith')
+      expect(title['zh-TW']).toBe('傳奇・博學文匠')
+    })
+
+    it('returns Legendary prefix at overallLevel above 20', () => {
+      const skills = {
+        writing: 100,
+        research: 60,
+        data: 0,
+        visual: 0,
+        code: 0,
+        organization: 0,
+        communication: 0
+      }
+      const title = ProgressionEngine.computeTitle(skills, 25)
+      expect(title['en']).toBe('Legendary Learned Wordsmith')
+    })
+  })
 })

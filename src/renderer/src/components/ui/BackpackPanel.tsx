@@ -19,7 +19,7 @@ interface BackpackPanelProps {
 
 export function BackpackPanel({ onClose }: BackpackPanelProps) {
   const { t } = useTranslation()
-  const { quests, activeCount, completedCount } = useQuests()
+  const { quests, loading, error, refresh, activeCount, completedCount } = useQuests()
   const [activeTab, setActiveTab] = useState<BackpackTab>('quests')
   const panelRef = useRef<HTMLDivElement>(null)
 
@@ -111,13 +111,55 @@ export function BackpackPanel({ onClose }: BackpackPanelProps) {
 
           {/* Tab content */}
           <div style={{ flex: 1, overflow: 'hidden' }}>
-            {activeTab === 'quests' && (
-              <QuestsTab
-                quests={quests}
-                activeCount={activeCount}
-                completedCount={completedCount}
-              />
-            )}
+            {activeTab === 'quests' &&
+              (loading ? (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    height: '100%',
+                    color: '#a89060',
+                    fontSize: 13
+                  }}
+                >
+                  ...
+                </div>
+              ) : error ? (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    height: '100%',
+                    gap: 12
+                  }}
+                >
+                  <div style={{ color: '#a89060', fontSize: 13 }}>{t('quests.loadError')}</div>
+                  <button
+                    onClick={() => refresh()}
+                    style={{
+                      background: 'rgba(200, 180, 140, 0.15)',
+                      border: '1px solid rgba(200, 180, 140, 0.3)',
+                      borderRadius: 4,
+                      padding: '4px 12px',
+                      color: '#c4a46c',
+                      fontFamily: 'monospace',
+                      fontSize: 12,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {t('common.retry')}
+                  </button>
+                </div>
+              ) : (
+                <QuestsTab
+                  quests={quests}
+                  activeCount={activeCount}
+                  completedCount={completedCount}
+                />
+              ))}
             {!TABS.find((t) => t.key === activeTab)?.available && activeTab !== 'quests' && (
               <div
                 style={{

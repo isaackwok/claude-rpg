@@ -1,6 +1,7 @@
 {
   "common": {
-    "close": "關閉(Esc)"
+    "close": "關閉(Esc)",
+    "retry": "重試"
   },
   "game": {
     "title": "Claude RPG"
@@ -169,11 +170,14 @@
     "status": {
       "active": "進行中",
       "completed": "已完成"
-    }
+    },
+    "loadError": "無法載入任務"
   },
   "questBoard": {
     "title": "任務板",
-    "suggestion": "你的{{skill}}技能看起來還有很大的成長空間——試著找{{npcName}}聊聊吧！"
+    "suggestion": "你的{{skill}}技能看起來還有很大的成長空間——試著找{{npcName}}聊聊吧！",
+    "error": "無法載入建議",
+    "empty": "暫無建議"
   },
   "npcs": {
     "elder": "長老 艾德蒙",

@@ -1,12 +1,17 @@
 import Database from 'better-sqlite3'
-import { SKILL_CATEGORIES, type SkillCategory } from '../../shared/types'
+import {
+  SKILL_CATEGORIES,
+  type SkillCategory,
+  type QuestVisibility,
+  type QuestStatus
+} from '../../shared/types'
 
 export interface QuestRow {
   id: string
   playerId: string
   questDefId: string
-  visibility: 'hinted' | 'visible'
-  status: 'active' | 'completed'
+  visibility: QuestVisibility
+  status: QuestStatus
   repeatCount: number
   discoveredAt: number
   completedAt: number | null

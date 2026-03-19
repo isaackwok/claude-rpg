@@ -10,10 +10,19 @@ interface QuestBoardPanelProps {
 export function QuestBoardPanel({ onClose }: QuestBoardPanelProps) {
   const { t, locale } = useTranslation()
   const [suggestion, setSuggestion] = useState<QuestBoardSuggestion | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    window.api.getQuestBoardSuggestion().then(setSuggestion).catch(console.error)
+    window.api
+      .getQuestBoardSuggestion()
+      .then(setSuggestion)
+      .catch((err) => {
+        console.error('[QuestBoardPanel] Failed to fetch suggestion:', err)
+        setError(true)
+      })
+      .finally(() => setLoading(false))
   }, [])
 
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -56,10 +65,14 @@ export function QuestBoardPanel({ onClose }: QuestBoardPanelProps) {
         <div style={{ fontSize: 16, fontWeight: 'bold', color: '#e8d5a8', marginBottom: 16 }}>
           📋 {t('questBoard.title')}
         </div>
-        {suggestion ? (
+        {loading ? (
+          <div style={{ color: '#a89060', fontSize: 13 }}>...</div>
+        ) : error ? (
+          <div style={{ color: '#a89060', fontSize: 13 }}>{t('questBoard.error')}</div>
+        ) : suggestion ? (
           <div style={{ fontSize: 14, lineHeight: 1.6, color: '#c4a46c' }}>{message}</div>
         ) : (
-          <div style={{ color: '#a89060', fontSize: 13 }}>...</div>
+          <div style={{ color: '#a89060', fontSize: 13 }}>{t('questBoard.empty')}</div>
         )}
         <div style={{ marginTop: 16, textAlign: 'center' }}>
           <CloseButton onClick={onClose} size={11} />

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from '../../i18n'
 import { EventBus } from '../../game/EventBus'
 import type { LocalizedString } from '../../../../shared/types'
@@ -10,30 +10,39 @@ interface QuestToast {
   xpReward?: number
 }
 
+// Module-level counter ensures unique toast IDs across component re-mounts
 let toastId = 0
 
 export function QuestNotification() {
   const { t, locale } = useTranslation()
   const [toasts, setToasts] = useState<QuestToast[]>([])
+  const timersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set())
 
   useEffect(() => {
+    const addAutoRemoveToast = (toast: QuestToast) => {
+      setToasts((prev) => [...prev, toast])
+      const timer = setTimeout(() => {
+        setToasts((prev) => prev.filter((t) => t.id !== toast.id))
+        timersRef.current.delete(timer)
+      }, 3000)
+      timersRef.current.add(timer)
+    }
+
     const handleCompleted = (data: {
-      questId: string
+      questDefId: string
       title: LocalizedString
       xpReward: number
     }) => {
-      const id = ++toastId
-      setToasts((prev) => [
-        ...prev,
-        { id, type: 'completed', title: data.title, xpReward: data.xpReward }
-      ])
-      setTimeout(() => setToasts((prev) => prev.filter((toast) => toast.id !== id)), 3000)
+      addAutoRemoveToast({
+        id: ++toastId,
+        type: 'completed',
+        title: data.title,
+        xpReward: data.xpReward
+      })
     }
 
     const handleDiscovered = () => {
-      const id = ++toastId
-      setToasts((prev) => [...prev, { id, type: 'discovered' }])
-      setTimeout(() => setToasts((prev) => prev.filter((toast) => toast.id !== id)), 3000)
+      addAutoRemoveToast({ id: ++toastId, type: 'discovered' })
     }
 
     EventBus.on('quest:completed', handleCompleted)
@@ -41,6 +50,8 @@ export function QuestNotification() {
     return () => {
       EventBus.off('quest:completed', handleCompleted)
       EventBus.off('quest:discovered', handleDiscovered)
+      for (const timer of timersRef.current) clearTimeout(timer)
+      timersRef.current.clear()
     }
   }, [])
 

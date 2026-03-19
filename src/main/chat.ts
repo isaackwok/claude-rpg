@@ -593,7 +593,10 @@ async function executeStream(
                     }
                   }
                 }
-                if (questResult.completed.length > 0 || questResult.discovered.length > 0) {
+                if (
+                  (questResult.completed.length > 0 || questResult.discovered.length > 0) &&
+                  !webContents.isDestroyed()
+                ) {
                   webContents.send('quests:updated', {
                     quests: questResult.quests,
                     completed: questResult.completed.length > 0 ? questResult.completed : undefined

@@ -2,6 +2,7 @@ import type {
   QuestCheckResult,
   PlayerQuest,
   QuestBoardSuggestion,
+  QuestPrecondition,
   QuestVisibility,
   SkillCategory,
   LocalizedString
@@ -39,7 +40,7 @@ const SKILL_NAMES: Record<SkillCategory, Record<string, string>> = {
 export class QuestEngine {
   constructor(private questRepo: SqliteQuestRepository) {}
 
-  /** Seed visible starter quests for a new player. Idempotent. */
+  /** Seed initially-visible quests for the given player. Idempotent — safe to call on every startup. */
   seedStarterQuests(playerId: string): void {
     const existing = this.questRepo.getByPlayer(playerId)
     const existingDefIds = new Set(existing.map((q) => q.questDefId))
@@ -60,7 +61,12 @@ export class QuestEngine {
     }
   }
 
-  /** Check all quests after a conversation. Returns discoveries and completions. */
+  /**
+   * Evaluate all quest definitions against current player progress.
+   * Discovers hidden quests whose preconditions are met, completes active quests
+   * whose triggers are satisfied, and resets repeatable quests.
+   * Returns a summary of all changes.
+   */
   checkQuests(playerId: string): QuestCheckResult {
     const existing = this.questRepo.getByPlayer(playerId)
 
@@ -73,6 +79,9 @@ export class QuestEngine {
 
     const discovered: QuestCheckResult['discovered'] = []
     const completed: QuestCheckResult['completed'] = []
+    // Track quests completed in this pass to prevent repeatable quests from
+    // re-triggering immediately after reset
+    const justCompleted = new Set<string>()
 
     for (const def of QUEST_DEFINITIONS) {
       const row = existing.find((q) => q.questDefId === def.id)
@@ -96,8 +105,8 @@ export class QuestEngine {
         continue
       }
 
-      // Check completion for active quests
-      if (row && row.status === 'active') {
+      // Check completion for active quests (skip quests just completed in this pass)
+      if (row && row.status === 'active' && !justCompleted.has(def.id)) {
         const triggerMet = this.checkTrigger(
           def.trigger,
           counts,
@@ -113,8 +122,9 @@ export class QuestEngine {
             title: def.name,
             xpReward: def.xpReward
           })
+          justCompleted.add(def.id)
 
-          // Reset repeatable quests
+          // Reset repeatable quests for next evaluation cycle
           if (def.repeatable) {
             this.questRepo.resetForRepeat(row.id)
           }
@@ -175,7 +185,7 @@ export class QuestEngine {
     return getQuestDefinition(id)
   }
 
-  /** Get quest board suggestion based on weakest skill. */
+  /** Get quest board suggestion based on weakest skill. When tied, picks first in SKILL_CATEGORIES order. */
   getQuestBoardSuggestion(playerId: string): QuestBoardSuggestion | null {
     const counts = this.questRepo.getConversationCounts(playerId)
     let weakest: SkillCategory = SKILL_CATEGORIES[0]
@@ -202,7 +212,7 @@ export class QuestEngine {
   }
 
   private checkPrecondition(
-    pre: { type: string; threshold: number },
+    pre: QuestPrecondition,
     maxCategoryCount: number,
     distinctCategories: number
   ): boolean {
@@ -211,8 +221,6 @@ export class QuestEngine {
         return maxCategoryCount >= pre.threshold
       case 'category_coverage':
         return distinctCategories >= pre.threshold
-      default:
-        return false
     }
   }
 

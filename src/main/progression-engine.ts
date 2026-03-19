@@ -62,7 +62,7 @@ export class ProgressionEngine {
     private playerId: string
   ) {}
 
-  /** Award bonus XP (e.g. quest rewards) spread evenly across given categories. */
+  /** Award bonus XP (e.g. quest rewards), divided across given categories with remainder going to the first N. */
   awardBonusXP(
     totalAmount: number,
     skillCategories: readonly SkillCategory[],
@@ -207,7 +207,7 @@ export class ProgressionEngine {
     return Math.floor(Math.sqrt(totalXP / 100))
   }
 
-  /** Title = tier prefix + secondary adjective + primary noun, from top 2 skill categories by XP */
+  /** Compute title from the top 2 skill categories by XP. Returns DEFAULT_TITLE if < 2 categories have XP. Adds tier prefix when overallLevel >= 5. */
   static computeTitle(
     skills: Record<SkillCategory, number>,
     overallLevel?: number

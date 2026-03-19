@@ -14,7 +14,7 @@ export function useQuests() {
       setQuests(result)
     } catch (err) {
       console.error('[useQuests] Failed to fetch quests:', err)
-      setError('Failed to load quests')
+      setError(err instanceof Error ? err.message : 'quest-load-failed')
     } finally {
       setLoading(false)
     }
@@ -30,7 +30,7 @@ export function useQuests() {
         if (data.completed) {
           for (const c of data.completed) {
             EventBus.emit('quest:completed', {
-              questId: c.questDefId,
+              questDefId: c.questDefId,
               title: c.title,
               xpReward: c.xpReward
             })
