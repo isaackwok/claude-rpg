@@ -48,7 +48,12 @@
     "copy": "Copy",
     "newMessages": "New messages",
     "attachFiles": "Files/Folders",
-    "pendingApproval": "The following paths are outside approved permits:"
+    "pendingApproval": "The following paths are outside approved permits:",
+    "addToBackpack": "Add to Backpack",
+    "addedToBackpack": "Added to backpack: {{name}}",
+    "addingToBackpack": "Saving...",
+    "referenceBooks": "Reference Books",
+    "referenceLabel": "Reference"
   },
   "locations": {
     "townSquare": "Town Square",
@@ -150,6 +155,25 @@
       "cosmetics": "Cosmetics",
       "unavailable": "Coming Soon"
     }
+  },
+  "items": {
+    "title": "Items",
+    "empty": "No items collected yet",
+    "emptyHint": "Click 🎒 in a conversation to save NPC responses",
+    "filterAll": "All",
+    "categoryGeneral": "General",
+    "source": "Source",
+    "question": "Original Question",
+    "delete": "Delete",
+    "deleteConfirm": "Delete \"{{name}}\"?",
+    "deleteYes": "Delete",
+    "deleteNo": "Cancel",
+    "close": "Close",
+    "editName": "Click to edit name",
+    "attach": "Attach",
+    "attachCount": "{{count}} selected",
+    "noBooks": "No books to reference yet",
+    "pickBooks": "Select Reference Books"
   },
   "quests": {
     "title": "Quests",

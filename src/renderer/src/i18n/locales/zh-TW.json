@@ -48,7 +48,12 @@
     "copy": "複製",
     "newMessages": "新訊息",
     "attachFiles": "檔案/資料夾",
-    "pendingApproval": "以下路徑不在已核准的通行令範圍內："
+    "pendingApproval": "以下路徑不在已核准的通行令範圍內：",
+    "addToBackpack": "加入背包",
+    "addedToBackpack": "已加入背包：{{name}}",
+    "addingToBackpack": "儲存中...",
+    "referenceBooks": "參考書籍",
+    "referenceLabel": "參考資料"
   },
   "locations": {
     "townSquare": "城鎮廣場",
@@ -150,6 +155,25 @@
       "cosmetics": "裝飾",
       "unavailable": "尚未開放"
     }
+  },
+  "items": {
+    "title": "物品",
+    "empty": "還沒有收藏任何物品",
+    "emptyHint": "在對話中點擊 🎒 收藏 NPC 的回覆",
+    "filterAll": "全部",
+    "categoryGeneral": "一般",
+    "source": "來源",
+    "question": "原始問題",
+    "delete": "刪除",
+    "deleteConfirm": "確定要刪除「{{name}}」嗎？",
+    "deleteYes": "刪除",
+    "deleteNo": "取消",
+    "close": "關閉",
+    "editName": "點擊編輯名稱",
+    "attach": "附加",
+    "attachCount": "已選 {{count}} 本",
+    "noBooks": "還沒有任何書籍可以參考",
+    "pickBooks": "選擇參考書籍"
   },
   "quests": {
     "title": "任務",
