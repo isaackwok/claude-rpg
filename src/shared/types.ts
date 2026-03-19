@@ -187,3 +187,6 @@ export interface QuestBoardSuggestion {
   agentId: AgentId
   message: LocalizedString
 }
+
+export * from './achievement-types'
+export * from './cosmetic-types'

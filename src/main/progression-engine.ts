@@ -48,7 +48,7 @@ const titleAdjectives: Record<string, Record<SkillCategory, string>> = {
 const DEFAULT_TITLE: LocalizedString = { 'zh-TW': '新手冒險者', en: 'Novice Adventurer' }
 const XP_PER_INTERACTION = 10
 
-const TITLE_TIERS: { minLevel: number; zhTW: string; en: string }[] = [
+export const TITLE_TIERS: { minLevel: number; zhTW: string; en: string }[] = [
   { minLevel: 20, zhTW: '傳奇', en: 'Legendary' },
   { minLevel: 15, zhTW: '資深', en: 'Veteran' },
   { minLevel: 10, zhTW: '熟練', en: 'Skilled' },

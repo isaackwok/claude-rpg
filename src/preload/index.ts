@@ -150,7 +150,64 @@ const api = {
     const handler = (_event: unknown, data: { error: string }): void => callback(data)
     ipcRenderer.on('quests:error', handler)
     return () => ipcRenderer.removeListener('quests:error', handler)
-  }
+  },
+
+  // Achievements
+  getAchievements: (): Promise<import('../shared/achievement-types').PlayerAchievement[]> =>
+    ipcRenderer.invoke('achievements:get-all'),
+  onAchievementsUnlocked: (
+    callback: (
+      unlocked: import('../shared/achievement-types').AchievementCheckResult['unlocked']
+    ) => void
+  ): (() => void) => {
+    const handler = (
+      _event: unknown,
+      unlocked: import('../shared/achievement-types').AchievementCheckResult['unlocked']
+    ): void => callback(unlocked)
+    ipcRenderer.on('achievements:unlocked', handler)
+    return () => ipcRenderer.removeListener('achievements:unlocked', handler)
+  },
+
+  // Cosmetics
+  getCosmetics: (): Promise<import('../shared/cosmetic-types').PlayerCosmetic[]> =>
+    ipcRenderer.invoke('cosmetics:get-all'),
+  equipCosmetic: (cosmeticDefId: string): Promise<void> =>
+    ipcRenderer.invoke('cosmetics:equip', cosmeticDefId),
+  unequipCosmetic: (cosmeticDefId: string): Promise<void> =>
+    ipcRenderer.invoke('cosmetics:unequip', cosmeticDefId),
+  onCosmeticsUpdated: (
+    callback: (cosmetics: import('../shared/cosmetic-types').PlayerCosmetic[]) => void
+  ): (() => void) => {
+    const handler = (
+      _event: unknown,
+      cosmetics: import('../shared/cosmetic-types').PlayerCosmetic[]
+    ): void => callback(cosmetics)
+    ipcRenderer.on('cosmetics:updated', handler)
+    return () => ipcRenderer.removeListener('cosmetics:updated', handler)
+  },
+  onCosmeticUnlocked: (callback: (data: { cosmeticDefId: string }) => void): (() => void) => {
+    const handler = (_event: unknown, data: { cosmeticDefId: string }): void => callback(data)
+    ipcRenderer.on('cosmetics:unlocked', handler)
+    return () => ipcRenderer.removeListener('cosmetics:unlocked', handler)
+  },
+
+  // Home decorations
+  getHomePlacements: (): Promise<import('../shared/cosmetic-types').HomePlacement[]> =>
+    ipcRenderer.invoke('cosmetics:get-placements'),
+  placeDecoration: (cosmeticDefId: string, tileX: number, tileY: number): Promise<void> =>
+    ipcRenderer.invoke('cosmetics:place', cosmeticDefId, tileX, tileY),
+  removeDecoration: (cosmeticDefId: string): Promise<void> =>
+    ipcRenderer.invoke('cosmetics:remove', cosmeticDefId),
+
+  // Zone tracking
+  recordZoneVisit: (zoneId: string): Promise<void> =>
+    ipcRenderer.invoke('zone:record-visit', zoneId),
+
+  // Position persistence
+  savePosition: (scene: string, x: number, y: number): Promise<void> =>
+    ipcRenderer.invoke('player:save-position', scene, x, y),
+  getPosition: (): Promise<{ scene: string | null; x: number; y: number } | null> =>
+    ipcRenderer.invoke('player:get-position')
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

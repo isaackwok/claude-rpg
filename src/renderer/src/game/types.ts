@@ -30,4 +30,15 @@ export interface GameEvents {
   'noticeboard:interact': Record<string, never>
   'skills-panel:toggle': Record<string, never>
   'backpack:toggle': Record<string, never>
+  'achievement:unlocked': {
+    achievementDefId: string
+    title: LocalizedString
+    cosmeticReward?: { id: string; title: LocalizedString; type: 'overlay' | 'decoration' }
+  }
+  'cosmetic:unlocked': { cosmeticDefId: string; title: LocalizedString }
+  'cosmetic:equipped': { cosmeticDefId: string; layer: 'hat' | 'cape' | 'aura' }
+  'cosmetic:unequipped': { layer: 'hat' | 'cape' | 'aura' }
+  'scene:changed': { sceneName: string; fromScene?: string }
+  'zone:visited': { zoneId: string }
+  'home:decorate-mode': { active: boolean }
 }

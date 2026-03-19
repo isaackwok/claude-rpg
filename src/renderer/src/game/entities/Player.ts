@@ -1,18 +1,14 @@
 import Phaser from 'phaser'
 import { EventBus } from '../EventBus'
+import type { OverlayLayer } from '../../../../shared/cosmetic-types'
 
 const SPEED = 160
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
-  private wasd!: {
-    W: Phaser.Input.Keyboard.Key
-    A: Phaser.Input.Keyboard.Key
-    S: Phaser.Input.Keyboard.Key
-    D: Phaser.Input.Keyboard.Key
-  }
   private lastX = 0
   private lastY = 0
+  private overlays: Map<OverlayLayer, Phaser.GameObjects.Sprite> = new Map()
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, 'player', 1) // frame 1 = facing down
@@ -26,12 +22,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     body.setCollideWorldBounds(true)
 
     this.cursors = scene.input.keyboard!.createCursorKeys()
-    this.wasd = {
-      W: scene.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.W),
-      A: scene.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.A),
-      S: scene.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.S),
-      D: scene.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.D)
-    }
 
     this.lastX = x
     this.lastY = y
@@ -41,10 +31,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const body = this.body as Phaser.Physics.Arcade.Body
     body.setVelocity(0)
 
-    const left = this.cursors.left.isDown || this.wasd.A.isDown
-    const right = this.cursors.right.isDown || this.wasd.D.isDown
-    const up = this.cursors.up.isDown || this.wasd.W.isDown
-    const down = this.cursors.down.isDown || this.wasd.S.isDown
+    const left = this.cursors.left.isDown
+    const right = this.cursors.right.isDown
+    const up = this.cursors.up.isDown
+    const down = this.cursors.down.isDown
 
     if (left) {
       body.setVelocityX(-SPEED)
@@ -73,5 +63,51 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.lastY = this.y
       EventBus.emit('player:moved', { x: this.x, y: this.y, map: 'town' })
     }
+
+    this.syncOverlays()
+  }
+
+  /** Equip an overlay sprite */
+  equipOverlay(layer: OverlayLayer, textureKey: string): void {
+    // Remove existing overlay in this layer
+    this.unequipOverlay(layer)
+
+    // Create new sprite at player position
+    const overlay = this.scene.add.sprite(this.x, this.y, textureKey)
+
+    // Set depth: cape behind player, hat/aura above
+    if (layer === 'cape') {
+      overlay.setDepth(this.depth - 1)
+    } else {
+      overlay.setDepth(this.depth + 1)
+    }
+
+    this.overlays.set(layer, overlay)
+  }
+
+  /** Unequip an overlay */
+  unequipOverlay(layer: OverlayLayer): void {
+    const existing = this.overlays.get(layer)
+    if (existing) {
+      existing.destroy()
+      this.overlays.delete(layer)
+    }
+  }
+
+  /** Sync overlay positions and frames with player — called at end of update() */
+  private syncOverlays(): void {
+    for (const overlay of this.overlays.values()) {
+      overlay.setPosition(this.x, this.y)
+      // Match player direction frame
+      overlay.setFrame(this.frame.name)
+    }
+  }
+
+  /** Clean up all overlays */
+  destroyOverlays(): void {
+    for (const overlay of this.overlays.values()) {
+      overlay.destroy()
+    }
+    this.overlays.clear()
   }
 }

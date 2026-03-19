@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { Boot, Preloader, Town } from './scenes'
+import { Boot, Preloader, Town, Home } from './scenes'
 
 export function StartGame(parent: string): Phaser.Game {
   const game = new Phaser.Game({
@@ -15,7 +15,7 @@ export function StartGame(parent: string): Phaser.Game {
         gravity: { x: 0, y: 0 }
       }
     },
-    scene: [Boot, Preloader, Town]
+    scene: [Boot, Preloader, Town, Home]
   })
 
   // Expose for E2E testing

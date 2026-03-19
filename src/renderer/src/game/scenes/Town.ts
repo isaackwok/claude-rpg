@@ -1,13 +1,11 @@
-import { Scene } from 'phaser'
-import { Player } from '../entities/Player'
 import { NPC } from '../entities/NPC'
 import { BUILT_IN_NPCS } from '../data/npcs'
 import { EventBus } from '../EventBus'
 import type { SkillCategory } from '../types'
 import { t } from '../../i18n'
+import { BaseScene } from './BaseScene'
 
-export class Town extends Scene {
-  private player!: Player
+export class Town extends BaseScene {
   private collisionLayer!: Phaser.Tilemaps.TilemapLayer
   private npcs: NPC[] = []
   private dialogueOpen = false
@@ -28,7 +26,14 @@ export class Town extends Scene {
     super('Town')
   }
 
-  create(): void {
+  create(data?: { spawnX?: number; spawnY?: number; fromScene?: string }): void {
+    // Reset instance state — Phaser reuses scene instances across scene.start() calls
+    this.npcs = []
+    this.zones = []
+    this.dialogueOpen = false
+    this.currentZone = null
+    this.playerNearNoticeBoard = false
+
     // Create tilemap
     const map = this.make.tilemap({ key: 'town-map' })
     const tileset = map.addTilesetImage('town-tileset', 'town-tileset')!
@@ -40,10 +45,26 @@ export class Town extends Scene {
     this.collisionLayer.setVisible(false)
     this.collisionLayer.setCollisionByExclusion([-1])
 
-    // Player spawn (center of Town Square)
-    const spawnX = 39 * 16 + 8
-    const spawnY = 29 * 16 + 8
-    this.player = new Player(this, spawnX, spawnY)
+    // Player spawn — use portal data when transitioning in, otherwise default Town Square center
+    const spawnX = data?.spawnX ?? 39 * 16 + 8
+    const spawnY = data?.spawnY ?? 29 * 16 + 8
+    this.createPlayer(spawnX, spawnY)
+
+    // On fresh game start (not a portal transition), restore last saved position
+    if (!data?.fromScene) {
+      window.api?.getPosition().then((pos) => {
+        if (pos && pos.scene === 'Town' && pos.x != null && pos.y != null) {
+          // Clamp to map bounds to prevent spawning outside the playable area
+          const mapW = map.widthInPixels
+          const mapH = map.heightInPixels
+          const safeX = Math.max(16, Math.min(pos.x, mapW - 16))
+          const safeY = Math.max(16, Math.min(pos.y, mapH - 16))
+          this.player.setPosition(safeX, safeY)
+        } else if (pos && pos.scene === 'Home') {
+          this.transitionToScene('Home')
+        }
+      })
+    }
 
     // Collision with tilemap
     this.physics.add.collider(this.player, this.collisionLayer)
@@ -100,7 +121,7 @@ export class Town extends Scene {
     // Listen for dialogue close
     this.onDialogueClosed = () => {
       this.dialogueOpen = false
-      this.setCaptureGameKeys(true)
+      this.setKeyboardEnabled(true)
     }
     EventBus.on('dialogue:closed', this.onDialogueClosed)
 
@@ -162,12 +183,45 @@ export class Town extends Scene {
     }
     EventBus.on('level:up', this.onLevelUp)
 
-    // Camera
-    this.cameras.main.startFollow(this.player, true, 0.1, 0.1)
-    this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels)
-    this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels)
-    this.cameras.main.setBackgroundColor('#1a1a2e')
-    this.cameras.main.setZoom(2)
+    // Home entrance portal — placed south of the town square at col 39, row 34
+    // (an open area below the notice board, away from NPC collision zones)
+    const homePortalTileX = 39
+    const homePortalTileY = 34
+    const homePortalX = homePortalTileX * 16 + 8
+    const homePortalY = homePortalTileY * 16 + 8
+
+    // Visual indicator: a small house graphic
+    const homeGfx = this.add.graphics()
+    homeGfx.setDepth(homePortalY - 4)
+    // House body
+    homeGfx.fillStyle(0x8b6b3d)
+    homeGfx.fillRect(homePortalX - 7, homePortalY - 5, 14, 10)
+    // Roof
+    homeGfx.fillStyle(0x5c3a1e)
+    homeGfx.fillTriangle(
+      homePortalX,
+      homePortalY - 12,
+      homePortalX - 9,
+      homePortalY - 5,
+      homePortalX + 9,
+      homePortalY - 5
+    )
+    // Door
+    homeGfx.fillStyle(0x3e2510)
+    homeGfx.fillRect(homePortalX - 3, homePortalY - 1, 6, 6)
+
+    // Interaction zone — overlap triggers scene transition
+    const homeZone = this.add.zone(homePortalX, homePortalY, 16, 16)
+    this.physics.add.existing(homeZone, true)
+    this.physics.add.overlap(this.player, homeZone, () => {
+      // Spawn in Home scene just inside the door
+      this.transitionToScene('Home')
+    })
+
+    // Camera + portals + fade-in
+    this.setupCamera(map.widthInPixels, map.heightInPixels)
+    this.setupPortals(map)
+    this.fadeIn()
   }
 
   private createNoticeBoard(x: number, y: number): void {
@@ -216,27 +270,6 @@ export class Town extends Scene {
     })
   }
 
-  /** Toggle Phaser's key capture — release during dialogue so the DOM input receives keystrokes */
-  private setCaptureGameKeys(capture: boolean): void {
-    const kb = this.input.keyboard!
-    const keys = [
-      Phaser.Input.Keyboard.KeyCodes.SPACE,
-      Phaser.Input.Keyboard.KeyCodes.W,
-      Phaser.Input.Keyboard.KeyCodes.A,
-      Phaser.Input.Keyboard.KeyCodes.S,
-      Phaser.Input.Keyboard.KeyCodes.D,
-      Phaser.Input.Keyboard.KeyCodes.UP,
-      Phaser.Input.Keyboard.KeyCodes.DOWN,
-      Phaser.Input.Keyboard.KeyCodes.LEFT,
-      Phaser.Input.Keyboard.KeyCodes.RIGHT
-    ]
-    if (capture) {
-      kb.addCapture(keys)
-    } else {
-      kb.removeCapture(keys)
-    }
-  }
-
   private getSkillColor(category: SkillCategory): string {
     const colors: Record<SkillCategory, string> = {
       writing: '#e8b44c',
@@ -264,21 +297,19 @@ export class Town extends Scene {
   }
 
   shutdown(): void {
+    super.shutdown()
     EventBus.off('dialogue:closed', this.onDialogueClosed)
     EventBus.off('xp:gained', this.onXPGained)
     EventBus.off('level:up', this.onLevelUp)
   }
 
   update(): void {
-    if (this.dialogueOpen) return
+    if (this._transitioning || this.dialogueOpen) return
 
     this.player.update()
 
-    // Y-based depth sorting: entities lower on screen render in front
-    this.player.setDepth(this.player.y)
-    for (const npc of this.npcs) {
-      npc.setDepth(npc.y)
-    }
+    // Y-based depth sorting: player + NPCs
+    this.depthSort(this.npcs)
 
     // Check NPC proximity exit
     for (const npc of this.npcs) {
@@ -326,7 +357,7 @@ export class Town extends Scene {
       const nearbyNpc = this.npcs.find((npc) => npc.playerInRange)
       if (nearbyNpc && !this.dialogueOpen) {
         this.dialogueOpen = true
-        this.setCaptureGameKeys(false)
+        this.setKeyboardEnabled(false)
         EventBus.emit('npc:interact', {
           agentId: nearbyNpc.agentDef.id,
           npcPosition: { x: nearbyNpc.x, y: nearbyNpc.y }
@@ -354,6 +385,7 @@ export class Town extends Scene {
         if (this.currentZone !== zoneId) {
           this.currentZone = zoneId
           EventBus.emit('zone:entered', { zoneId, zoneName })
+          window.api?.recordZoneVisit(zoneId)
         }
         return
       }
