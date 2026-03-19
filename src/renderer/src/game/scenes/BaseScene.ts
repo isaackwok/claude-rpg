@@ -1,6 +1,7 @@
 import { Scene } from 'phaser'
 import { Player } from '../entities/Player'
 import { EventBus } from '../EventBus'
+import type { OverlayLayer } from '../../../../shared/cosmetic-types'
 
 /**
  * BaseScene — shared logic for all game scenes.
@@ -22,6 +23,39 @@ export abstract class BaseScene extends Scene {
       void window.api?.savePosition(this.scene.key, this.player?.x, this.player?.y)
     }
     window.addEventListener('beforeunload', this._beforeUnloadHandler)
+
+    // Listen for real-time equip/unequip events
+    EventBus.on('cosmetic:equipped', () => {
+      void this.loadEquippedOverlays()
+    })
+
+    EventBus.on('cosmetic:unequipped', (data: { layer: OverlayLayer }) => {
+      this.player.unequipOverlay(data.layer)
+    })
+
+    void this.loadEquippedOverlays()
+  }
+
+  /** Load equipped overlay cosmetics from the main process and apply them to the player. */
+  protected async loadEquippedOverlays(): Promise<void> {
+    try {
+      const cosmetics = await window.api?.getCosmetics()
+      if (!cosmetics) return
+      // Clear existing overlays before re-applying
+      this.player.destroyOverlays()
+      for (const c of cosmetics) {
+        if (
+          c.equipped &&
+          c.definition.type === 'overlay' &&
+          c.definition.layer &&
+          c.definition.spriteSheet
+        ) {
+          this.player.equipOverlay(c.definition.layer, c.definition.spriteSheet)
+        }
+      }
+    } catch (err) {
+      console.error('[BaseScene] Failed to load equipped overlays:', err)
+    }
   }
 
   /**
