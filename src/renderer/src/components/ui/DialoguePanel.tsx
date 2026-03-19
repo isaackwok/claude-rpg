@@ -474,7 +474,7 @@ function InputArea({
                   e.currentTarget.style.background = 'none'
                 }}
               >
-                <span style={{ fontSize: 14 }}>+</span>
+                <span style={{ fontSize: 14 }}>📁</span>
                 {t('dialogue.attachFiles')}
               </button>
               <button
