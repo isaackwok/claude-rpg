@@ -1,13 +1,11 @@
-import { Scene } from 'phaser'
-import { Player } from '../entities/Player'
 import { NPC } from '../entities/NPC'
 import { BUILT_IN_NPCS } from '../data/npcs'
 import { EventBus } from '../EventBus'
 import type { SkillCategory } from '../types'
 import { t } from '../../i18n'
+import { BaseScene } from './BaseScene'
 
-export class Town extends Scene {
-  private player!: Player
+export class Town extends BaseScene {
   private collisionLayer!: Phaser.Tilemaps.TilemapLayer
   private npcs: NPC[] = []
   private dialogueOpen = false
@@ -28,7 +26,7 @@ export class Town extends Scene {
     super('Town')
   }
 
-  create(): void {
+  create(data?: { spawnX?: number; spawnY?: number; fromScene?: string }): void {
     // Create tilemap
     const map = this.make.tilemap({ key: 'town-map' })
     const tileset = map.addTilesetImage('town-tileset', 'town-tileset')!
@@ -40,10 +38,10 @@ export class Town extends Scene {
     this.collisionLayer.setVisible(false)
     this.collisionLayer.setCollisionByExclusion([-1])
 
-    // Player spawn (center of Town Square)
-    const spawnX = 39 * 16 + 8
-    const spawnY = 29 * 16 + 8
-    this.player = new Player(this, spawnX, spawnY)
+    // Player spawn — use portal data when transitioning in, otherwise default Town Square center
+    const spawnX = data?.spawnX ?? 39 * 16 + 8
+    const spawnY = data?.spawnY ?? 29 * 16 + 8
+    this.createPlayer(spawnX, spawnY)
 
     // Collision with tilemap
     this.physics.add.collider(this.player, this.collisionLayer)
@@ -100,7 +98,7 @@ export class Town extends Scene {
     // Listen for dialogue close
     this.onDialogueClosed = () => {
       this.dialogueOpen = false
-      this.setCaptureGameKeys(true)
+      this.setKeyboardEnabled(true)
     }
     EventBus.on('dialogue:closed', this.onDialogueClosed)
 
@@ -162,12 +160,10 @@ export class Town extends Scene {
     }
     EventBus.on('level:up', this.onLevelUp)
 
-    // Camera
-    this.cameras.main.startFollow(this.player, true, 0.1, 0.1)
-    this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels)
-    this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels)
-    this.cameras.main.setBackgroundColor('#1a1a2e')
-    this.cameras.main.setZoom(2)
+    // Camera + portals + fade-in
+    this.setupCamera(map.widthInPixels, map.heightInPixels)
+    this.setupPortals(map)
+    this.fadeIn()
   }
 
   private createNoticeBoard(x: number, y: number): void {
@@ -216,27 +212,6 @@ export class Town extends Scene {
     })
   }
 
-  /** Toggle Phaser's key capture — release during dialogue so the DOM input receives keystrokes */
-  private setCaptureGameKeys(capture: boolean): void {
-    const kb = this.input.keyboard!
-    const keys = [
-      Phaser.Input.Keyboard.KeyCodes.SPACE,
-      Phaser.Input.Keyboard.KeyCodes.W,
-      Phaser.Input.Keyboard.KeyCodes.A,
-      Phaser.Input.Keyboard.KeyCodes.S,
-      Phaser.Input.Keyboard.KeyCodes.D,
-      Phaser.Input.Keyboard.KeyCodes.UP,
-      Phaser.Input.Keyboard.KeyCodes.DOWN,
-      Phaser.Input.Keyboard.KeyCodes.LEFT,
-      Phaser.Input.Keyboard.KeyCodes.RIGHT
-    ]
-    if (capture) {
-      kb.addCapture(keys)
-    } else {
-      kb.removeCapture(keys)
-    }
-  }
-
   private getSkillColor(category: SkillCategory): string {
     const colors: Record<SkillCategory, string> = {
       writing: '#e8b44c',
@@ -264,6 +239,7 @@ export class Town extends Scene {
   }
 
   shutdown(): void {
+    super.shutdown()
     EventBus.off('dialogue:closed', this.onDialogueClosed)
     EventBus.off('xp:gained', this.onXPGained)
     EventBus.off('level:up', this.onLevelUp)
@@ -274,11 +250,8 @@ export class Town extends Scene {
 
     this.player.update()
 
-    // Y-based depth sorting: entities lower on screen render in front
-    this.player.setDepth(this.player.y)
-    for (const npc of this.npcs) {
-      npc.setDepth(npc.y)
-    }
+    // Y-based depth sorting: player + NPCs
+    this.depthSort(this.npcs)
 
     // Check NPC proximity exit
     for (const npc of this.npcs) {
@@ -326,7 +299,7 @@ export class Town extends Scene {
       const nearbyNpc = this.npcs.find((npc) => npc.playerInRange)
       if (nearbyNpc && !this.dialogueOpen) {
         this.dialogueOpen = true
-        this.setCaptureGameKeys(false)
+        this.setKeyboardEnabled(false)
         EventBus.emit('npc:interact', {
           agentId: nearbyNpc.agentDef.id,
           npcPosition: { x: nearbyNpc.x, y: nearbyNpc.y }
