@@ -46,7 +46,12 @@ export function ItemsTab({
   const { t } = useTranslation()
   const [filter, setFilter] = useState<string>('all')
   const [selectedItem, setSelectedItem] = useState<BookItem | null>(null)
-  const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const [hoverInfo, setHoverInfo] = useState<{
+    id: string
+    name: string
+    x: number
+    y: number
+  } | null>(null)
 
   const categories = Array.from(new Set(items.map((i) => i.category)))
   const filtered = filter === 'all' ? items : items.filter((i) => i.category === filter)
@@ -120,56 +125,43 @@ export function ItemsTab({
           }}
         >
           {filtered.map((item) => (
-            <div key={item.id} style={{ position: 'relative' }}>
-              <button
-                onClick={() => setSelectedItem(item as BookItem)}
-                onMouseEnter={() => setHoveredId(item.id)}
-                onMouseLeave={() => setHoveredId(null)}
-                style={{
-                  width: 52,
-                  height: 52,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: 'rgba(200, 180, 140, 0.08)',
-                  border: `1px solid ${
-                    hoveredId === item.id ? 'rgba(200, 180, 140, 0.5)' : 'rgba(200, 180, 140, 0.15)'
-                  }`,
-                  borderRadius: 4,
-                  cursor: 'pointer',
-                  fontSize: 24,
-                  padding: 0,
-                  transition: 'border-color 0.15s, background 0.15s',
-                  ...(hoveredId === item.id ? { background: 'rgba(200, 180, 140, 0.15)' } : {})
-                }}
-              >
-                {item.icon}
-              </button>
-              {/* Tooltip on hover */}
-              {hoveredId === item.id && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    bottom: '100%',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    marginBottom: 4,
-                    padding: '4px 8px',
-                    background: 'rgba(10, 10, 30, 0.95)',
-                    border: '1px solid rgba(200, 180, 140, 0.4)',
-                    borderRadius: 4,
-                    fontSize: 11,
-                    fontFamily: 'monospace',
-                    color: '#e8d5a8',
-                    whiteSpace: 'nowrap',
-                    pointerEvents: 'none',
-                    zIndex: 10
-                  }}
-                >
-                  {item.name}
-                </div>
-              )}
-            </div>
+            <button
+              key={item.id}
+              onClick={() => setSelectedItem(item as BookItem)}
+              onMouseEnter={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect()
+                setHoverInfo({
+                  id: item.id,
+                  name: item.name,
+                  x: rect.left + rect.width / 2,
+                  y: rect.top
+                })
+              }}
+              onMouseLeave={() => setHoverInfo(null)}
+              style={{
+                width: 52,
+                height: 52,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background:
+                  hoverInfo?.id === item.id
+                    ? 'rgba(200, 180, 140, 0.15)'
+                    : 'rgba(200, 180, 140, 0.08)',
+                border: `1px solid ${
+                  hoverInfo?.id === item.id
+                    ? 'rgba(200, 180, 140, 0.5)'
+                    : 'rgba(200, 180, 140, 0.15)'
+                }`,
+                borderRadius: 4,
+                cursor: 'pointer',
+                fontSize: 24,
+                padding: 0,
+                transition: 'border-color 0.15s, background 0.15s'
+              }}
+            >
+              {item.icon}
+            </button>
           ))}
         </div>
 
@@ -187,6 +179,30 @@ export function ItemsTab({
           </div>
         )}
       </div>
+
+      {/* Tooltip — rendered fixed to avoid scroll container clipping */}
+      {hoverInfo && (
+        <span
+          style={{
+            position: 'fixed',
+            left: hoverInfo.x,
+            top: hoverInfo.y - 8,
+            transform: 'translate(-50%, -100%)',
+            background: 'rgba(0, 0, 0, 0.9)',
+            border: '1px solid rgba(200, 180, 140, 0.4)',
+            borderRadius: 4,
+            padding: '3px 8px',
+            fontSize: 12,
+            fontFamily: 'monospace',
+            color: '#c4a46c',
+            whiteSpace: 'nowrap',
+            pointerEvents: 'none',
+            zIndex: 300
+          }}
+        >
+          {hoverInfo.name}
+        </span>
+      )}
 
       {/* Book detail modal */}
       {selectedItem && (
