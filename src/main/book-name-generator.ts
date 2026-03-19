@@ -42,23 +42,29 @@ export async function generateBookName(
 
     const formatExample =
       locale === 'en'
-        ? 'Format: "Tome of [Genre]: [Short Topic]" — e.g., "Tome of Research: Web Performance"'
-        : '格式：「[類別]之書：[簡短主題]」— 例如：「研究之書：網頁效能優化」'
+        ? 'Format: "Tome of [Genre]: [Topic]" — e.g., "Tome of Research: Web Performance"'
+        : '格式：「[類別]之書：[主題]」— 例如：「研究之書：網頁效能優化」'
 
     const response = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 60,
+      max_tokens: 30,
       messages: [
         {
           role: 'user',
-          content: `Generate a short RPG-style book name in ${locale} for this content. ${formatExample}\n\nContent:\n${snippet}`
+          content: `Generate ONE short RPG book name (under 20 characters) in ${locale}. ${formatExample}\nRespond with ONLY the name, nothing else.\n\nContent:\n${snippet}`
         }
       ]
     })
 
-    const text = response.content[0]?.type === 'text' ? response.content[0].text.trim() : ''
+    let text = response.content[0]?.type === 'text' ? response.content[0].text.trim() : ''
+    // Strip any markdown or explanation the model might add
+    text = text
+      .replace(/^[#*\s]+/, '')
+      .replace(/[*]+/g, '')
+      .split('\n')[0]
+      .trim()
 
-    if (text) return text
+    if (text && text.length <= 30) return text
     return generateFallbackName(npcName, itemCount + 1, locale)
   } catch {
     return generateFallbackName(npcName, itemCount + 1, locale)

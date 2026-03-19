@@ -195,6 +195,9 @@ export function ItemsTab({
             fontSize: 12,
             fontFamily: 'monospace',
             color: '#c4a46c',
+            maxWidth: 280,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
             pointerEvents: 'none',
             zIndex: 300
