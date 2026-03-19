@@ -30,7 +30,9 @@ import { SqliteQuestRepository } from './db/quest-repository'
 import { QuestEngine } from './quest-engine'
 import { SqliteAchievementRepository } from './db/achievement-repository'
 import { SqliteCosmeticRepository } from './db/cosmetic-repository'
+import { SqliteItemRepository } from './db/item-repository'
 import { AchievementEngine } from './achievement-engine'
+import { generateBookName, stripMarkdown } from './book-name-generator'
 import { COSMETIC_DEFINITIONS } from './cosmetic-definitions'
 import type { PlayerCosmetic } from '../shared/cosmetic-types'
 
@@ -93,6 +95,7 @@ app.whenReady().then(() => {
   const questRepo = new SqliteQuestRepository(db)
   const achievementRepo = new SqliteAchievementRepository(db)
   const cosmeticRepo = new SqliteCosmeticRepository(db)
+  const itemRepo = new SqliteItemRepository(db)
   const progressionEngine = new ProgressionEngine(xpRepo, playerRepo, 'player-1')
   const questEngine = new QuestEngine(questRepo)
   const achievementEngine = new AchievementEngine(achievementRepo, progressionEngine)
@@ -199,6 +202,58 @@ app.whenReady().then(() => {
 
   ipcMain.handle('cosmetics:get-placements', () => {
     return cosmeticRepo.getPlacements('player-1')
+  })
+
+  // Item IPC handlers
+  ipcMain.handle('items:get-all', () => {
+    return itemRepo.getItems('player-1')
+  })
+
+  ipcMain.handle(
+    'items:add-book',
+    async (
+      _e,
+      payload: {
+        markdownContent: string
+        sourceAgentId: string
+        sourceQuestion: string
+        category: string
+        locale: string
+        npcName: string
+      }
+    ) => {
+      const preview = stripMarkdown(payload.markdownContent)
+      const itemCount = itemRepo.getItemCount('player-1', payload.sourceAgentId)
+      const name = await generateBookName(
+        payload.markdownContent,
+        payload.locale,
+        payload.npcName,
+        itemCount
+      )
+      const book = itemRepo.addBookItem({
+        playerId: 'player-1',
+        type: 'book',
+        name,
+        icon: '📖',
+        category: payload.category,
+        markdownContent: payload.markdownContent,
+        sourceAgentId: payload.sourceAgentId,
+        sourceQuestion: payload.sourceQuestion,
+        preview
+      })
+      BrowserWindow.getAllWindows()[0]?.webContents.send('items:updated')
+      return book
+    }
+  )
+
+  ipcMain.handle('items:update-name', (_e, itemId: string, name: string) => {
+    itemRepo.updateItemName(itemId, name)
+    BrowserWindow.getAllWindows()[0]?.webContents.send('items:updated')
+  })
+
+  ipcMain.handle('items:delete', (_e, itemId: string) => {
+    itemRepo.deleteItem(itemId)
+    BrowserWindow.getAllWindows()[0]?.webContents.send('items:updated')
   })
 
   // Zone visit tracking
