@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from '../../i18n'
 import type { QuestBoardSuggestion } from '../../../../shared/types'
+import { CloseButton } from './CloseButton'
 
 interface QuestBoardPanelProps {
   onClose: () => void
@@ -60,15 +61,8 @@ export function QuestBoardPanel({ onClose }: QuestBoardPanelProps) {
         ) : (
           <div style={{ color: '#a89060', fontSize: 13 }}>...</div>
         )}
-        <div
-          style={{
-            marginTop: 16,
-            textAlign: 'center',
-            fontSize: 11,
-            color: 'rgba(200, 180, 140, 0.4)'
-          }}
-        >
-          {t('skills.close')}
+        <div style={{ marginTop: 16, textAlign: 'center' }}>
+          <CloseButton onClick={onClose} size={11} />
         </div>
       </div>
     </div>

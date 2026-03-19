@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { useTranslation } from '../../i18n'
 import { useQuests } from '../../hooks/useQuests'
 import { QuestsTab } from './QuestsTab'
+import { CloseButton } from './CloseButton'
 
 type BackpackTab = 'items' | 'quests' | 'achievements' | 'cosmetics'
 
@@ -105,7 +106,7 @@ export function BackpackPanel({ onClose }: BackpackPanelProps) {
             }}
           >
             <span>🎒 {t('backpack.title')}</span>
-            <span style={{ fontSize: 11 }}>{t('skills.close')}</span>
+            <CloseButton onClick={onClose} size={11} />
           </div>
 
           {/* Tab content */}

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from '../../i18n'
 import type { ApprovedFolder } from '../../../../shared/types'
+import { CloseButton } from './CloseButton'
 
 interface NoticeBoardPanelProps {
   onClose: () => void
@@ -80,9 +81,7 @@ export function NoticeBoardPanel({ onClose }: NoticeBoardPanelProps) {
           }}
         >
           <span>📜 {t('noticeBoard.title')}</span>
-          <span onClick={onClose} style={{ cursor: 'pointer', opacity: 0.6, fontSize: 12 }}>
-            {t('noticeBoard.close')}
-          </span>
+          <CloseButton onClick={onClose} />
         </div>
 
         {/* Folder list */}

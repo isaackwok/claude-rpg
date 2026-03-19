@@ -1,4 +1,7 @@
 {
+  "common": {
+    "close": "Close(Esc)"
+  },
   "game": {
     "title": "Claude RPG"
   },

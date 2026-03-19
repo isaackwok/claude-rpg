@@ -4,6 +4,7 @@ import { NPC } from '../entities/NPC'
 import { BUILT_IN_NPCS } from '../data/npcs'
 import { EventBus } from '../EventBus'
 import type { SkillCategory } from '../types'
+import { t } from '../../i18n'
 
 export class Town extends Scene {
   private player!: Player
@@ -137,7 +138,7 @@ export class Town extends Scene {
       const text = this.add.text(
         this.cameras.main.width / 2,
         this.cameras.main.height / 2 - 40,
-        `${icon} Level Up! Lv.${data.newLevel}`,
+        `${icon} ${t('xp.levelUp', { level: String(data.newLevel) })}`,
         {
           fontFamily: 'monospace',
           fontSize: '16px',

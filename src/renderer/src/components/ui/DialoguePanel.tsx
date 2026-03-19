@@ -16,6 +16,7 @@ import type { Conversation, Message } from '../../services/ConversationManager'
 import type { AgentId } from '../../game/types'
 import { renderMarkdown } from '../../utils/renderMarkdown'
 import { ToolConfirmDialog } from './ToolConfirmDialog'
+import { CloseButton } from './CloseButton'
 
 interface DialogueState {
   agentId: AgentId
@@ -432,10 +433,11 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null)
   const [expanded, setExpanded] = useState(false)
   const [unreadDividerIndex, setUnreadDividerIndex] = useState<number | null>(null)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
   const unreadMarkerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
-  const justOpenedRef = useRef(false)
+  const openedAtRef = useRef(0)
+  const userScrolledRef = useRef(false)
 
   // Subscribe to ConversationManager changes — version counter ensures React detects mutations
   useSyncExternalStore(
@@ -459,7 +461,7 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
 
       // Capture unread state before setActiveDialogue clears hasUnread
       const conv = conversationManager.getConversation(data.agentId)
-      justOpenedRef.current = true
+      openedAtRef.current = Date.now()
       setUnreadDividerIndex(conv?.firstUnreadIndex ?? null)
 
       setDialogue({ agentId: data.agentId, npcName })
@@ -497,31 +499,31 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
     return () => window.removeEventListener('keydown', handleKey)
   }, [dialogue, close])
 
-  // Three-scenario scroll logic:
-  // 1. Active conversation — smooth scroll to bottom
-  // 2. Reopen, no unread — instant scroll to bottom
-  // 3. Reopen with unread — scroll first unread message to top edge
+  // Detect user manually scrolling away from bottom → pause auto-scroll
+  const handleScroll = useCallback(() => {
+    const el = scrollContainerRef.current
+    if (!el) return
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
+    userScrolledRef.current = distanceFromBottom > 30
+  }, [])
+
+  // Scroll logic — suppress smooth-scroll for 300ms after opening to avoid visible animation
   useEffect(() => {
     if (!conversation) return
 
-    if (justOpenedRef.current) {
-      justOpenedRef.current = false
+    const justOpened = Date.now() - openedAtRef.current < 300
+    const el = scrollContainerRef.current
 
-      if (unreadMarkerRef.current) {
-        // Scenario 3: scroll first unread to top edge
-        unreadMarkerRef.current.scrollIntoView({
-          behavior: 'instant' as ScrollBehavior,
-          block: 'start'
-        })
-      } else {
-        // Scenario 2: instant scroll to bottom
-        messagesEndRef.current?.scrollIntoView({ behavior: 'instant' as ScrollBehavior })
+    if (justOpened) {
+      userScrolledRef.current = false
+      if (unreadMarkerRef.current && el) {
+        el.scrollTop = unreadMarkerRef.current.offsetTop - el.offsetTop
+      } else if (el) {
+        el.scrollTop = el.scrollHeight
       }
-
       if (dialogue) conversationManager.clearUnreadMarker(dialogue.agentId)
-    } else {
-      // Scenario 1: smooth scroll during active conversation
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    } else if (!userScrolledRef.current && el) {
+      el.scrollTop = el.scrollHeight
     }
   }, [
     dialogue,
@@ -539,6 +541,7 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
     const text = input.trim()
     setInput('')
     setUnreadDividerIndex(null)
+    userScrolledRef.current = false
     conversationManager.appendMessage(dialogue.agentId, {
       role: 'user',
       content: text,
@@ -612,14 +615,14 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
           >
             <polyline points="18 15 12 9 6 15" />
           </svg>
-          <span onClick={close} style={{ cursor: 'pointer', opacity: 0.6, fontSize: 12 }}>
-            {t('interaction.close')}
-          </span>
+          <CloseButton onClick={close} />
         </div>
       </div>
 
       {/* Message list */}
       <div
+        ref={scrollContainerRef}
+        onScroll={handleScroll}
         className="dialogue-messages"
         style={{
           flex: 1,
@@ -790,7 +793,6 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
             </span>
           </div>
         )}
-        <div ref={messagesEndRef} />
       </div>
 
       {/* Input area */}
