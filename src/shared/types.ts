@@ -162,10 +162,17 @@ export interface PlayerQuest {
   target: number // trigger threshold
 }
 
+/** A single quest completion record (shared across IPC boundaries) */
+export interface CompletedQuest {
+  questDefId: string
+  title: LocalizedString
+  xpReward: number
+}
+
 /** Quest check result from QuestEngine */
 export interface QuestCheckResult {
   discovered: { questDefId: string; visibility: QuestVisibility }[]
-  completed: { questDefId: string; title: LocalizedString; xpReward: number }[]
+  completed: CompletedQuest[]
   quests: PlayerQuest[]
 }
 

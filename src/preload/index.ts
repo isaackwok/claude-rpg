@@ -120,22 +120,14 @@ const api = {
   onQuestsUpdated: (
     callback: (data: {
       quests: import('../shared/types').PlayerQuest[]
-      completed?: {
-        questDefId: string
-        title: import('../shared/types').LocalizedString
-        xpReward: number
-      }[]
+      completed?: import('../shared/types').CompletedQuest[]
     }) => void
   ): (() => void) => {
     const handler = (
       _event: unknown,
       data: {
         quests: import('../shared/types').PlayerQuest[]
-        completed?: {
-          questDefId: string
-          title: import('../shared/types').LocalizedString
-          xpReward: number
-        }[]
+        completed?: import('../shared/types').CompletedQuest[]
       }
     ): void => callback(data)
     ipcRenderer.on('quests:updated', handler)

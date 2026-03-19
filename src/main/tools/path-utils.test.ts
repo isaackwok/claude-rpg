@@ -13,7 +13,7 @@ describe('resolveSandboxedPath', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    mockedRealpathSync.mockImplementation((p: string) => p as never)
+    mockedRealpathSync.mockImplementation(((p: string) => p) as never)
   })
 
   it('accepts a path inside an approved folder', () => {

@@ -16,12 +16,12 @@ vi.mock('child_process', () => ({
     const events: Record<string, (...a: unknown[]) => void> = {}
     const child = {
       stdout: {
-        on: vi.fn((event: string, cb: (data: string) => void) => {
+        on: vi.fn((event: string, cb: (...a: unknown[]) => void) => {
           events[`stdout:${event}`] = cb
         })
       },
       stderr: {
-        on: vi.fn((event: string, cb: (data: string) => void) => {
+        on: vi.fn((event: string, cb: (...a: unknown[]) => void) => {
           events[`stderr:${event}`] = cb
         })
       },

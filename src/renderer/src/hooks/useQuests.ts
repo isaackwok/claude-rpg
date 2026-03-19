@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { EventBus } from '../game/EventBus'
-import type { PlayerQuest, LocalizedString, QuestVisibility } from '../../../shared/types'
+import type { PlayerQuest, CompletedQuest, QuestVisibility } from '../../../shared/types'
 
 export function useQuests() {
   const [quests, setQuests] = useState<PlayerQuest[]>([])
@@ -24,10 +24,7 @@ export function useQuests() {
     refresh()
 
     const cleanupUpdated = window.api.onQuestsUpdated(
-      (data: {
-        quests: PlayerQuest[]
-        completed?: { questDefId: string; title: LocalizedString; xpReward: number }[]
-      }) => {
+      (data: { quests: PlayerQuest[]; completed?: CompletedQuest[] }) => {
         setQuests(data.quests)
 
         if (data.completed) {
