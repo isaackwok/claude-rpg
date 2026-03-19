@@ -12,6 +12,10 @@ import { SKILL_CATEGORIES } from '../shared/types'
 import type { ProgressionEngine } from './progression-engine'
 import type { QuestEngine } from './quest-engine'
 import type { SqliteConversationPersistence } from './db/conversation-persistence'
+import type { AchievementEngine } from './achievement-engine'
+import type { SqliteAchievementRepository } from './db/achievement-repository'
+import type { SqliteCosmeticRepository } from './db/cosmetic-repository'
+import { getCosmeticDefinition } from './cosmetic-definitions'
 
 type MessageParam = Anthropic.Messages.MessageParam
 
@@ -77,16 +81,25 @@ interface PendingPathApproval {
 let progressionEngine: ProgressionEngine | null = null
 let questEngine: QuestEngine | null = null
 let conversationPersistence: SqliteConversationPersistence | null = null
+let achievementEngine: AchievementEngine | null = null
+let achievementRepo: SqliteAchievementRepository | null = null
+let cosmeticRepo: SqliteCosmeticRepository | null = null
 let dependenciesInitialized = false
 
 export function setChatDependencies(
   engine: ProgressionEngine,
   quest: QuestEngine,
-  persistence: SqliteConversationPersistence
+  persistence: SqliteConversationPersistence,
+  achievements: AchievementEngine,
+  achievRepo: SqliteAchievementRepository,
+  cosmetic: SqliteCosmeticRepository
 ): void {
   progressionEngine = engine
   questEngine = quest
   conversationPersistence = persistence
+  achievementEngine = achievements
+  achievementRepo = achievRepo
+  cosmeticRepo = cosmetic
   dependenciesInitialized = true
 }
 
@@ -477,6 +490,28 @@ async function executeStream(
               tool_use_id: block.id,
               content: result.content
             })
+
+            // Record tool usage for achievements
+            try {
+              if (achievementRepo && achievementEngine) {
+                achievementRepo.recordToolUse('player-1', toolName)
+                const toolResult = achievementEngine.checkToolUse('player-1')
+                if (toolResult.unlocked.length > 0 && !webContents.isDestroyed()) {
+                  for (const a of toolResult.unlocked) {
+                    if (a.cosmeticReward && cosmeticRepo) {
+                      cosmeticRepo.unlock('player-1', a.cosmeticReward)
+                      webContents.send('cosmetics:unlocked', {
+                        cosmeticDefId: a.cosmeticReward,
+                        title: getCosmeticDefinition(a.cosmeticReward)?.title
+                      })
+                    }
+                  }
+                  webContents.send('achievements:unlocked', toolResult.unlocked)
+                }
+              }
+            } catch (err) {
+              console.error('[chat] tool achievement check failed:', err)
+            }
           } else {
             // Path not in approved folders — request user confirmation
             const confirmPayload: ToolConfirmPayload = {
@@ -523,6 +558,28 @@ async function executeStream(
                 tool_use_id: block.id,
                 content: result.content
               })
+
+              // Record tool usage for achievements
+              try {
+                if (achievementRepo && achievementEngine) {
+                  achievementRepo.recordToolUse('player-1', toolName)
+                  const toolResult = achievementEngine.checkToolUse('player-1')
+                  if (toolResult.unlocked.length > 0 && !webContents.isDestroyed()) {
+                    for (const a of toolResult.unlocked) {
+                      if (a.cosmeticReward && cosmeticRepo) {
+                        cosmeticRepo.unlock('player-1', a.cosmeticReward)
+                        webContents.send('cosmetics:unlocked', {
+                          cosmeticDefId: a.cosmeticReward,
+                          title: getCosmeticDefinition(a.cosmeticReward)?.title
+                        })
+                      }
+                    }
+                    webContents.send('achievements:unlocked', toolResult.unlocked)
+                  }
+                }
+              } catch (err) {
+                console.error('[chat] tool achievement check failed:', err)
+              }
             } else {
               // Tool denied
               toolResultBlocks.push({
@@ -626,6 +683,39 @@ async function executeStream(
                     error: questErr instanceof Error ? questErr.message : 'quest-check-failed'
                   })
                 }
+              }
+            }
+
+            // --- Achievement check (progression) ---
+            if (achievementEngine && !webContents.isDestroyed()) {
+              try {
+                const achievementResult = achievementEngine.checkProgression('player-1')
+                if (achievementResult.unlocked.length > 0 && !webContents.isDestroyed()) {
+                  for (const a of achievementResult.unlocked) {
+                    // Unlock cosmetic reward if any
+                    if (a.cosmeticReward && cosmeticRepo) {
+                      cosmeticRepo.unlock('player-1', a.cosmeticReward)
+                      webContents.send('cosmetics:unlocked', {
+                        cosmeticDefId: a.cosmeticReward,
+                        title: getCosmeticDefinition(a.cosmeticReward)?.title
+                      })
+                    }
+                    // Award bonus XP if any
+                    if (a.xpReward && progressionEngine) {
+                      const bonusResult = progressionEngine.awardBonusXP(
+                        a.xpReward,
+                        SKILL_CATEGORIES,
+                        agentId
+                      )
+                      if (bonusResult && !webContents.isDestroyed()) {
+                        webContents.send('progression:xp-awarded', bonusResult)
+                      }
+                    }
+                  }
+                  webContents.send('achievements:unlocked', achievementResult.unlocked)
+                }
+              } catch (err) {
+                console.error('[chat] achievement check failed:', err)
               }
             }
           } catch (err) {

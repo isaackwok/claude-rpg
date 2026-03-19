@@ -108,7 +108,14 @@ app.whenReady().then(() => {
   }
 
   // Wire dependencies into chat and folder manager
-  setChatDependencies(progressionEngine, questEngine, conversationPersistence)
+  setChatDependencies(
+    progressionEngine,
+    questEngine,
+    conversationPersistence,
+    achievementEngine,
+    achievementRepo,
+    cosmeticRepo
+  )
   initFolderManager(folderRepo)
 
   // Progression IPC handlers — let errors propagate so the renderer can handle them
