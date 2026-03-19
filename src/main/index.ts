@@ -28,6 +28,11 @@ import { SqliteFolderRepository } from './db/folder-repository'
 import { ProgressionEngine } from './progression-engine'
 import { SqliteQuestRepository } from './db/quest-repository'
 import { QuestEngine } from './quest-engine'
+import { SqliteAchievementRepository } from './db/achievement-repository'
+import { SqliteCosmeticRepository } from './db/cosmetic-repository'
+import { AchievementEngine } from './achievement-engine'
+import { COSMETIC_DEFINITIONS } from './cosmetic-definitions'
+import type { PlayerCosmetic } from '../shared/cosmetic-types'
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -86,8 +91,11 @@ app.whenReady().then(() => {
   const conversationPersistence = new SqliteConversationPersistence(db)
   const folderRepo = new SqliteFolderRepository(db)
   const questRepo = new SqliteQuestRepository(db)
+  const achievementRepo = new SqliteAchievementRepository(db)
+  const cosmeticRepo = new SqliteCosmeticRepository(db)
   const progressionEngine = new ProgressionEngine(xpRepo, playerRepo, 'player-1')
   const questEngine = new QuestEngine(questRepo)
+  const achievementEngine = new AchievementEngine(achievementRepo, progressionEngine)
 
   // Ensure player exists
   playerRepo.getOrCreate('player-1')
@@ -116,6 +124,108 @@ app.whenReady().then(() => {
   })
   ipcMain.handle('quests:get-board-suggestion', () => {
     return questEngine.getQuestBoardSuggestion('player-1')
+  })
+
+  // Achievement IPC handlers
+  ipcMain.handle('achievements:get-all', () => {
+    return achievementEngine.getAchievements('player-1')
+  })
+
+  // Cosmetic IPC handlers
+  ipcMain.handle('cosmetics:get-all', () => {
+    const unlocked = cosmeticRepo.getAll('player-1')
+    const unlockedMap = new Map(unlocked.map((u) => [u.cosmeticDefId, u]))
+    const result: PlayerCosmetic[] = COSMETIC_DEFINITIONS.map((def) => {
+      const entry = unlockedMap.get(def.id)
+      return {
+        cosmeticDefId: def.id,
+        unlocked: !!entry,
+        unlockedAt: entry?.unlockedAt,
+        equipped: entry?.equipped ?? false,
+        definition: def
+      }
+    })
+    return result
+  })
+
+  ipcMain.handle('cosmetics:equip', (_e, cosmeticDefId: string) => {
+    cosmeticRepo.equip('player-1', cosmeticDefId)
+    const unlocked = cosmeticRepo.getAll('player-1')
+    const unlockedMap = new Map(unlocked.map((u) => [u.cosmeticDefId, u]))
+    const updated: PlayerCosmetic[] = COSMETIC_DEFINITIONS.map((def) => {
+      const entry = unlockedMap.get(def.id)
+      return {
+        cosmeticDefId: def.id,
+        unlocked: !!entry,
+        unlockedAt: entry?.unlockedAt,
+        equipped: entry?.equipped ?? false,
+        definition: def
+      }
+    })
+    BrowserWindow.getAllWindows()[0]?.webContents.send('cosmetics:updated', updated)
+  })
+
+  ipcMain.handle('cosmetics:unequip', (_e, cosmeticDefId: string) => {
+    cosmeticRepo.unequip('player-1', cosmeticDefId)
+    const unlocked = cosmeticRepo.getAll('player-1')
+    const unlockedMap = new Map(unlocked.map((u) => [u.cosmeticDefId, u]))
+    const updated: PlayerCosmetic[] = COSMETIC_DEFINITIONS.map((def) => {
+      const entry = unlockedMap.get(def.id)
+      return {
+        cosmeticDefId: def.id,
+        unlocked: !!entry,
+        unlockedAt: entry?.unlockedAt,
+        equipped: entry?.equipped ?? false,
+        definition: def
+      }
+    })
+    BrowserWindow.getAllWindows()[0]?.webContents.send('cosmetics:updated', updated)
+  })
+
+  ipcMain.handle('cosmetics:place', (_e, cosmeticDefId: string, tileX: number, tileY: number) => {
+    cosmeticRepo.placeDecoration('player-1', cosmeticDefId, tileX, tileY)
+  })
+
+  ipcMain.handle('cosmetics:remove', (_e, cosmeticDefId: string) => {
+    cosmeticRepo.removeDecoration('player-1', cosmeticDefId)
+  })
+
+  ipcMain.handle('cosmetics:get-placements', () => {
+    return cosmeticRepo.getPlacements('player-1')
+  })
+
+  // Zone visit tracking
+  ipcMain.handle('zone:record-visit', (_e, zoneId: string) => {
+    achievementRepo.recordZoneVisit('player-1', zoneId)
+    const result = achievementEngine.checkExploration('player-1')
+    const win = BrowserWindow.getAllWindows()[0]
+    if (result.unlocked.length > 0) {
+      win?.webContents.send('achievements:unlocked', result.unlocked)
+      for (const achievement of result.unlocked) {
+        if (achievement.cosmeticReward) {
+          cosmeticRepo.unlock('player-1', achievement.cosmeticReward)
+          win?.webContents.send('cosmetics:unlocked', { cosmeticDefId: achievement.cosmeticReward })
+        }
+      }
+    }
+  })
+
+  // Player position persistence
+  ipcMain.handle('player:save-position', (_e, scene: string, x: number, y: number) => {
+    db.prepare('UPDATE players SET last_scene = ?, last_x = ?, last_y = ? WHERE id = ?').run(
+      scene,
+      x,
+      y,
+      'player-1'
+    )
+  })
+
+  ipcMain.handle('player:get-position', () => {
+    const row = db
+      .prepare('SELECT last_scene, last_x, last_y FROM players WHERE id = ?')
+      .get('player-1') as { last_scene: string | null; last_x: number | null; last_y: number | null } | undefined
+    if (!row || row.last_x === null || row.last_y === null) return null
+    return { scene: row.last_scene, x: row.last_x, y: row.last_y }
   })
 
   ipcMain.handle('conversations:get-history', (_event, agentId: string) => {
