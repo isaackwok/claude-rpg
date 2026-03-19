@@ -179,6 +179,50 @@
     "error": "Failed to load suggestion",
     "empty": "No suggestions yet"
   },
+  "achievements": {
+    "title": "Achievements",
+    "count": "{{unlocked}} / {{total}} Unlocked",
+    "categories": {
+      "progression": "Progression",
+      "exploration": "Exploration",
+      "tool_use": "Tools"
+    },
+    "unlocked": "Unlocked",
+    "locked": "Locked",
+    "notification": "{{title}} — Unlocked!",
+    "notificationWithCosmetic": "{{title}} — {{cosmetic}} Unlocked!"
+  },
+  "cosmetics": {
+    "title": "Cosmetics",
+    "count": "{{unlocked}} / {{total}} Unlocked",
+    "tabs": {
+      "overlays": "Overlays",
+      "decorations": "Home"
+    },
+    "equip": "Equip",
+    "equipped": "Equipped",
+    "unequip": "Unequip",
+    "place": "Place",
+    "slots": {
+      "hat": "Hat",
+      "cape": "Cape",
+      "aura": "Aura"
+    },
+    "preview": "Preview",
+    "equippedSlots": "Equipped",
+    "source": "From {{achievement}}",
+    "locked": "Unlock: {{achievement}}"
+  },
+  "home": {
+    "title": "My Home",
+    "decorate": "Decorate Mode",
+    "decorateHint": "Press D to decorate",
+    "exitDecorate": "Press D or Esc to exit",
+    "placementInvalid": "Cannot place here"
+  },
+  "scene": {
+    "transitioning": "Transitioning..."
+  },
   "npcs": {
     "elder": "Elder Edmond",
     "guildMaster": "Guild Master Nile",

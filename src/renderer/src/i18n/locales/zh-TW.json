@@ -179,6 +179,50 @@
     "error": "無法載入建議",
     "empty": "暫無建議"
   },
+  "achievements": {
+    "title": "成就",
+    "count": "{{unlocked}} / {{total}} 已解鎖",
+    "categories": {
+      "progression": "成長",
+      "exploration": "探索",
+      "tool_use": "工具"
+    },
+    "unlocked": "已解鎖",
+    "locked": "未解鎖",
+    "notification": "{{title}} — 已解鎖！",
+    "notificationWithCosmetic": "{{title}} — {{cosmetic}} 已解鎖！"
+  },
+  "cosmetics": {
+    "title": "裝飾",
+    "count": "{{unlocked}} / {{total}} 已解鎖",
+    "tabs": {
+      "overlays": "穿戴",
+      "decorations": "家居"
+    },
+    "equip": "裝備",
+    "equipped": "裝備中",
+    "unequip": "卸下",
+    "place": "放置",
+    "slots": {
+      "hat": "帽子",
+      "cape": "披風",
+      "aura": "光環"
+    },
+    "preview": "預覽",
+    "equippedSlots": "裝備中",
+    "source": "{{achievement}} 解鎖",
+    "locked": "{{achievement}} 解鎖"
+  },
+  "home": {
+    "title": "我的家",
+    "decorate": "裝飾模式",
+    "decorateHint": "按 D 進入裝飾模式",
+    "exitDecorate": "按 D 或 Esc 退出",
+    "placementInvalid": "無法放置於此"
+  },
+  "scene": {
+    "transitioning": "移動中..."
+  },
   "npcs": {
     "elder": "長老 艾德蒙",
     "guildMaster": "會長 乃爾",
