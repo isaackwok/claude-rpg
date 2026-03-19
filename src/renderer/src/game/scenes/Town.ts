@@ -47,7 +47,12 @@ export class Town extends BaseScene {
     if (!data?.fromScene) {
       window.api?.getPosition().then((pos) => {
         if (pos && pos.scene === 'Town' && pos.x != null && pos.y != null) {
-          this.player.setPosition(pos.x, pos.y)
+          // Clamp to map bounds to prevent spawning outside the playable area
+          const mapW = map.widthInPixels
+          const mapH = map.heightInPixels
+          const safeX = Math.max(16, Math.min(pos.x, mapW - 16))
+          const safeY = Math.max(16, Math.min(pos.y, mapH - 16))
+          this.player.setPosition(safeX, safeY)
         } else if (pos && pos.scene === 'Home') {
           this.transitionToScene('Home')
         }

@@ -66,9 +66,11 @@ export abstract class BaseScene extends Scene {
   protected setupCamera(mapWidth: number, mapHeight: number): void {
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1)
     this.cameras.main.setBounds(0, 0, mapWidth, mapHeight)
-    this.physics.world.setBounds(0, 0, mapWidth, mapHeight)
+    // Don't re-set physics world bounds here — subclasses may set them before calling setupCamera
     this.cameras.main.setBackgroundColor('#1a1a2e')
     this.cameras.main.setZoom(2)
+    // Center the camera on small maps that are smaller than the viewport
+    this.cameras.main.centerOn(mapWidth / 2, mapHeight / 2)
   }
 
   /**
@@ -135,7 +137,8 @@ export abstract class BaseScene extends Scene {
     if (this._transitioning) return
     this._transitioning = true
 
-    void window.api?.savePosition(targetScene, spawnX ?? 0, spawnY ?? 0)
+    // Save the current scene + current player position (not the target)
+    void window.api?.savePosition(this.scene.key, this.player?.x ?? 0, this.player?.y ?? 0)
 
     this.cameras.main.fadeOut(300, 0, 0, 0)
     this.cameras.main.once('camerafadeoutcomplete', () => {
@@ -146,6 +149,8 @@ export abstract class BaseScene extends Scene {
 
   /** Fade the camera in over 300 ms. Call at the end of `create()`. */
   protected fadeIn(): void {
+    // Reset camera alpha in case previous scene left it faded out
+    this.cameras.main.resetFX()
     this.cameras.main.fadeIn(300)
   }
 
