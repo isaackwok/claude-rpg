@@ -112,10 +112,9 @@ export interface PersistedMessage {
 
 // ── Quest types (Phase 3B) ──────────────────────────────────────
 
-/** Quest visibility in the backpack */
+/** Quest discovery state: 'hinted' shows only a cryptic clue; 'visible' reveals full details. */
 export type QuestVisibility = 'hinted' | 'visible'
 
-/** Quest status */
 export type QuestStatus = 'active' | 'completed'
 
 /** Quest trigger — discriminated union ensuring skillCategory is required only for category_count */
@@ -132,22 +131,27 @@ export interface QuestPrecondition {
   threshold: number
 }
 
-/** Static quest definition (code constant) */
-export interface QuestDefinition {
+/** Immutable quest definition. Instances live in QUEST_DEFINITIONS (quest-definitions.ts).
+ * Discriminated on initialVisibility: hidden quests require a precondition to be discovered. */
+interface QuestDefinitionBase {
   id: string
   name: LocalizedString
   description: LocalizedString
-  hintText?: LocalizedString
   icon: string
-  initialVisibility: 'visible' | 'hidden'
-  precondition?: QuestPrecondition
   trigger: QuestTrigger
   xpReward: number
   skillCategories: SkillCategory[]
   repeatable: boolean
 }
 
-/** Player's quest state (DB row + computed progress) */
+export type QuestDefinition = QuestDefinitionBase &
+  (
+    | { initialVisibility: 'visible' }
+    | { initialVisibility: 'hidden'; precondition: QuestPrecondition; hintText?: LocalizedString }
+  )
+
+/** Player's quest state. Combines the persisted quest row (from the quests table)
+ * with progress computed at runtime from xp_ledger counters. */
 export interface PlayerQuest {
   id: string
   questDefId: string
@@ -156,7 +160,7 @@ export interface PlayerQuest {
   repeatCount: number
   discoveredAt: number
   completedAt: number | null
-  // Computed from definition + xp_ledger:
+  // Computed fields:
   definition: QuestDefinition
   progress: number // current count toward trigger
   target: number // trigger threshold

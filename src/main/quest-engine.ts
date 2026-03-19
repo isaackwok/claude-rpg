@@ -1,4 +1,5 @@
 import type {
+  AgentId,
   QuestCheckResult,
   PlayerQuest,
   QuestBoardSuggestion,
@@ -11,20 +12,21 @@ import { SKILL_CATEGORIES } from '../shared/types'
 import { QUEST_DEFINITIONS, getQuestDefinition } from './quest-definitions'
 import type { SqliteQuestRepository } from './db/quest-repository'
 
-const SKILL_TO_NPC: Record<SkillCategory, { name: LocalizedString; agentId: string }> = {
-  writing: { name: { 'zh-TW': '書記官雷文', en: 'Scribe Raven' }, agentId: 'scribe' },
-  research: { name: { 'zh-TW': '學者索菲亞', en: 'Scholar Sofia' }, agentId: 'scholar' },
-  code: { name: { 'zh-TW': '法師瑪琳', en: 'Wizard Merlin' }, agentId: 'wizard' },
-  data: { name: { 'zh-TW': '商人馬可', en: 'Merchant Marco' }, agentId: 'merchant' },
+// NPC names must match canonical data in src/renderer/src/game/data/npcs.ts
+const SKILL_TO_NPC: Record<SkillCategory, { name: LocalizedString; agentId: AgentId }> = {
+  writing: { name: { 'zh-TW': '書記官 雷文', en: 'Scribe Raven' }, agentId: 'scribe' },
+  research: { name: { 'zh-TW': '學者 索菲亞', en: 'Scholar Sophia' }, agentId: 'scholar' },
+  code: { name: { 'zh-TW': '巫師 瑪琳', en: 'Wizard Merlin' }, agentId: 'wizard' },
+  data: { name: { 'zh-TW': '商人 馬可', en: 'Merchant Marco' }, agentId: 'merchant' },
   communication: {
-    name: { 'zh-TW': '傳令官娜歐蜜', en: 'Herald Naomi' },
+    name: { 'zh-TW': '傳令使 娜歐蜜', en: 'Herald Naomi' },
     agentId: 'herald'
   },
   organization: {
-    name: { 'zh-TW': '指揮官乃歐', en: 'Commander Neo' },
+    name: { 'zh-TW': '指揮官 乃歐', en: 'Commander Neo' },
     agentId: 'commander'
   },
-  visual: { name: { 'zh-TW': '工匠艾瑞絲', en: 'Artisan Iris' }, agentId: 'artisan' }
+  visual: { name: { 'zh-TW': '匠師 艾瑞絲', en: 'Artisan Iris' }, agentId: 'artisan' }
 }
 
 const SKILL_NAMES: Record<SkillCategory, Record<string, string>> = {
@@ -180,13 +182,12 @@ export class QuestEngine {
       .filter((q): q is PlayerQuest => q !== null)
   }
 
-  /** Look up a quest definition by ID. */
   getQuestDef(id: string): import('../shared/types').QuestDefinition | undefined {
     return getQuestDefinition(id)
   }
 
   /** Get quest board suggestion based on weakest skill. When tied, picks first in SKILL_CATEGORIES order. */
-  getQuestBoardSuggestion(playerId: string): QuestBoardSuggestion | null {
+  getQuestBoardSuggestion(playerId: string): QuestBoardSuggestion {
     const counts = this.questRepo.getConversationCounts(playerId)
     let weakest: SkillCategory = SKILL_CATEGORIES[0]
     let minCount = Infinity

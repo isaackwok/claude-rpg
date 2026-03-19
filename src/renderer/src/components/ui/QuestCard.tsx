@@ -27,8 +27,8 @@ export function QuestCard({ quest }: QuestCardProps) {
     locale === 'zh-TW' ? def.name['en'] : locale === 'en' ? def.name['zh-TW'] : ''
   const description = def.description[locale] ?? def.description['zh-TW'] ?? ''
 
-  // Hinted (mystery) card
-  if (isHinted && def.hintText) {
+  // Hinted (mystery) card — only hidden quests have hintText
+  if (isHinted && def.initialVisibility === 'hidden' && def.hintText) {
     const hint = def.hintText[locale] ?? def.hintText['zh-TW'] ?? ''
     return (
       <div

@@ -574,22 +574,31 @@ async function executeStream(
                     webContents.send('quests:discovered', d)
                   }
                 }
-                // Award quest completion XP (empty skillCategories → spread across all)
+                // Award quest completion XP per quest (isolated — one failure won't block others)
                 if (questResult.completed.length > 0 && progressionEngine) {
                   for (const c of questResult.completed) {
-                    const def = questEngine.getQuestDef(c.questDefId)
-                    const categories =
-                      def && def.skillCategories.length > 0 ? def.skillCategories : SKILL_CATEGORIES
-                    const bonusResult = progressionEngine.awardBonusXP(
-                      c.xpReward,
-                      categories,
-                      agentId
-                    )
-                    if (!webContents.isDestroyed()) {
-                      webContents.send('progression:xp-awarded', {
-                        ...bonusResult,
+                    try {
+                      const def = questEngine.getQuestDef(c.questDefId)
+                      const categories =
+                        def && def.skillCategories.length > 0
+                          ? def.skillCategories
+                          : SKILL_CATEGORIES
+                      const bonusResult = progressionEngine.awardBonusXP(
+                        c.xpReward,
+                        categories,
                         agentId
-                      })
+                      )
+                      if (!webContents.isDestroyed()) {
+                        webContents.send('progression:xp-awarded', {
+                          ...bonusResult,
+                          agentId
+                        })
+                      }
+                    } catch (bonusErr) {
+                      console.error(
+                        `[chat] Failed to award bonus XP for quest ${c.questDefId}:`,
+                        bonusErr
+                      )
                     }
                   }
                 }
@@ -604,6 +613,11 @@ async function executeStream(
                 }
               } catch (questErr) {
                 console.error(`[chat] Failed to check quests:`, questErr)
+                if (!webContents.isDestroyed()) {
+                  webContents.send('quests:error', {
+                    error: questErr instanceof Error ? questErr.message : 'quest-check-failed'
+                  })
+                }
               }
             }
           } catch (err) {

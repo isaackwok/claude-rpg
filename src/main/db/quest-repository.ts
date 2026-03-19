@@ -54,21 +54,30 @@ export class SqliteQuestRepository {
     return rows
   }
 
+  /** Mark quest as completed and increment repeat_count (side effect: bumps counter for repeatable tracking). */
   complete(questId: string, completedAt: number): void {
-    this.db
+    const result = this.db
       .prepare(
         `UPDATE quests SET status = 'completed', completed_at = ?, repeat_count = repeat_count + 1
          WHERE id = ?`
       )
       .run(completedAt, questId)
+    if (result.changes === 0) {
+      throw new Error(`[quest-repo] Quest ${questId} not found — cannot mark as completed`)
+    }
   }
 
+  /** Reset a repeatable quest back to active. Preserves repeat_count but clears completed_at. */
   resetForRepeat(questId: string): void {
-    this.db
+    const result = this.db
       .prepare(`UPDATE quests SET status = 'active', completed_at = NULL WHERE id = ?`)
       .run(questId)
+    if (result.changes === 0) {
+      throw new Error(`[quest-repo] Quest ${questId} not found — cannot reset for repeat`)
+    }
   }
 
+  /** Get per-category conversation counts. Reads from xp_ledger (not quest tables). */
   getConversationCounts(playerId: string): Record<SkillCategory, number> {
     const rows = this.db
       .prepare(

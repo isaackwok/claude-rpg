@@ -53,13 +53,14 @@ interface ChatAPI {
   getConversationHistory(agentId: string): Promise<PersistedMessage[]>
   // Quests
   getQuests(): Promise<PlayerQuest[]>
-  getQuestBoardSuggestion(): Promise<QuestBoardSuggestion | null>
+  getQuestBoardSuggestion(): Promise<QuestBoardSuggestion>
   onQuestsUpdated(
     callback: (data: { quests: PlayerQuest[]; completed?: CompletedQuest[] }) => void
   ): () => void
   onQuestDiscovered(
     callback: (data: { questDefId: string; visibility: QuestVisibility }) => void
   ): () => void
+  onQuestsError(callback: (data: { error: string }) => void): () => void
 }
 
 declare global {

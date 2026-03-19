@@ -115,7 +115,7 @@ const api = {
   // Quests
   getQuests: (): Promise<import('../shared/types').PlayerQuest[]> =>
     ipcRenderer.invoke('quests:get-all'),
-  getQuestBoardSuggestion: (): Promise<import('../shared/types').QuestBoardSuggestion | null> =>
+  getQuestBoardSuggestion: (): Promise<import('../shared/types').QuestBoardSuggestion> =>
     ipcRenderer.invoke('quests:get-board-suggestion'),
   onQuestsUpdated: (
     callback: (data: {
@@ -145,6 +145,11 @@ const api = {
     ): void => callback(data)
     ipcRenderer.on('quests:discovered', handler)
     return () => ipcRenderer.removeListener('quests:discovered', handler)
+  },
+  onQuestsError: (callback: (data: { error: string }) => void): (() => void) => {
+    const handler = (_event: unknown, data: { error: string }): void => callback(data)
+    ipcRenderer.on('quests:error', handler)
+    return () => ipcRenderer.removeListener('quests:error', handler)
   }
 }
 

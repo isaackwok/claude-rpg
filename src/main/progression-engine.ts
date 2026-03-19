@@ -207,7 +207,13 @@ export class ProgressionEngine {
     return Math.floor(Math.sqrt(totalXP / 100))
   }
 
-  /** Compute title from the top 2 skill categories by XP. Returns DEFAULT_TITLE if < 2 categories have XP. Adds tier prefix when overallLevel >= 5. */
+  /**
+   * Compute title from the top 2 skill categories by XP.
+   * - Primary category determines the noun (e.g., "Wordsmith")
+   * - Secondary category determines the adjective (e.g., "Learned")
+   * - Returns DEFAULT_TITLE if fewer than 2 categories have XP
+   * - Prepends tier prefix (Apprentice/Skilled/Veteran/Legendary) when overallLevel >= 5
+   */
   static computeTitle(
     skills: Record<SkillCategory, number>,
     overallLevel?: number

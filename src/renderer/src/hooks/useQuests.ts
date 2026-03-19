@@ -49,13 +49,18 @@ export function useQuests() {
       }
     )
 
+    const cleanupError = window.api.onQuestsError((data: { error: string }) => {
+      setError(data.error)
+    })
+
     return () => {
       cleanupUpdated()
       cleanupDiscovered()
+      cleanupError()
     }
   }, [refresh])
 
-  // Badge shows quests with actual progress (not just seeded-but-untouched)
+  // Count quests with actual progress (excludes seeded-but-untouched quests)
   const activeCount = quests.filter((q) => q.status === 'active' && q.progress > 0).length
   const completedCount = quests.filter((q) => q.status === 'completed').length
 
