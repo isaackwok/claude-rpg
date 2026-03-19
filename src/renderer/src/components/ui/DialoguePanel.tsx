@@ -15,6 +15,7 @@ import { conversationManager } from '../../services/ConversationManager'
 import type { Conversation, Message } from '../../services/ConversationManager'
 import type { AgentId } from '../../game/types'
 import { renderMarkdown } from '../../utils/renderMarkdown'
+import { resolveNpcName } from '../../utils/itemUtils'
 import { ToolConfirmDialog } from './ToolConfirmDialog'
 import { BookPickerModal } from './BookPickerModal'
 import { CloseButton } from './CloseButton'
@@ -588,8 +589,7 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
   // Open dialogue on NPC interact
   useEffect(() => {
     const handler = (data: { agentId: string }): void => {
-      const npc = BUILT_IN_NPCS.find((n) => n.id === data.agentId)
-      const npcName = npc?.name[locale] ?? npc?.name['zh-TW'] ?? data.agentId
+      const npcName = resolveNpcName(data.agentId, locale)
 
       // Capture unread state before setActiveDialogue clears hasUnread
       const conv = conversationManager.getConversation(data.agentId)
@@ -828,8 +828,7 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
                 msg.role === 'assistant'
                   ? async () => {
                       const npcDef = BUILT_IN_NPCS.find((n) => n.id === dialogue.agentId)
-                      const npcName =
-                        npcDef?.name[locale] ?? npcDef?.name['zh-TW'] ?? dialogue.agentId
+                      const npcName = resolveNpcName(dialogue.agentId, locale)
                       const prevQuestion =
                         messages
                           .slice(0, i)

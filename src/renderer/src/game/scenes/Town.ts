@@ -3,6 +3,7 @@ import { BUILT_IN_NPCS } from '../data/npcs'
 import { EventBus } from '../EventBus'
 import type { SkillCategory } from '../types'
 import { t } from '../../i18n'
+import { CATEGORY_COLORS } from '../../utils/itemUtils'
 import { BaseScene } from './BaseScene'
 
 export class Town extends BaseScene {
@@ -271,16 +272,7 @@ export class Town extends BaseScene {
   }
 
   private getSkillColor(category: SkillCategory): string {
-    const colors: Record<SkillCategory, string> = {
-      writing: '#e8b44c',
-      research: '#5bb5e8',
-      code: '#a78bfa',
-      data: '#4ade80',
-      communication: '#f472b6',
-      organization: '#fb923c',
-      visual: '#c084fc'
-    }
-    return colors[category] ?? '#c4a46c'
+    return CATEGORY_COLORS[category] ?? '#c4a46c'
   }
 
   private getSkillIcon(category: SkillCategory): string {

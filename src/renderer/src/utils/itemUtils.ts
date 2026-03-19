@@ -1,7 +1,8 @@
+import type { ItemCategory } from '../../../shared/item-types'
 import { BUILT_IN_NPCS } from '../game/data/npcs'
 
 /** Skill category → display color mapping. Shared across all inventory/quest UI. */
-export const CATEGORY_COLORS: Record<string, string> = {
+export const CATEGORY_COLORS: Record<ItemCategory, string> = {
   writing: '#e8b44c',
   research: '#5bb5e8',
   code: '#a78bfa',
@@ -25,7 +26,7 @@ const CATEGORY_I18N: Record<string, string> = {
 }
 
 /** Get the i18n-translated label for a skill category. */
-export function categoryLabel(category: string, t: (key: string) => string): string {
+export function categoryLabel(category: ItemCategory, t: (key: string) => string): string {
   const key = CATEGORY_I18N[category]
   return key ? t(key) : category
 }
