@@ -41,45 +41,35 @@ export function ItemNotification() {
   if (toasts.length === 0) return null
 
   return (
-    <>
-      <style>{`
-        @keyframes fadeInOut {
-          0% { opacity: 0; transform: translateY(-8px); }
-          15% { opacity: 1; transform: translateY(0); }
-          85% { opacity: 1; }
-          100% { opacity: 0; }
-        }
-      `}</style>
-      <div
-        style={{
-          position: 'absolute',
-          top: 100,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 8,
-          pointerEvents: 'none',
-          zIndex: 250
-        }}
-      >
-        {toasts.map((toast) => (
-          <div
-            key={toast.id}
-            style={{
-              fontFamily: 'monospace',
-              fontSize: 14,
-              fontWeight: 'bold',
-              color: '#e8d5a8',
-              textShadow: '0 2px 4px rgba(0, 0, 0, 0.8)',
-              textAlign: 'center',
-              animation: 'fadeInOut 3s ease-in-out'
-            }}
-          >
-            {`🎒 ${t('dialogue.addedToBackpack', { name: toast.bookName })}`}
-          </div>
-        ))}
-      </div>
-    </>
+    <div
+      style={{
+        position: 'absolute',
+        top: 100,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+        pointerEvents: 'none',
+        zIndex: 250
+      }}
+    >
+      {toasts.map((toast) => (
+        <div
+          key={toast.id}
+          style={{
+            fontFamily: 'monospace',
+            fontSize: 14,
+            fontWeight: 'bold',
+            color: '#e8d5a8',
+            textShadow: '0 2px 4px rgba(0, 0, 0, 0.8)',
+            textAlign: 'center',
+            animation: 'fadeInOut 3s ease-in-out'
+          }}
+        >
+          {`🎒 ${t('dialogue.addedToBackpack', { name: toast.bookName })}`}
+        </div>
+      ))}
+    </div>
   )
 }

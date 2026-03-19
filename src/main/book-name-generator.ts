@@ -1,5 +1,5 @@
-import Anthropic from '@anthropic-ai/sdk'
 import { getApiKey } from './api-key'
+import { getOrCreateClient } from './chat'
 
 /** Strip markdown formatting and truncate for preview text. */
 export function stripMarkdown(text: string, maxLength = 100): string {
@@ -37,7 +37,7 @@ export async function generateBookName(
   }
 
   try {
-    const client = new Anthropic({ apiKey })
+    const client = getOrCreateClient(apiKey)
     const snippet = content.slice(0, 500)
 
     const formatExample =

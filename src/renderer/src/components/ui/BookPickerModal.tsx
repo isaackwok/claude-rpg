@@ -1,21 +1,9 @@
 import { useState } from 'react'
 import { useTranslation } from '../../i18n'
 import { useItems } from '../../hooks/useItems'
-import { BUILT_IN_NPCS } from '../../game/data/npcs'
+import { CATEGORY_COLORS, categoryLabel, resolveNpcName } from '../../utils/itemUtils'
 import { CloseButton } from './CloseButton'
-import { categoryLabel } from './ItemsTab'
 import type { BookItem } from '../../../../shared/item-types'
-
-const CATEGORY_COLORS: Record<string, string> = {
-  writing: '#e8b44c',
-  research: '#5bb5e8',
-  code: '#a78bfa',
-  data: '#4ade80',
-  communication: '#f472b6',
-  organization: '#fb923c',
-  visual: '#c084fc',
-  general: '#888'
-}
 
 interface BookPickerModalProps {
   onAttach: (books: BookItem[]) => void
@@ -170,10 +158,7 @@ export function BookPickerModal({ onAttach, onClose }: BookPickerModalProps): Re
           )}
           {filtered.map((book) => {
             const isSelected = selected.has(book.id)
-            const npcName =
-              BUILT_IN_NPCS.find((n) => n.id === book.sourceAgentId)?.name[locale] ??
-              BUILT_IN_NPCS.find((n) => n.id === book.sourceAgentId)?.name['zh-TW'] ??
-              book.sourceAgentId
+            const npcName = resolveNpcName(book.sourceAgentId, locale)
             return (
               <button
                 key={book.id}

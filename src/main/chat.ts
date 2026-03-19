@@ -59,7 +59,7 @@ async function streamTextWithDelay(
 
 let cachedClient: { apiKey: string; client: Anthropic } | null = null
 
-function getOrCreateClient(apiKey: string): Anthropic {
+export function getOrCreateClient(apiKey: string): Anthropic {
   if (cachedClient && cachedClient.apiKey === apiKey) {
     return cachedClient.client
   }

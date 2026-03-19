@@ -26,31 +26,25 @@ export function useItems(): {
     }
   }, [])
 
-  const updateName = useCallback(
-    async (itemId: string, name: string) => {
-      try {
-        await window.api.updateItemName(itemId, name)
-        await refresh()
-      } catch (err) {
-        console.error('[useItems] Failed to update item name:', err)
-        setError(err instanceof Error ? err.message : 'item-update-failed')
-      }
-    },
-    [refresh]
-  )
+  const updateName = useCallback(async (itemId: string, name: string) => {
+    try {
+      await window.api.updateItemName(itemId, name)
+      // IPC push (items:updated) triggers refresh automatically
+    } catch (err) {
+      console.error('[useItems] Failed to update item name:', err)
+      setError(err instanceof Error ? err.message : 'item-update-failed')
+    }
+  }, [])
 
-  const deleteItem = useCallback(
-    async (itemId: string) => {
-      try {
-        await window.api.deleteItem(itemId)
-        await refresh()
-      } catch (err) {
-        console.error('[useItems] Failed to delete item:', err)
-        setError(err instanceof Error ? err.message : 'item-delete-failed')
-      }
-    },
-    [refresh]
-  )
+  const deleteItem = useCallback(async (itemId: string) => {
+    try {
+      await window.api.deleteItem(itemId)
+      // IPC push (items:updated) triggers refresh automatically
+    } catch (err) {
+      console.error('[useItems] Failed to delete item:', err)
+      setError(err instanceof Error ? err.message : 'item-delete-failed')
+    }
+  }, [])
 
   useEffect(() => {
     refresh()

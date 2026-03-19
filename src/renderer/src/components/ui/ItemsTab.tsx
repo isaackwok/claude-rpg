@@ -1,34 +1,8 @@
 import { useState } from 'react'
 import { useTranslation } from '../../i18n'
+import { CATEGORY_COLORS, categoryLabel } from '../../utils/itemUtils'
 import { BookDetailModal } from './BookDetailModal'
 import type { Item, BookItem } from '../../../../shared/item-types'
-
-const CATEGORY_COLORS: Record<string, string> = {
-  writing: '#e8b44c',
-  research: '#5bb5e8',
-  code: '#a78bfa',
-  data: '#4ade80',
-  communication: '#f472b6',
-  organization: '#fb923c',
-  visual: '#c084fc',
-  general: '#888'
-}
-
-const CATEGORY_I18N: Record<string, string> = {
-  writing: 'items.categoryWriting',
-  research: 'items.categoryResearch',
-  code: 'items.categoryCode',
-  data: 'items.categoryData',
-  communication: 'items.categoryCommunication',
-  organization: 'items.categoryOrganization',
-  visual: 'items.categoryVisual',
-  general: 'items.categoryGeneral'
-}
-
-export function categoryLabel(category: string, t: (key: string) => string): string {
-  const key = CATEGORY_I18N[category]
-  return key ? t(key) : category
-}
 
 interface ItemsTabProps {
   items: Item[]
