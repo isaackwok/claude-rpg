@@ -51,7 +51,7 @@ export async function generateBookName(
       messages: [
         {
           role: 'user',
-          content: `Generate ONE short RPG book name (under 20 characters) in ${locale}. ${formatExample}\nRespond with ONLY the name, nothing else.\n\nContent:\n${snippet}`
+          content: `Generate ONE short RPG book name (under 20 characters, one line only, no explanation) in ${locale}. ${formatExample}\nRespond with ONLY the name on a single line, nothing else.\n\nContent:\n${snippet}`
         }
       ]
     })
