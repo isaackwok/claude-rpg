@@ -756,9 +756,17 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
     setAttachments([])
     setUnreadDividerIndex(null)
     userScrolledRef.current = false
+    // Build display text with attachment labels
+    let displayText = text
+    if (attachments.length > 0) {
+      const labels = attachments.map((att) =>
+        att.type === 'book' ? `📖 ${att.book.name}` : `📁 ${att.path.split('/').pop() ?? att.path}`
+      )
+      displayText = labels.join('  ') + (text ? '\n' + text : '')
+    }
     conversationManager.appendMessage(dialogue.agentId, {
       role: 'user',
-      content: text,
+      content: displayText,
       timestamp: Date.now()
     })
     conversationManager.markWaiting(dialogue.agentId)
