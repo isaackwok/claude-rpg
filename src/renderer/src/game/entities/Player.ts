@@ -6,12 +6,6 @@ const SPEED = 160
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
-  private wasd!: {
-    W: Phaser.Input.Keyboard.Key
-    A: Phaser.Input.Keyboard.Key
-    S: Phaser.Input.Keyboard.Key
-    D: Phaser.Input.Keyboard.Key
-  }
   private lastX = 0
   private lastY = 0
   private overlays: Map<OverlayLayer, Phaser.GameObjects.Sprite> = new Map()
@@ -28,12 +22,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     body.setCollideWorldBounds(true)
 
     this.cursors = scene.input.keyboard!.createCursorKeys()
-    this.wasd = {
-      W: scene.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.W),
-      A: scene.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.A),
-      S: scene.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.S),
-      D: scene.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.D)
-    }
 
     this.lastX = x
     this.lastY = y
@@ -43,10 +31,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const body = this.body as Phaser.Physics.Arcade.Body
     body.setVelocity(0)
 
-    const left = this.cursors.left.isDown || this.wasd.A.isDown
-    const right = this.cursors.right.isDown || this.wasd.D.isDown
-    const up = this.cursors.up.isDown || this.wasd.W.isDown
-    const down = this.cursors.down.isDown || this.wasd.S.isDown
+    const left = this.cursors.left.isDown
+    const right = this.cursors.right.isDown
+    const up = this.cursors.up.isDown
+    const down = this.cursors.down.isDown
 
     if (left) {
       body.setVelocityX(-SPEED)

@@ -106,10 +106,6 @@ export abstract class BaseScene extends Scene {
     const kb = this.input.keyboard!
     const keys = [
       Phaser.Input.Keyboard.KeyCodes.SPACE,
-      Phaser.Input.Keyboard.KeyCodes.W,
-      Phaser.Input.Keyboard.KeyCodes.A,
-      Phaser.Input.Keyboard.KeyCodes.S,
-      Phaser.Input.Keyboard.KeyCodes.D,
       Phaser.Input.Keyboard.KeyCodes.UP,
       Phaser.Input.Keyboard.KeyCodes.DOWN,
       Phaser.Input.Keyboard.KeyCodes.LEFT,
@@ -174,9 +170,15 @@ export abstract class BaseScene extends Scene {
 
   /** Fade the camera in over 300 ms. Call at the end of `create()`. */
   protected fadeIn(): void {
+    // Block player movement during the fade-in animation
+    this._transitioning = true
+
     // Reset camera alpha in case previous scene left it faded out
     this.cameras.main.resetFX()
     this.cameras.main.fadeIn(300)
+    this.cameras.main.once('camerafadeincomplete', () => {
+      this._transitioning = false
+    })
   }
 
   /**
