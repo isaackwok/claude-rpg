@@ -104,6 +104,8 @@ export function setChatDependencies(
 }
 
 const pendingPathApprovals = new Map<AgentId, PendingPathApproval>()
+/** Paths approved via "allow once" — valid for the session, not persisted to disk. */
+const oneTimeApprovedPaths = new Set<string>()
 const pendingQueue: Array<{
   agentId: AgentId
   message: string
@@ -263,7 +265,9 @@ async function checkAndApproveMessagePaths(
   const paths = extractMessagePaths(message)
   if (paths.length === 0) return message
 
-  const unapproved = paths.filter((p) => !isPathApproved(p))
+  const unapproved = paths.filter(
+    (p) => !isPathApproved(p) && !oneTimeApprovedPaths.has(resolve(normalize(p)))
+  )
   if (unapproved.length === 0) return message
 
   // Stream a NPC-style response character by character for a natural typing feel
@@ -328,6 +332,9 @@ async function checkAndApproveMessagePaths(
 export function handlePathApproved(agentId: string, path: string, addToApproved?: string): void {
   if (addToApproved) {
     addApprovedFolder(addToApproved)
+  } else {
+    // "Allow once" — add to session-level approved set so tool execution also passes
+    oneTimeApprovedPaths.add(resolve(normalize(path)))
   }
   const pending = pendingPathApprovals.get(agentId)
   if (!pending || !pending.remaining.has(path)) return
@@ -473,7 +480,12 @@ async function executeStream(
           // for shell commands regardless of folder status, since the command string
           // itself can access arbitrary paths.
           const folderApproved =
-            toolName === 'run_command' ? false : targetPath ? isPathApproved(targetPath) : true
+            toolName === 'run_command'
+              ? false
+              : targetPath
+                ? isPathApproved(targetPath) ||
+                  oneTimeApprovedPaths.has(resolve(normalize(targetPath)))
+                : true
 
           // Auto-approve if target path is inside an approved folder
           if (folderApproved) {
@@ -482,7 +494,10 @@ async function executeStream(
               webContents.send('chat:tool-executing', { agentId, toolName })
             }
 
-            const approvedFolders = getApprovedFolders().map((f) => f.path)
+            const approvedFolders = [
+              ...getApprovedFolders().map((f) => f.path),
+              ...Array.from(oneTimeApprovedPaths).map((p) => getParentFolder(p))
+            ]
             const result = await executeTool(toolName, args, approvedFolders)
 
             toolResultBlocks.push({
