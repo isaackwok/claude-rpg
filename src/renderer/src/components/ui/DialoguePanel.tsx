@@ -20,6 +20,11 @@ import { BookPickerModal } from './BookPickerModal'
 import { CloseButton } from './CloseButton'
 import type { BookItem } from '../../../../shared/item-types'
 
+/** Unified attachment — files and books shown as inline chips */
+type Attachment =
+  | { type: 'file'; id: string; path: string }
+  | { type: 'book'; id: string; book: BookItem }
+
 interface DialogueState {
   agentId: AgentId
   npcName: string
@@ -266,9 +271,9 @@ function InputArea({
   isBusy,
   send,
   t,
-  attachedBooks,
-  onAttachBooks,
-  onRemoveBook
+  attachments,
+  onAddAttachments,
+  onRemoveAttachment
 }: {
   input: string
   setInput: (v: string | ((prev: string) => string)) => void
@@ -276,9 +281,9 @@ function InputArea({
   isBusy: boolean
   send: () => void
   t: (key: string, params?: Record<string, string>) => string
-  attachedBooks: BookItem[]
-  onAttachBooks: (books: BookItem[]) => void
-  onRemoveBook: (id: string) => void
+  attachments: Attachment[]
+  onAddAttachments: (items: Attachment[]) => void
+  onRemoveAttachment: (id: string) => void
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [closing, setClosing] = useState(false)
@@ -308,13 +313,14 @@ function InputArea({
     triggerClose()
     const paths = await window.api.pickFiles()
     if (paths.length === 0) return
-    const formatted = paths.map((p) => `\`${p}\``).join(' ')
-    setInput((prev) => {
-      const separator = prev.length > 0 && !prev.endsWith(' ') ? ' ' : ''
-      return prev + separator + formatted
-    })
+    const fileAttachments: Attachment[] = paths.map((p) => ({
+      type: 'file' as const,
+      id: `file-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      path: p
+    }))
+    onAddAttachments(fileAttachments)
     setTimeout(() => inputRef.current?.focus(), 50)
-  }, [triggerClose, setInput, inputRef])
+  }, [triggerClose, onAddAttachments, inputRef])
 
   const inputHeight = 30
   const maxTextareaHeight = 120
@@ -337,54 +343,32 @@ function InputArea({
     transition: 'background 0.15s'
   }
 
+  const chipStyle: CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 4,
+    padding: '2px 8px',
+    borderRadius: 12,
+    background: 'rgba(200, 180, 140, 0.08)',
+    border: '1px solid rgba(200, 180, 140, 0.3)',
+    color: '#c4a46c',
+    fontFamily: 'monospace',
+    fontSize: 11,
+    whiteSpace: 'nowrap' as const
+  }
+
+  const chipCloseStyle: CSSProperties = {
+    background: 'none',
+    border: 'none',
+    color: 'rgba(200, 180, 140, 0.6)',
+    cursor: 'pointer',
+    padding: 0,
+    fontSize: 11,
+    lineHeight: 1
+  }
+
   return (
     <>
-      {/* Attached book pills */}
-      {attachedBooks.length > 0 && (
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: 4,
-            padding: '4px 16px 0',
-            flexShrink: 0
-          }}
-        >
-          {attachedBooks.map((book) => (
-            <span
-              key={book.id}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-                padding: '2px 8px',
-                borderRadius: 12,
-                background: 'rgba(200, 180, 140, 0.08)',
-                border: '1px solid rgba(200, 180, 140, 0.3)',
-                color: '#c4a46c',
-                fontFamily: 'monospace',
-                fontSize: 11
-              }}
-            >
-              📖 {book.name.length > 20 ? book.name.slice(0, 20) + '…' : book.name}
-              <button
-                onClick={() => onRemoveBook(book.id)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'rgba(200, 180, 140, 0.6)',
-                  cursor: 'pointer',
-                  padding: 0,
-                  fontSize: 11,
-                  lineHeight: 1
-                }}
-              >
-                ×
-              </button>
-            </span>
-          ))}
-        </div>
-      )}
       <div
         style={{
           padding: '8px 16px',
@@ -395,43 +379,88 @@ function InputArea({
           alignItems: 'flex-end'
         }}
       >
-        <textarea
-          ref={inputRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault()
-              send()
-              // Reset height after sending
-              if (inputRef.current) inputRef.current.style.height = `${inputHeight}px`
-            }
-          }}
-          onInput={(e) => {
-            const el = e.currentTarget
-            el.style.height = 'auto'
-            el.style.height = Math.min(el.scrollHeight, maxTextareaHeight) + 'px'
-          }}
-          placeholder={t('dialogue.inputPlaceholder')}
-          disabled={isBusy}
-          rows={1}
+        {/* Input container with chips + textarea */}
+        <div
           style={{
             flex: 1,
-            minHeight: inputHeight,
-            maxHeight: maxTextareaHeight,
-            boxSizing: 'border-box',
-            padding: '4px 8px',
-            fontFamily: 'monospace',
-            fontSize: 14,
             background: 'rgba(255,255,255,0.08)',
             border: '1px solid rgba(200,180,140,0.3)',
-            color: '#fff',
-            outline: 'none',
-            resize: 'none',
-            overflow: 'auto',
-            lineHeight: '22px'
+            borderRadius: 2,
+            display: 'flex',
+            flexDirection: 'column'
           }}
-        />
+        >
+          {/* Attachment chips */}
+          {attachments.length > 0 && (
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 4,
+                padding: '6px 8px 2px'
+              }}
+            >
+              {attachments.map((att) => (
+                <span key={att.id} style={chipStyle}>
+                  {att.type === 'book' ? '📖' : '📁'}{' '}
+                  {att.type === 'book'
+                    ? att.book.name.length > 25
+                      ? att.book.name.slice(0, 25) + '…'
+                      : att.book.name
+                    : (att.path.split('/').pop() ?? att.path)}
+                  <button onClick={() => onRemoveAttachment(att.id)} style={chipCloseStyle}>
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          <textarea
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                send()
+                if (inputRef.current) inputRef.current.style.height = `${inputHeight}px`
+              }
+              // Backspace at position 0 removes last attachment
+              if (
+                e.key === 'Backspace' &&
+                attachments.length > 0 &&
+                inputRef.current?.selectionStart === 0 &&
+                inputRef.current?.selectionEnd === 0
+              ) {
+                e.preventDefault()
+                onRemoveAttachment(attachments[attachments.length - 1].id)
+              }
+            }}
+            onInput={(e) => {
+              const el = e.currentTarget
+              el.style.height = 'auto'
+              el.style.height = Math.min(el.scrollHeight, maxTextareaHeight) + 'px'
+            }}
+            placeholder={t('dialogue.inputPlaceholder')}
+            disabled={isBusy}
+            rows={1}
+            style={{
+              minHeight: inputHeight,
+              maxHeight: maxTextareaHeight,
+              boxSizing: 'border-box',
+              padding: '4px 8px',
+              fontFamily: 'monospace',
+              fontSize: 14,
+              background: 'transparent',
+              border: 'none',
+              color: '#fff',
+              outline: 'none',
+              resize: 'none',
+              overflow: 'auto',
+              lineHeight: '22px'
+            }}
+          />
+        </div>
         {/* Attach menu */}
         <div ref={containerRef} style={{ position: 'relative', flexShrink: 0 }}>
           {menuOpen && (
@@ -522,7 +551,7 @@ function InputArea({
         </div>
         <button
           onClick={send}
-          disabled={isBusy || !input.trim()}
+          disabled={isBusy || (!input.trim() && attachments.length === 0)}
           style={{
             height: inputHeight,
             boxSizing: 'border-box',
@@ -541,7 +570,12 @@ function InputArea({
       {bookPickerOpen && (
         <BookPickerModal
           onAttach={(books) => {
-            onAttachBooks(books)
+            const bookAttachments: Attachment[] = books.map((b) => ({
+              type: 'book' as const,
+              id: b.id,
+              book: b
+            }))
+            onAddAttachments(bookAttachments)
             setBookPickerOpen(false)
           }}
           onClose={() => setBookPickerOpen(false)}
@@ -586,7 +620,7 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
   const [input, setInput] = useState('')
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null)
   const [expanded, setExpanded] = useState(false)
-  const [attachedBooks, setAttachedBooks] = useState<BookItem[]>([])
+  const [attachments, setAttachments] = useState<Attachment[]>([])
   const [unreadDividerIndex, setUnreadDividerIndex] = useState<number | null>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const unreadMarkerRef = useRef<HTMLDivElement>(null)
@@ -641,7 +675,7 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
       setDialogue(null)
       setInput('')
       setExpanded(false)
-      setAttachedBooks([])
+      setAttachments([])
     }
   }, [dialogue])
 
@@ -689,24 +723,37 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
 
   // Send message
   const send = useCallback(() => {
-    if (!dialogue || !input.trim()) return
+    if (!dialogue || (!input.trim() && attachments.length === 0)) return
     if (!hasApiKey) {
       onRequestApiKey()
       return
     }
     const text = input.trim()
-    // Prepend attached book context if any
+    // Build context from attachments
     let finalText = text
-    if (attachedBooks.length > 0) {
+    if (attachments.length > 0) {
       const referenceLabel = t('dialogue.referenceLabel')
       const colon = locale === 'en' ? ': ' : '：'
-      const bookBlocks = attachedBooks
-        .map((b) => `[📖 ${referenceLabel}${colon}${b.name}]\n${b.markdownContent}`)
-        .join('\n---\n')
-      finalText = `${bookBlocks}\n---\n\n${text}`
+      const contextBlocks: string[] = []
+      for (const att of attachments) {
+        if (att.type === 'book') {
+          contextBlocks.push(
+            `[📖 ${referenceLabel}${colon}${att.book.name}]\n${att.book.markdownContent}`
+          )
+        } else {
+          contextBlocks.push(`\`${att.path}\``)
+        }
+      }
+      const fileAtts = contextBlocks.filter((_, i) => attachments[i].type === 'file')
+      const bookAtts = contextBlocks.filter((_, i) => attachments[i].type === 'book')
+      const parts: string[] = []
+      if (fileAtts.length > 0) parts.push(fileAtts.join(' '))
+      if (bookAtts.length > 0) parts.push(bookAtts.join('\n---\n'))
+      parts.push(text)
+      finalText = parts.join('\n---\n\n')
     }
     setInput('')
-    setAttachedBooks([])
+    setAttachments([])
     setUnreadDividerIndex(null)
     userScrolledRef.current = false
     conversationManager.appendMessage(dialogue.agentId, {
@@ -716,7 +763,7 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
     })
     conversationManager.markWaiting(dialogue.agentId)
     window.api.sendMessage(dialogue.agentId, finalText, locale)
-  }, [dialogue, input, hasApiKey, locale, onRequestApiKey, attachedBooks, t])
+  }, [dialogue, input, hasApiKey, locale, onRequestApiKey, attachments, t])
 
   if (!dialogue) return null
 
@@ -1011,14 +1058,14 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
           isBusy={isBusy}
           send={send}
           t={t}
-          attachedBooks={attachedBooks}
-          onAttachBooks={(books) =>
-            setAttachedBooks((prev) => [
+          attachments={attachments}
+          onAddAttachments={(items) =>
+            setAttachments((prev) => [
               ...prev,
-              ...books.filter((b) => !prev.some((p) => p.id === b.id))
+              ...items.filter((a) => !prev.some((p) => p.id === a.id))
             ])
           }
-          onRemoveBook={(id) => setAttachedBooks((prev) => prev.filter((b) => b.id !== id))}
+          onRemoveAttachment={(id) => setAttachments((prev) => prev.filter((a) => a.id !== id))}
         />
       )}
 
