@@ -171,6 +171,38 @@ export class Town extends BaseScene {
     }
     EventBus.on('level:up', this.onLevelUp)
 
+    // Home entrance portal — placed south of the town square at col 39, row 34
+    // (an open area below the notice board, away from NPC collision zones)
+    const homePortalTileX = 39
+    const homePortalTileY = 34
+    const homePortalX = homePortalTileX * 16 + 8
+    const homePortalY = homePortalTileY * 16 + 8
+
+    // Visual indicator: a small house graphic
+    const homeGfx = this.add.graphics()
+    homeGfx.setDepth(homePortalY - 4)
+    // House body
+    homeGfx.fillStyle(0x8b6b3d)
+    homeGfx.fillRect(homePortalX - 7, homePortalY - 5, 14, 10)
+    // Roof
+    homeGfx.fillStyle(0x5c3a1e)
+    homeGfx.fillTriangle(
+      homePortalX, homePortalY - 12,
+      homePortalX - 9, homePortalY - 5,
+      homePortalX + 9, homePortalY - 5
+    )
+    // Door
+    homeGfx.fillStyle(0x3e2510)
+    homeGfx.fillRect(homePortalX - 3, homePortalY - 1, 6, 6)
+
+    // Interaction zone — overlap triggers scene transition
+    const homeZone = this.add.zone(homePortalX, homePortalY, 16, 16)
+    this.physics.add.existing(homeZone, true)
+    this.physics.add.overlap(this.player, homeZone, () => {
+      // Spawn in Home scene just inside the door
+      this.transitionToScene('Home')
+    })
+
     // Camera + portals + fade-in
     this.setupCamera(map.widthInPixels, map.heightInPixels)
     this.setupPortals(map)

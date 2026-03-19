@@ -12,6 +12,7 @@ import { BackpackButton } from './components/ui/BackpackButton'
 import { QuestNotification } from './components/ui/QuestNotification'
 import { AchievementNotification } from './components/ui/AchievementNotification'
 import { QuestBoardPanel } from './components/ui/QuestBoardPanel'
+import { HomeHUD } from './components/ui/HomeHUD'
 import { conversationManager } from './services/ConversationManager'
 import { EventBus } from './game/EventBus'
 import type { AgentId } from '../../shared/types'
@@ -186,6 +187,7 @@ function App(): React.JSX.Element {
         />
         <QuestNotification />
         <AchievementNotification />
+        <HomeHUD />
         {showNoticeBoard && <NoticeBoardPanel onClose={() => setShowNoticeBoard(false)} />}
         {showSkillsPanel && <SkillsPanel onClose={() => setShowSkillsPanel(false)} />}
         {showBackpack && <BackpackPanel onClose={() => setShowBackpack(false)} />}
