@@ -11,10 +11,17 @@ import { EventBus } from '../EventBus'
 export abstract class BaseScene extends Scene {
   protected player!: Player
   private _transitioning = false
+  private _beforeUnloadHandler: (() => void) | null = null
 
   /** Create the player sprite at the given world position. */
   protected createPlayer(x: number, y: number): void {
     this.player = new Player(this, x, y)
+
+    // Safety-net: save position if the window is closed unexpectedly
+    this._beforeUnloadHandler = () => {
+      void window.api?.savePosition(this.scene.key, this.player?.x, this.player?.y)
+    }
+    window.addEventListener('beforeunload', this._beforeUnloadHandler)
   }
 
   /**
@@ -128,6 +135,10 @@ export abstract class BaseScene extends Scene {
    * Override in subclasses; call `super.shutdown()` first.
    */
   shutdown(): void {
+    if (this._beforeUnloadHandler) {
+      window.removeEventListener('beforeunload', this._beforeUnloadHandler)
+      this._beforeUnloadHandler = null
+    }
     if (this.player) {
       void window.api?.savePosition(this.scene.key, this.player.x, this.player.y)
     }

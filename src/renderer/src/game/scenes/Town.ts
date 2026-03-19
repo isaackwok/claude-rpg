@@ -43,6 +43,17 @@ export class Town extends BaseScene {
     const spawnY = data?.spawnY ?? 29 * 16 + 8
     this.createPlayer(spawnX, spawnY)
 
+    // On fresh game start (not a portal transition), restore last saved position
+    if (!data?.fromScene) {
+      window.api?.getPosition().then((pos) => {
+        if (pos && pos.scene === 'Town' && pos.x != null && pos.y != null) {
+          this.player.setPosition(pos.x, pos.y)
+        } else if (pos && pos.scene === 'Home') {
+          this.transitionToScene('Home')
+        }
+      })
+    }
+
     // Collision with tilemap
     this.physics.add.collider(this.player, this.collisionLayer)
 
