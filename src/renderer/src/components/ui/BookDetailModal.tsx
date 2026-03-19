@@ -209,8 +209,17 @@ export function BookDetailModal({
           }}
         >
           {confirmDelete ? (
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <span style={{ fontSize: 12, color: '#a89060' }}>
+            <div
+              style={{
+                display: 'flex',
+                gap: 8,
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                flex: 1,
+                marginRight: 8
+              }}
+            >
+              <span style={{ fontSize: 12, color: '#a89060', flex: '1 1 100%' }}>
                 {t('items.deleteConfirm', { name: item.name })}
               </span>
               <button
@@ -223,7 +232,8 @@ export function BookDetailModal({
                   color: '#ff6b6b',
                   fontFamily: 'monospace',
                   fontSize: 11,
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  flexShrink: 0
                 }}
               >
                 {t('items.deleteYes')}
@@ -238,7 +248,8 @@ export function BookDetailModal({
                   color: '#a89060',
                   fontFamily: 'monospace',
                   fontSize: 11,
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  flexShrink: 0
                 }}
               >
                 {t('items.deleteNo')}
