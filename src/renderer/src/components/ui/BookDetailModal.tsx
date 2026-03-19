@@ -36,10 +36,15 @@ export function BookDetailModal({
   const date = new Date(item.createdAt)
   const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
 
-  const handleSaveName = (): void => {
+  const handleSaveName = async (): Promise<void> => {
     const trimmed = editValue.trim()
     if (trimmed && trimmed !== item.name) {
-      onUpdateName(item.id, trimmed)
+      try {
+        await onUpdateName(item.id, trimmed)
+      } catch (err) {
+        console.error('[BookDetailModal] Name update failed:', err)
+        setEditValue(item.name)
+      }
     } else {
       setEditValue(item.name)
     }

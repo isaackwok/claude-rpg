@@ -75,6 +75,7 @@ function MessageBubble({
   const [copied, setCopied] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [saveFailed, setSaveFailed] = useState(false)
   const isAssistant = msg.role === 'assistant'
 
   const handleSaveToBackpack = async (): Promise<void> => {
@@ -86,6 +87,8 @@ function MessageBubble({
       setTimeout(() => setSaved(false), 2000)
     } catch (err) {
       console.error('[DialoguePanel] Failed to save to backpack:', err)
+      setSaveFailed(true)
+      setTimeout(() => setSaveFailed(false), 3000)
     } finally {
       setSaving(false)
     }
@@ -176,11 +179,13 @@ function MessageBubble({
             style={{
               background: 'none',
               border: 'none',
-              color: saved
-                ? 'rgba(140, 200, 140, 0.8)'
-                : saving
-                  ? 'rgba(200, 180, 140, 0.25)'
-                  : 'rgba(200, 180, 140, 0.4)',
+              color: saveFailed
+                ? 'rgba(220, 100, 100, 0.8)'
+                : saved
+                  ? 'rgba(140, 200, 140, 0.8)'
+                  : saving
+                    ? 'rgba(200, 180, 140, 0.25)'
+                    : 'rgba(200, 180, 140, 0.4)',
               cursor: saving ? 'wait' : 'pointer',
               fontFamily: 'monospace',
               fontSize: 11,
@@ -189,11 +194,13 @@ function MessageBubble({
               transition: 'color 0.2s'
             }}
           >
-            {saved
-              ? `✓ ${t('dialogue.addToBackpack')}`
-              : saving
-                ? t('dialogue.addingToBackpack')
-                : `🎒 ${t('dialogue.addToBackpack')}`}
+            {saveFailed
+              ? `✗ ${t('dialogue.saveFailed')}`
+              : saved
+                ? `✓ ${t('dialogue.addToBackpack')}`
+                : saving
+                  ? t('dialogue.addingToBackpack')
+                  : `🎒 ${t('dialogue.addToBackpack')}`}
           </button>
         </div>
       )}

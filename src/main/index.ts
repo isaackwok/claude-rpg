@@ -206,54 +206,76 @@ app.whenReady().then(() => {
 
   // Item IPC handlers
   ipcMain.handle('items:get-all', () => {
-    return itemRepo.getItems('player-1')
+    try {
+      return itemRepo.getItems('player-1')
+    } catch (err) {
+      console.error('[items:get-all] Failed to load items:', err)
+      throw err
+    }
   })
 
-  ipcMain.handle(
-    'items:add-book',
-    async (
-      _e,
-      payload: {
-        markdownContent: string
-        sourceAgentId: string
-        sourceQuestion: string
-        category: import('../shared/item-types').ItemCategory
-        locale: string
-        npcName: string
-      }
-    ) => {
-      const preview = stripMarkdown(payload.markdownContent)
-      const itemCount = itemRepo.getItemCount('player-1', payload.sourceAgentId)
-      const name = await generateBookName(
-        payload.markdownContent,
-        payload.locale,
-        payload.npcName,
-        itemCount
-      )
+  ipcMain.handle('items:add-book', async (_e, payload: unknown) => {
+    if (
+      !payload ||
+      typeof payload !== 'object' ||
+      typeof (payload as Record<string, unknown>).markdownContent !== 'string' ||
+      typeof (payload as Record<string, unknown>).sourceAgentId !== 'string' ||
+      typeof (payload as Record<string, unknown>).sourceQuestion !== 'string' ||
+      typeof (payload as Record<string, unknown>).category !== 'string' ||
+      typeof (payload as Record<string, unknown>).locale !== 'string' ||
+      typeof (payload as Record<string, unknown>).npcName !== 'string'
+    ) {
+      throw new Error('Invalid items:add-book payload')
+    }
+    const p = payload as {
+      markdownContent: string
+      sourceAgentId: string
+      sourceQuestion: string
+      category: import('../shared/item-types').ItemCategory
+      locale: string
+      npcName: string
+    }
+    try {
+      const preview = stripMarkdown(p.markdownContent)
+      const itemCount = itemRepo.getItemCount('player-1', p.sourceAgentId)
+      const name = await generateBookName(p.markdownContent, p.locale, p.npcName, itemCount)
       const book = itemRepo.addBookItem({
         playerId: 'player-1',
         type: 'book',
         name,
         icon: '📖',
-        category: payload.category,
-        markdownContent: payload.markdownContent,
-        sourceAgentId: payload.sourceAgentId,
-        sourceQuestion: payload.sourceQuestion,
+        category: p.category,
+        markdownContent: p.markdownContent,
+        sourceAgentId: p.sourceAgentId,
+        sourceQuestion: p.sourceQuestion,
         preview
       })
       BrowserWindow.getAllWindows()[0]?.webContents.send('items:updated')
       return book
+    } catch (err) {
+      console.error('[items:add-book] Failed to create book:', err)
+      throw err
     }
-  )
+  })
 
   ipcMain.handle('items:update-name', (_e, itemId: string, name: string) => {
-    itemRepo.updateItemName(itemId, name)
-    BrowserWindow.getAllWindows()[0]?.webContents.send('items:updated')
+    try {
+      itemRepo.updateItemName(itemId, name)
+      BrowserWindow.getAllWindows()[0]?.webContents.send('items:updated')
+    } catch (err) {
+      console.error(`[items:update-name] Failed for item ${itemId}:`, err)
+      throw err
+    }
   })
 
   ipcMain.handle('items:delete', (_e, itemId: string) => {
-    itemRepo.deleteItem(itemId)
-    BrowserWindow.getAllWindows()[0]?.webContents.send('items:updated')
+    try {
+      itemRepo.deleteItem(itemId)
+      BrowserWindow.getAllWindows()[0]?.webContents.send('items:updated')
+    } catch (err) {
+      console.error(`[items:delete] Failed for item ${itemId}:`, err)
+      throw err
+    }
   })
 
   // Zone visit tracking

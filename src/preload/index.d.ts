@@ -16,7 +16,7 @@ import type {
 } from '../shared/types'
 import type { PlayerAchievement, AchievementCheckResult } from '../shared/achievement-types'
 import type { PlayerCosmetic, HomePlacement } from '../shared/cosmetic-types'
-import type { Item, BookItem } from '../shared/item-types'
+import type { Item, BookItem, ItemCategory } from '../shared/item-types'
 
 interface ChatAPI {
   // API key
@@ -85,7 +85,7 @@ interface ChatAPI {
     markdownContent: string
     sourceAgentId: string
     sourceQuestion: string
-    category: string
+    category: ItemCategory
     locale: string
     npcName: string
   }): Promise<BookItem>

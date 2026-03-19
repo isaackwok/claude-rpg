@@ -33,6 +33,7 @@ export async function generateBookName(
 ): Promise<string> {
   const apiKey = getApiKey()
   if (!apiKey) {
+    console.debug('[book-name-generator] No API key available, using template name')
     return generateFallbackName(npcName, itemCount + 1, locale)
   }
 
@@ -60,7 +61,8 @@ export async function generateBookName(
 
     if (text.length > 0) return text.slice(0, maxChars)
     return generateFallbackName(npcName, itemCount + 1, locale)
-  } catch {
+  } catch (err) {
+    console.error('[book-name-generator] AI name generation failed:', err)
     return generateFallbackName(npcName, itemCount + 1, locale)
   }
 }

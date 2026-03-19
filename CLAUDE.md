@@ -84,6 +84,6 @@ Completed: Phase 1 (Shell & World), Phase 2 (Agent Conversations), Phase 2.5 (NP
 Next up: Phase 4 (Guild Hall)
 
 - Phase 3C delivered: 12 achievements (progression/exploration/tool_use), cosmetics (overlays + decorations), equip system, player home with decoration placement
-- Phase 3D delivered: inventory tab with collectible books, save NPC responses to backpack with AI-generated RPG names (Haiku), cross-NPC context injection via "+" menu, BookPickerModal with multi-select, BookDetailModal with editable names
+- Phase 3D delivered: inventory tab with collectible books, save NPC responses to backpack with AI-generated RPG names (Sonnet), cross-NPC context injection via "+" menu, BookPickerModal with multi-select, BookDetailModal with editable names
   Full spec: `docs/superpowers/specs/2026-03-16-claude-rpg-design.md`
   Plans & specs: `docs/superpowers/plans/` and `docs/superpowers/specs/`

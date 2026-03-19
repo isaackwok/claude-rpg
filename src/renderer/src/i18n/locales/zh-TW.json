@@ -52,6 +52,7 @@
     "addToBackpack": "加入背包",
     "addedToBackpack": "已加入背包：{{name}}",
     "addingToBackpack": "儲存中...",
+    "saveFailed": "儲存失敗",
     "referenceBooks": "參考書籍",
     "referenceLabel": "參考資料"
   },

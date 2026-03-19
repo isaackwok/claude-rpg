@@ -1,4 +1,4 @@
-import type { SkillCategory } from './types'
+import type { AgentId, SkillCategory } from './types'
 
 export type ItemType = 'book'
 export type ItemCategory = SkillCategory | 'general'
@@ -16,7 +16,7 @@ export interface ItemBase {
 export interface BookItem extends ItemBase {
   type: 'book'
   markdownContent: string
-  sourceAgentId: string
+  sourceAgentId: AgentId
   sourceQuestion: string
   preview: string
 }

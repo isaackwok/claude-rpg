@@ -52,6 +52,7 @@
     "addToBackpack": "Add to Backpack",
     "addedToBackpack": "Added to backpack: {{name}}",
     "addingToBackpack": "Saving...",
+    "saveFailed": "Save failed",
     "referenceBooks": "Reference Books",
     "referenceLabel": "Reference"
   },

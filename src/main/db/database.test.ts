@@ -24,6 +24,8 @@ describe('database migrations', () => {
     expect(tables).toContain('messages')
     expect(tables).toContain('approved_folders')
     expect(tables).toContain('quests')
+    expect(tables).toContain('items')
+    expect(tables).toContain('book_items')
   })
 
   it('sets user_version to latest migration after migration', () => {

@@ -1,8 +1,9 @@
+import { randomUUID } from 'crypto'
 import Database from 'better-sqlite3'
 import type { BookItem, IItemRepository, Item, ItemCategory } from '../../shared/item-types'
 
 function generateId(): string {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2)
+  return randomUUID()
 }
 
 export class SqliteItemRepository implements IItemRepository {
