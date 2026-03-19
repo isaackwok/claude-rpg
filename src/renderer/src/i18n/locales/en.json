@@ -1,4 +1,8 @@
 {
+  "common": {
+    "close": "Close(Esc)",
+    "retry": "Retry"
+  },
   "game": {
     "title": "Claude RPG"
   },
@@ -128,7 +132,52 @@
       "research": "Learned",
       "organization": "Strategic",
       "communication": "Charismatic"
+    },
+    "tiers": {
+      "apprentice": "Apprentice",
+      "skilled": "Skilled",
+      "veteran": "Veteran",
+      "legendary": "Legendary"
+    },
+    "tierUp": "Title Promoted"
+  },
+  "backpack": {
+    "title": "Backpack",
+    "tabs": {
+      "items": "Items",
+      "quests": "Quests",
+      "achievements": "Achievements",
+      "cosmetics": "Cosmetics",
+      "unavailable": "Coming Soon"
     }
+  },
+  "quests": {
+    "title": "Quests",
+    "filters": {
+      "all": "All",
+      "active": "Active",
+      "completed": "Completed"
+    },
+    "count": "Active {{active}} · Completed {{completed}}",
+    "progress": "{{current}} / {{target}}",
+    "reward": "+{{amount}} XP",
+    "earned": "Earned +{{amount}} XP ✓",
+    "mystery": "??? Unknown Quest",
+    "discovered": "New Quest Discovered!",
+    "discoveredDetail": "Open your backpack to see",
+    "completed": "Quest Complete!",
+    "repeatedTimes": "Completed {{count}} times",
+    "status": {
+      "active": "Active",
+      "completed": "Completed"
+    },
+    "loadError": "Failed to load quests"
+  },
+  "questBoard": {
+    "title": "Quest Board",
+    "suggestion": "Your {{skill}} skill has room to grow — try talking to {{npcName}}!",
+    "error": "Failed to load suggestion",
+    "empty": "No suggestions yet"
   },
   "npcs": {
     "elder": "Elder Edmond",

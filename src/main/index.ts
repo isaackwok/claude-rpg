@@ -26,9 +26,10 @@ import { SqliteXPRepository } from './db/xp-repository'
 import { SqliteConversationPersistence } from './db/conversation-persistence'
 import { SqliteFolderRepository } from './db/folder-repository'
 import { ProgressionEngine } from './progression-engine'
+import { SqliteQuestRepository } from './db/quest-repository'
+import { QuestEngine } from './quest-engine'
 
 function createWindow(): void {
-  // Create the browser window.
   const mainWindow = new BrowserWindow({
     width: 1024,
     height: 768,
@@ -84,32 +85,39 @@ app.whenReady().then(() => {
   const xpRepo = new SqliteXPRepository(db)
   const conversationPersistence = new SqliteConversationPersistence(db)
   const folderRepo = new SqliteFolderRepository(db)
+  const questRepo = new SqliteQuestRepository(db)
   const progressionEngine = new ProgressionEngine(xpRepo, playerRepo, 'player-1')
+  const questEngine = new QuestEngine(questRepo)
 
   // Ensure player exists
   playerRepo.getOrCreate('player-1')
 
+  // Seed starter quests for the player (non-fatal — app works without quests)
+  try {
+    questEngine.seedStarterQuests('player-1')
+  } catch (err) {
+    console.error('[init] Failed to seed starter quests:', err)
+  }
+
   // Wire dependencies into chat and folder manager
-  setChatDependencies(progressionEngine, conversationPersistence)
+  setChatDependencies(progressionEngine, questEngine, conversationPersistence)
   initFolderManager(folderRepo)
 
-  // Progression IPC handlers
+  // Progression IPC handlers — let errors propagate so the renderer can handle them
   ipcMain.handle('progression:get-player', () => {
-    try {
-      return progressionEngine.getPlayerState()
-    } catch (err) {
-      console.error('[ipc] progression:get-player failed:', err)
-      return null
-    }
+    return progressionEngine.getPlayerState()
   })
   ipcMain.handle('progression:get-skills', () => {
-    try {
-      return progressionEngine.getPlayerState().skills
-    } catch (err) {
-      console.error('[ipc] progression:get-skills failed:', err)
-      return null
-    }
+    return progressionEngine.getPlayerState().skills
   })
+  // Quest IPC handlers
+  ipcMain.handle('quests:get-all', () => {
+    return questEngine.getPlayerQuests('player-1')
+  })
+  ipcMain.handle('quests:get-board-suggestion', () => {
+    return questEngine.getQuestBoardSuggestion('player-1')
+  })
+
   ipcMain.handle('conversations:get-history', (_event, agentId: string) => {
     if (typeof agentId !== 'string') {
       console.warn('[ipc] conversations:get-history received invalid agentId:', agentId)
@@ -280,6 +288,3 @@ app.on('window-all-closed', () => {
     app.quit()
   }
 })
-
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and require them here.

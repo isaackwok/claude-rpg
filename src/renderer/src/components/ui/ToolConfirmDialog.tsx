@@ -99,8 +99,8 @@ export function ToolConfirmDialog({
             </div>
             <div style={{ marginTop: 2, opacity: 0.6 }}>
               {t('tool.editDesc', {
-                oldLen: String(args.old_text).length,
-                newLen: String(args.new_text).length
+                oldLen: `${String(args.old_text).length}`,
+                newLen: `${String(args.new_text).length}`
               })}
             </div>
           </>

@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import { useTranslation } from '../../i18n'
 import { useProgression } from '../../hooks/useProgression'
 import { SKILL_CATEGORIES, type SkillCategory } from '../../../../shared/types'
+import { CloseButton } from './CloseButton'
 
 const SKILL_ICONS: Record<SkillCategory, string> = {
   writing: '\u270d\ufe0f',
@@ -79,6 +80,7 @@ export function SkillsPanel({ onClose }: SkillsPanelProps) {
       <div
         ref={panelRef}
         style={{
+          position: 'relative',
           background: 'rgba(20, 18, 15, 0.95)',
           border: '2px solid #c4a46c',
           borderRadius: 8,
@@ -89,6 +91,9 @@ export function SkillsPanel({ onClose }: SkillsPanelProps) {
           color: '#c4a46c'
         }}
       >
+        <div style={{ position: 'absolute', top: 12, right: 16 }}>
+          <CloseButton onClick={onClose} size={11} />
+        </div>
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <div style={{ fontSize: 20, fontWeight: 'bold', color: '#e8d5a8' }}>
@@ -159,9 +164,6 @@ export function SkillsPanel({ onClose }: SkillsPanelProps) {
         >
           <div>
             {t('skills.totalXP')}: {playerState.totalXP} · {t('skills.nextLevel')}: {nextOverallXP}
-          </div>
-          <div style={{ marginTop: 8, fontSize: 11, color: 'rgba(200, 180, 140, 0.5)' }}>
-            {t('skills.close')}
           </div>
         </div>
       </div>

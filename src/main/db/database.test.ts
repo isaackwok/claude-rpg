@@ -23,14 +23,15 @@ describe('database migrations', () => {
     expect(tables).toContain('conversations')
     expect(tables).toContain('messages')
     expect(tables).toContain('approved_folders')
+    expect(tables).toContain('quests')
   })
 
-  it('sets user_version to 1 after migration', () => {
+  it('sets user_version to latest migration after migration', () => {
     db = new Database(':memory:')
     runMigrations(db)
 
     const version = db.pragma('user_version', { simple: true })
-    expect(version).toBe(1)
+    expect(version).toBe(2)
   })
 
   it('is idempotent — running twice does not error', () => {

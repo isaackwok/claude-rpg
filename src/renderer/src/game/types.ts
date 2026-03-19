@@ -1,5 +1,5 @@
 import type { LocalizedString } from '../i18n/types'
-import type { AgentId, SkillCategory } from '../../../shared/types'
+import type { AgentId, SkillCategory, QuestVisibility } from '../../../shared/types'
 
 export type { AgentId, SkillCategory }
 
@@ -24,8 +24,10 @@ export interface GameEvents {
   'camera:focus': { x: number; y: number }
   'xp:gained': { category: SkillCategory; amount: number; newTotal: number; agentId: AgentId }
   'level:up': { category: SkillCategory; newLevel: number; overallLevel: number }
-  'quest:completed': { questId: string; title: LocalizedString }
+  'quest:completed': { questDefId: string; title: LocalizedString; xpReward: number }
+  'quest:discovered': { questDefId: string; visibility: QuestVisibility }
   'title:changed': { newTitle: LocalizedString }
   'noticeboard:interact': Record<string, never>
   'skills-panel:toggle': Record<string, never>
+  'backpack:toggle': Record<string, never>
 }

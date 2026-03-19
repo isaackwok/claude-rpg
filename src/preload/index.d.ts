@@ -8,7 +8,11 @@ import type {
   SkillMap,
   XPAwardResult,
   LocalizedString,
-  PersistedMessage
+  PersistedMessage,
+  PlayerQuest,
+  CompletedQuest,
+  QuestBoardSuggestion,
+  QuestVisibility
 } from '../shared/types'
 
 interface ChatAPI {
@@ -47,6 +51,16 @@ interface ChatAPI {
   onTitleChanged(callback: (data: { newTitle: LocalizedString }) => void): () => void
   // Conversation history
   getConversationHistory(agentId: string): Promise<PersistedMessage[]>
+  // Quests
+  getQuests(): Promise<PlayerQuest[]>
+  getQuestBoardSuggestion(): Promise<QuestBoardSuggestion>
+  onQuestsUpdated(
+    callback: (data: { quests: PlayerQuest[]; completed?: CompletedQuest[] }) => void
+  ): () => void
+  onQuestDiscovered(
+    callback: (data: { questDefId: string; visibility: QuestVisibility }) => void
+  ): () => void
+  onQuestsError(callback: (data: { error: string }) => void): () => void
 }
 
 declare global {

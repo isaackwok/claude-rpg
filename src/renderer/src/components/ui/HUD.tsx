@@ -61,7 +61,6 @@ export function HUD() {
         position: 'absolute',
         top: 12,
         left: 12,
-        right: 12,
         display: 'flex',
         alignItems: 'center',
         gap: 12,

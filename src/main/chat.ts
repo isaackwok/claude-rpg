@@ -8,7 +8,9 @@ import { executeTool } from './tools/tool-executor'
 import { getApprovedFolders, addApprovedFolder, isPathApproved } from './folder-manager'
 import { getParentFolder } from './tools/path-utils'
 import type { AgentId, ToolName, ToolConfirmPayload, PathApprovalPayload } from '../shared/types'
+import { SKILL_CATEGORIES } from '../shared/types'
 import type { ProgressionEngine } from './progression-engine'
+import type { QuestEngine } from './quest-engine'
 import type { SqliteConversationPersistence } from './db/conversation-persistence'
 
 type MessageParam = Anthropic.Messages.MessageParam
@@ -73,14 +75,17 @@ interface PendingPathApproval {
   remaining: Set<string>
 }
 let progressionEngine: ProgressionEngine | null = null
+let questEngine: QuestEngine | null = null
 let conversationPersistence: SqliteConversationPersistence | null = null
 let dependenciesInitialized = false
 
 export function setChatDependencies(
   engine: ProgressionEngine,
+  quest: QuestEngine,
   persistence: SqliteConversationPersistence
 ): void {
   progressionEngine = engine
+  questEngine = quest
   conversationPersistence = persistence
   dependenciesInitialized = true
 }
@@ -557,6 +562,70 @@ async function executeStream(
                 webContents.send('progression:title-changed', {
                   newTitle: xpResult.titleChanged
                 })
+              }
+            }
+
+            // Check quests after XP award — award bonus XP for completed quests
+            if (questEngine && !webContents.isDestroyed()) {
+              try {
+                const questResult = questEngine.checkQuests('player-1')
+                if (questResult.discovered.length > 0) {
+                  for (const d of questResult.discovered) {
+                    webContents.send('quests:discovered', d)
+                  }
+                }
+                // Award quest completion XP per quest (isolated — one failure won't block others)
+                if (questResult.completed.length > 0 && progressionEngine) {
+                  for (const c of questResult.completed) {
+                    try {
+                      const def = questEngine.getQuestDef(c.questDefId)
+                      const categories =
+                        def && def.skillCategories.length > 0
+                          ? def.skillCategories
+                          : SKILL_CATEGORIES
+                      const bonusResult = progressionEngine.awardBonusXP(
+                        c.xpReward,
+                        categories,
+                        agentId
+                      )
+                      if (!webContents.isDestroyed()) {
+                        webContents.send('progression:xp-awarded', {
+                          ...bonusResult,
+                          agentId
+                        })
+                      }
+                    } catch (bonusErr) {
+                      console.error(
+                        `[chat] Failed to award bonus XP for quest ${c.questDefId}:`,
+                        bonusErr
+                      )
+                      if (!webContents.isDestroyed()) {
+                        webContents.send('quests:error', {
+                          error:
+                            bonusErr instanceof Error
+                              ? bonusErr.message
+                              : `bonus-xp-failed:${c.questDefId}`
+                        })
+                      }
+                    }
+                  }
+                }
+                if (
+                  (questResult.completed.length > 0 || questResult.discovered.length > 0) &&
+                  !webContents.isDestroyed()
+                ) {
+                  webContents.send('quests:updated', {
+                    quests: questResult.quests,
+                    completed: questResult.completed.length > 0 ? questResult.completed : undefined
+                  })
+                }
+              } catch (questErr) {
+                console.error(`[chat] Failed to check quests:`, questErr)
+                if (!webContents.isDestroyed()) {
+                  webContents.send('quests:error', {
+                    error: questErr instanceof Error ? questErr.message : 'quest-check-failed'
+                  })
+                }
               }
             }
           } catch (err) {

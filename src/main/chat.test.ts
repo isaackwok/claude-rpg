@@ -573,7 +573,7 @@ describe('chat', () => {
       maxTokens: 4096
     }
 
-    function setupToolUseAgent(agentId: string): void {
+    function setupToolUseAgent(_agentId: string): void {
       mockedGetApiKey.mockReturnValue('sk-test-key')
       mockedGetAgentConfig.mockReturnValue(TOOL_CONFIG as never)
       mockedGetToolsForAgent.mockReturnValue([
