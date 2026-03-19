@@ -78,6 +78,13 @@ type AchievementTrigger =
 
 Tool groups map to `ToolName` values: **file** = `read_file`, `write_file`, `edit_file`, `list_files`; **search** = `web_search`; **command** = `run_command`. Using any tool in the group counts.
 
+**Data sources for exploration triggers:**
+
+- `all_npcs_interacted` — derived from distinct `agent_id` in the existing `conversations` table (no new tracking table needed)
+- `all_quests_discovered` — derived from the existing `quests` table (all quest_def_ids present)
+- `zones_visited` / `all_zones_visited` — tracked in the new `player_zones` table
+- `all_tools_used` / `all_tool_groups_used` — tracked in the new `player_tool_usage` table
+
 ### AchievementEngine (Main Process)
 
 Hybrid check architecture — each category is checked at the appropriate trigger point:
@@ -315,7 +322,8 @@ CREATE TABLE home_decorations (
   tile_x INTEGER NOT NULL,
   tile_y INTEGER NOT NULL,
   placed_at INTEGER NOT NULL,
-  UNIQUE(player_id, cosmetic_def_id)
+  UNIQUE(player_id, cosmetic_def_id),
+  UNIQUE(player_id, tile_x, tile_y)
 );
 
 -- Position persistence
@@ -489,7 +497,7 @@ src/renderer/src/
     useHomePlacements.ts
   game/
     scenes/
-      BaseScene.ts             — Shared scene logic extracted from MainScene
+      BaseScene.ts             — Shared scene logic extracted from Town
       HomeScene.ts             — Player home interior
     DecorationManager.ts       — Decoration placement logic for HomeScene
 
