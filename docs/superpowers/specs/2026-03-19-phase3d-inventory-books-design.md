@@ -214,16 +214,16 @@ Flip `available: false` → `true` for the items tab in `BackpackPanel.tsx`.
 **Add to backpack:**
 
 ```
-🎒 click → IPC addBookItem(payload) → main process: Haiku name gen (or fallback)
+🎒 click → IPC items:add-book(payload) → main process: Haiku name gen (or fallback)
          → SQLite INSERT (items + book_items) → return BookItem
-         → IPC push items-updated → useItems refresh → EventBus item:added
+         → IPC push items:updated → useItems refresh → EventBus item:added
          → ItemNotification toast
 ```
 
 **View/manage inventory:**
 
 ```
-Open backpack → items tab → IPC getItems() → SQLite SELECT JOIN
+Open backpack → items tab → IPC items:get-all → SQLite SELECT JOIN
               → useItems() state → ItemsTab renders cards
               → click card → BookDetailModal (edit name, delete)
 ```
@@ -231,24 +231,26 @@ Open backpack → items tab → IPC getItems() → SQLite SELECT JOIN
 **Inject context:**
 
 ```
-"+" menu → "Reference Books" → BookPickerModal (IPC getItems)
+"+" menu → "Reference Books" → BookPickerModal (IPC items:get-all)
          → multi-select → attach → pills in InputArea
          → on send: prepend book content blocks → IPC sendMessage
 ```
 
 ### IPC Channels (New)
 
-Name generation is performed atomically inside `add-book-item` — no separate IPC call. The main process handles the Haiku call (or fallback) and returns the completed `BookItem` with its generated name. This avoids race conditions and unnecessary round-trips.
+Name generation is performed atomically inside `items:add-book` — no separate IPC call. The main process handles the Haiku call (or fallback) and returns the completed `BookItem` with its generated name. This avoids race conditions and unnecessary round-trips.
 
 The `playerId` is hardcoded to `'player-1'` in the main process handlers, matching the existing pattern used by quests, achievements, and cosmetics. The renderer does not send `playerId`.
 
-| Channel            | Direction       | Payload                                                                | Returns    |
-| ------------------ | --------------- | ---------------------------------------------------------------------- | ---------- |
-| `get-items`        | renderer → main | (none)                                                                 | `Item[]`   |
-| `add-book-item`    | renderer → main | `{ markdownContent, sourceAgentId, sourceQuestion, category, locale }` | `BookItem` |
-| `update-item-name` | renderer → main | `{ itemId, name }`                                                     | `void`     |
-| `delete-item`      | renderer → main | `{ itemId }`                                                           | `void`     |
-| `items-updated`    | main → renderer | push event                                                             | `void`     |
+Channel naming follows the existing `namespace:action` convention (e.g., `quests:get-all`, `cosmetics:equip`).
+
+| Channel             | Direction       | Payload                                                                | Returns    |
+| ------------------- | --------------- | ---------------------------------------------------------------------- | ---------- |
+| `items:get-all`     | renderer → main | (none)                                                                 | `Item[]`   |
+| `items:add-book`    | renderer → main | `{ markdownContent, sourceAgentId, sourceQuestion, category, locale }` | `BookItem` |
+| `items:update-name` | renderer → main | `{ itemId, name }`                                                     | `void`     |
+| `items:delete`      | renderer → main | `{ itemId }`                                                           | `void`     |
+| `items:updated`     | main → renderer | push event                                                             | `void`     |
 
 ### Repository Interface
 
