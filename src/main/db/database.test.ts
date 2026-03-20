@@ -24,6 +24,8 @@ describe('database migrations', () => {
     expect(tables).toContain('messages')
     expect(tables).toContain('approved_folders')
     expect(tables).toContain('quests')
+    expect(tables).toContain('items')
+    expect(tables).toContain('book_items')
   })
 
   it('sets user_version to latest migration after migration', () => {
@@ -31,7 +33,7 @@ describe('database migrations', () => {
     runMigrations(db)
 
     const version = db.pragma('user_version', { simple: true })
-    expect(version).toBe(3)
+    expect(version).toBe(5)
   })
 
   it('is idempotent — running twice does not error', () => {

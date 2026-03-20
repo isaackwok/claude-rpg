@@ -16,6 +16,7 @@ import type {
 } from '../shared/types'
 import type { PlayerAchievement, AchievementCheckResult } from '../shared/achievement-types'
 import type { PlayerCosmetic, HomePlacement } from '../shared/cosmetic-types'
+import type { Item, BookItem, ItemCategory } from '../shared/item-types'
 
 interface ChatAPI {
   // API key
@@ -78,6 +79,19 @@ interface ChatAPI {
   getHomePlacements(): Promise<HomePlacement[]>
   placeDecoration(cosmeticDefId: string, tileX: number, tileY: number): Promise<void>
   removeDecoration(cosmeticDefId: string): Promise<void>
+  // Items
+  getItems(): Promise<Item[]>
+  addBookItem(payload: {
+    markdownContent: string
+    sourceAgentId: string
+    sourceQuestion: string
+    category: ItemCategory
+    locale: string
+    npcName: string
+  }): Promise<BookItem>
+  updateItemName(itemId: string, name: string): Promise<void>
+  deleteItem(itemId: string): Promise<void>
+  onItemsUpdated(callback: () => void): () => void
   // Zone tracking
   recordZoneVisit(zoneId: string): Promise<void>
   // Position persistence

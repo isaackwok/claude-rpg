@@ -66,7 +66,8 @@ export class ProgressionEngine {
   awardBonusXP(
     totalAmount: number,
     skillCategories: readonly SkillCategory[],
-    agentId: string
+    agentId: string,
+    source: 'quest_bonus' | 'achievement_bonus' = 'quest_bonus'
   ): XPAwardResult {
     if (skillCategories.length === 0 || totalAmount <= 0) {
       return { awards: [], levelUps: [] }
@@ -82,7 +83,7 @@ export class ProgressionEngine {
 
     for (let i = 0; i < skillCategories.length; i++) {
       const amount = base + (i < remainder ? 1 : 0)
-      this.xpRepo.award(this.playerId, skillCategories[i], amount, agentId)
+      this.xpRepo.award(this.playerId, skillCategories[i], amount, agentId, source)
     }
 
     const newTotals = this.xpRepo.getSkillTotals(this.playerId)

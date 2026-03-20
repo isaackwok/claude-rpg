@@ -160,4 +160,27 @@ describe('SqliteQuestRepository', () => {
     const max = repo.getMaxCategoryCount('player-1')
     expect(max).toBe(3) // research has 3
   })
+
+  it('excludes bonus XP from conversation counts', () => {
+    const stmt = db.prepare(
+      'INSERT INTO xp_ledger (player_id, skill_category, amount, agent_id, created_at, source) VALUES (?, ?, ?, ?, ?, ?)'
+    )
+    stmt.run('player-1', 'research', 5, 'scholar', Date.now(), 'conversation')
+    stmt.run('player-1', 'research', 30, 'quest', Date.now(), 'quest_bonus')
+    stmt.run('player-1', 'writing', 20, 'achievement', Date.now(), 'achievement_bonus')
+    stmt.run('player-1', 'writing', 5, 'scribe', Date.now(), 'conversation')
+
+    const counts = repo.getConversationCounts('player-1')
+    expect(counts.research).toBe(1)
+    expect(counts.writing).toBe(1)
+
+    const daily = repo.getDailyConversationCount('player-1')
+    expect(daily).toBe(2)
+
+    const distinct = repo.getDistinctCategoryCount('player-1')
+    expect(distinct).toBe(2)
+
+    const max = repo.getMaxCategoryCount('player-1')
+    expect(max).toBe(1)
+  })
 })

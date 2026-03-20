@@ -1,15 +1,6 @@
 import { useTranslation } from '../../i18n'
-import type { PlayerQuest, SkillCategory } from '../../../../shared/types'
-
-const SKILL_COLORS: Record<SkillCategory, string> = {
-  writing: '#e8b44c',
-  research: '#5bb5e8',
-  code: '#a78bfa',
-  data: '#4ade80',
-  communication: '#f472b6',
-  organization: '#fb923c',
-  visual: '#c084fc'
-}
+import type { PlayerQuest } from '../../../../shared/types'
+import { CATEGORY_COLORS } from '../../utils/itemUtils'
 
 interface QuestCardProps {
   quest: PlayerQuest
@@ -51,7 +42,7 @@ export function QuestCard({ quest }: QuestCardProps) {
   const progressPercent =
     quest.target > 0 ? Math.min((quest.progress / quest.target) * 100, 100) : 0
   const skillColor =
-    def.skillCategories.length > 0 ? SKILL_COLORS[def.skillCategories[0]] : '#c4a46c'
+    def.skillCategories.length > 0 ? CATEGORY_COLORS[def.skillCategories[0]] : '#c4a46c'
 
   return (
     <div
@@ -158,8 +149,8 @@ export function QuestCard({ quest }: QuestCardProps) {
                 fontSize: 10,
                 padding: '1px 6px',
                 borderRadius: 3,
-                background: `${SKILL_COLORS[cat]}22`,
-                color: SKILL_COLORS[cat]
+                background: `${CATEGORY_COLORS[cat]}22`,
+                color: CATEGORY_COLORS[cat]
               }}
             >
               {t(`skills.categories.${cat}`)}

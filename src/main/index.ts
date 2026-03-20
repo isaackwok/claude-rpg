@@ -30,7 +30,9 @@ import { SqliteQuestRepository } from './db/quest-repository'
 import { QuestEngine } from './quest-engine'
 import { SqliteAchievementRepository } from './db/achievement-repository'
 import { SqliteCosmeticRepository } from './db/cosmetic-repository'
+import { SqliteItemRepository } from './db/item-repository'
 import { AchievementEngine } from './achievement-engine'
+import { generateBookName, stripMarkdown } from './book-name-generator'
 import { COSMETIC_DEFINITIONS } from './cosmetic-definitions'
 import type { PlayerCosmetic } from '../shared/cosmetic-types'
 
@@ -93,6 +95,7 @@ app.whenReady().then(() => {
   const questRepo = new SqliteQuestRepository(db)
   const achievementRepo = new SqliteAchievementRepository(db)
   const cosmeticRepo = new SqliteCosmeticRepository(db)
+  const itemRepo = new SqliteItemRepository(db)
   const progressionEngine = new ProgressionEngine(xpRepo, playerRepo, 'player-1')
   const questEngine = new QuestEngine(questRepo)
   const achievementEngine = new AchievementEngine(achievementRepo, progressionEngine)
@@ -199,6 +202,80 @@ app.whenReady().then(() => {
 
   ipcMain.handle('cosmetics:get-placements', () => {
     return cosmeticRepo.getPlacements('player-1')
+  })
+
+  // Item IPC handlers
+  ipcMain.handle('items:get-all', () => {
+    try {
+      return itemRepo.getItems('player-1')
+    } catch (err) {
+      console.error('[items:get-all] Failed to load items:', err)
+      throw err
+    }
+  })
+
+  ipcMain.handle('items:add-book', async (_e, payload: unknown) => {
+    if (
+      !payload ||
+      typeof payload !== 'object' ||
+      typeof (payload as Record<string, unknown>).markdownContent !== 'string' ||
+      typeof (payload as Record<string, unknown>).sourceAgentId !== 'string' ||
+      typeof (payload as Record<string, unknown>).sourceQuestion !== 'string' ||
+      typeof (payload as Record<string, unknown>).category !== 'string' ||
+      typeof (payload as Record<string, unknown>).locale !== 'string' ||
+      typeof (payload as Record<string, unknown>).npcName !== 'string'
+    ) {
+      throw new Error('Invalid items:add-book payload')
+    }
+    const p = payload as {
+      markdownContent: string
+      sourceAgentId: string
+      sourceQuestion: string
+      category: import('../shared/item-types').ItemCategory
+      locale: string
+      npcName: string
+    }
+    try {
+      const preview = stripMarkdown(p.markdownContent)
+      const itemCount = itemRepo.getItemCount('player-1', p.sourceAgentId)
+      const name = await generateBookName(p.markdownContent, p.locale, p.npcName, itemCount)
+      const book = itemRepo.addBookItem({
+        playerId: 'player-1',
+        type: 'book',
+        name,
+        icon: '📖',
+        category: p.category,
+        markdownContent: p.markdownContent,
+        sourceAgentId: p.sourceAgentId,
+        sourceQuestion: p.sourceQuestion,
+        preview
+      })
+      BrowserWindow.getAllWindows()[0]?.webContents.send('items:updated')
+      return book
+    } catch (err) {
+      console.error('[items:add-book] Failed to create book:', err)
+      throw err
+    }
+  })
+
+  ipcMain.handle('items:update-name', (_e, itemId: string, name: string) => {
+    try {
+      itemRepo.updateItemName(itemId, name)
+      BrowserWindow.getAllWindows()[0]?.webContents.send('items:updated')
+    } catch (err) {
+      console.error(`[items:update-name] Failed for item ${itemId}:`, err)
+      throw err
+    }
+  })
+
+  ipcMain.handle('items:delete', (_e, itemId: string) => {
+    try {
+      itemRepo.deleteItem(itemId)
+      BrowserWindow.getAllWindows()[0]?.webContents.send('items:updated')
+    } catch (err) {
+      console.error(`[items:delete] Failed for item ${itemId}:`, err)
+      throw err
+    }
   })
 
   // Zone visit tracking

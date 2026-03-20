@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import { useTranslation } from '../../i18n'
 import { useProgression } from '../../hooks/useProgression'
 import { SKILL_CATEGORIES, type SkillCategory } from '../../../../shared/types'
+import { CATEGORY_COLORS } from '../../utils/itemUtils'
 import { CloseButton } from './CloseButton'
 
 const SKILL_ICONS: Record<SkillCategory, string> = {
@@ -12,16 +13,6 @@ const SKILL_ICONS: Record<SkillCategory, string> = {
   communication: '\ud83d\udcac',
   organization: '\ud83d\udccb',
   visual: '\ud83c\udfa8'
-}
-
-const SKILL_COLORS: Record<SkillCategory, string> = {
-  writing: '#e8b44c',
-  research: '#5bb5e8',
-  code: '#a78bfa',
-  data: '#4ade80',
-  communication: '#f472b6',
-  organization: '#fb923c',
-  visual: '#c084fc'
 }
 
 /** XP required for category level N = 50 * N^2 */
@@ -137,7 +128,7 @@ export function SkillsPanel({ onClose }: SkillsPanelProps) {
                       display: 'block',
                       height: '100%',
                       width: `${percent}%`,
-                      background: SKILL_COLORS[category],
+                      background: CATEGORY_COLORS[category],
                       borderRadius: 4,
                       transition: 'width 0.5s ease'
                     }}

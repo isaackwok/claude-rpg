@@ -199,6 +199,27 @@ const api = {
   removeDecoration: (cosmeticDefId: string): Promise<void> =>
     ipcRenderer.invoke('cosmetics:remove', cosmeticDefId),
 
+  // Items
+  getItems: (): Promise<import('../shared/item-types').Item[]> =>
+    ipcRenderer.invoke('items:get-all'),
+  addBookItem: (payload: {
+    markdownContent: string
+    sourceAgentId: string
+    sourceQuestion: string
+    category: string
+    locale: string
+    npcName: string
+  }): Promise<import('../shared/item-types').BookItem> =>
+    ipcRenderer.invoke('items:add-book', payload),
+  updateItemName: (itemId: string, name: string): Promise<void> =>
+    ipcRenderer.invoke('items:update-name', itemId, name),
+  deleteItem: (itemId: string): Promise<void> => ipcRenderer.invoke('items:delete', itemId),
+  onItemsUpdated: (callback: () => void): (() => void) => {
+    const handler = (): void => callback()
+    ipcRenderer.on('items:updated', handler)
+    return () => ipcRenderer.removeListener('items:updated', handler)
+  },
+
   // Zone tracking
   recordZoneVisit: (zoneId: string): Promise<void> =>
     ipcRenderer.invoke('zone:record-visit', zoneId),
