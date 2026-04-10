@@ -97,8 +97,8 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
           background: 'rgba(10, 10, 30, 0.96)',
           border: '3px solid rgba(200, 180, 140, 0.6)',
           borderRadius: 12,
-          width: 520,
-          maxHeight: '80vh',
+          width: 600,
+          height: 420,
           display: 'flex',
           fontFamily: 'monospace',
           color: '#e8d5a8',
@@ -168,7 +168,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* Content */}
-        <div style={{ flex: 1, padding: 24 }}>
+        <div style={{ flex: 1, padding: 24, overflowY: 'auto' }}>
           {activeTab === 'auth' && (
             <AuthTabContent
               settings={settings}
