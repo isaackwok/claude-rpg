@@ -34,7 +34,7 @@ npm run format       # Prettier
 ### Process Model (Electron 3-process)
 
 - **Main process** (`src/main/`) — Window management, API key storage (safeStorage), NPC tool execution, folder approval management, QuestEngine + ProgressionEngine services. The renderer never sees the raw API key.
-- **Chat module** (`src/main/chat/`) — Pluggable AI backend architecture. `ChatOrchestrator` handles side effects (XP, quests, achievements, persistence) and delegates AI communication to an `IChatBackend` implementation. Currently: `ApiKeyChatBackend` (Anthropic SDK). Designed for future `ClaudeCliChatBackend` (subscription) and other providers.
+- **Chat module** (`src/main/chat/`) — Pluggable AI backend architecture. `ChatOrchestrator` handles side effects (XP, quests, achievements, persistence) and delegates AI communication to an `IChatBackend` implementation. Two backends: `ApiKeyChatBackend` (Anthropic SDK) and `ClaudeCliChatBackend` (Claude CLI subprocess). `BackendManager` owns backend lifecycle and hot-swapping via settings.
 - **Preload** (`src/preload/`) — contextBridge exposing safe IPC channels
 - **Renderer** (`src/renderer/`) — Phaser game + React UI overlays
 - **Shared** (`src/shared/`) — Type definitions shared across all processes (AgentId, ToolName, IPC payloads)

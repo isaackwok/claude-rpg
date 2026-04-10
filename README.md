@@ -112,7 +112,7 @@ NPCs can use tools (read/write files, search the web, run commands) with an appr
 - [x] **Phase 3B: Quests & Backpack** — Organic quests (5 v1 quests), backpack panel with tab system, quest board suggestions, title tier prefixes, quest notifications
 - [x] **Phase 3C: Achievements & Cosmetics** — 12 achievements, cosmetics (overlays + decorations), equip system, player home
 - [x] **Phase 3D: Inventory & Books** — Collectible books, save NPC responses to backpack, cross-NPC context injection
-- [ ] **Phase 4A: Settings Panel** — Auth type switching (API Key / Claude CLI), global model selector, language toggle
+- [x] **Phase 4A: Settings Panel** — Auth type switching (API Key / Claude CLI), global model selector, language toggle
 - [ ] **Phase 4B: Guild Hall** — Custom agent creation
 - [ ] **Phase 5: Party System** — Multi-agent orchestration via Agent SDK
 - [ ] **Phase 6: Onboarding & Polish** — Title screen, character creation, i18n pass

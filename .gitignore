@@ -10,4 +10,4 @@ playwright-report/
 .worktrees/
 .claude/worktrees/
 .eslintcache
-tsconfig.node.tsbuildinfo
+*.tsbuildinfo
