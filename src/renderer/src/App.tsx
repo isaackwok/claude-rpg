@@ -117,6 +117,25 @@ function App(): React.JSX.Element {
     }
   }, [])
 
+  // Auto-open settings if no auth is configured
+  useEffect(() => {
+    const checkAuth = async () => {
+      const settings = await window.api.getSettings()
+      if (settings.auth_type === 'api_key') {
+        const hasKey = await window.api.checkApiKey()
+        if (!hasKey) {
+          setShowSettings(true)
+        }
+      } else if (settings.auth_type === 'claude_cli') {
+        const status = await window.api.checkCli()
+        if (!status.installed || !status.authenticated) {
+          setShowSettings(true)
+        }
+      }
+    }
+    checkAuth()
+  }, [])
+
   // Keyboard shortcuts for panels
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
