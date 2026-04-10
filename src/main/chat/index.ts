@@ -9,3 +9,5 @@ export {
   handlePathApproved,
   handlePathDenied
 } from './tool-confirm'
+export { BackendManager } from './backend-manager'
+export type { BackendManagerDeps } from './backend-manager'
