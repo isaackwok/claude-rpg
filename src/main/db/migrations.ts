@@ -141,6 +141,10 @@ const migrations: Record<number, (db: Database.Database) => void> = {
         preview TEXT NOT NULL
       );
     `)
+  },
+
+  6: (db) => {
+    db.exec('CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);')
   }
 }
 
