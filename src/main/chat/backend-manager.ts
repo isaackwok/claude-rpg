@@ -46,7 +46,8 @@ export class BackendManager {
   }
 
   /** Check if claude CLI is installed and authenticated.
-   *  Uses execFile (not exec) — args are passed as array, no shell injection risk. */
+   *  Uses execFile (not exec) — args are passed as array, no shell injection risk.
+   *  Uses `claude auth status` which returns JSON with { loggedIn: boolean }. */
   async checkCli(): Promise<{ installed: boolean; authenticated: boolean }> {
     try {
       await execFileAsync('claude', ['--version'])
@@ -54,8 +55,9 @@ export class BackendManager {
       return { installed: false, authenticated: false }
     }
     try {
-      await execFileAsync('claude', ['--print', '--max-turns', '0', 'test'], { timeout: 10_000 })
-      return { installed: true, authenticated: true }
+      const { stdout } = await execFileAsync('claude', ['auth', 'status'], { timeout: 10_000 })
+      const status = JSON.parse(stdout)
+      return { installed: true, authenticated: !!status.loggedIn }
     } catch {
       return { installed: true, authenticated: false }
     }
