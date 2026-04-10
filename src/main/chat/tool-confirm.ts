@@ -2,7 +2,7 @@
 import type { WebContents } from 'electron'
 import { resolve, normalize } from 'path'
 import { addApprovedFolder, isPathApproved } from '../folder-manager'
-import type { AgentId, ToolName, ToolConfirmPayload, PathApprovalPayload } from '../../shared/types'
+import type { AgentId, ToolConfirmPayload, PathApprovalPayload } from '../../shared/types'
 
 interface PendingToolConfirm {
   resolve: (result: { approved: boolean; addToApproved?: string }) => void
