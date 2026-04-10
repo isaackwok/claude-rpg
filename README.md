@@ -11,7 +11,7 @@ Built as a spatial interface for non-technical users (designers, PMs) to interac
 | Shell        | Electron 39 (electron-vite)                      |
 | Game Engine  | Phaser 3.90 (tilemaps, sprites, arcade physics)  |
 | UI Framework | React 19 (overlay panels — dialogue, menus, HUD) |
-| AI           | Anthropic SDK (Claude conversations + tool use)  |
+| AI           | Anthropic SDK / Claude CLI (pluggable backend)   |
 | Storage      | SQLite via better-sqlite3 (main process)         |
 | Language     | TypeScript                                       |
 | Build        | Vite via electron-vite (3-process config)        |
@@ -25,13 +25,13 @@ src/
 ├── main/                  # Electron main process
 │   ├── index.ts           # Window management, IPC handlers
 │   ├── api-key.ts         # API key storage (safeStorage)
-│   ├── chat.ts            # Anthropic SDK conversation logic
+│   ├── chat/              # Pluggable AI backend (IChatBackend, ChatOrchestrator)
 │   ├── folder-manager.ts  # Approved folder management
 │   ├── progression-engine.ts  # XP, leveling, title computation + tier prefixes
 │   ├── quest-engine.ts    # Quest trigger evaluation, board suggestions
-│   ├── quest-definitions.ts # Static v1 quest definitions (5 quests)
-│   ├── agents/            # NPC system prompts
-│   ├── db/                # SQLite repositories & migrations (players, xp_ledger, quests)
+│   ├── achievement-engine.ts  # Achievement checking + cosmetic rewards
+│   ├── agents/            # NPC system prompts + agent config
+│   ├── db/                # SQLite repositories & migrations
 │   └── tools/             # NPC tool definitions & executor
 ├── preload/               # contextBridge (safe IPC channels)
 ├── renderer/src/
@@ -72,7 +72,7 @@ npm install
 npm run dev       # Start Electron dev server with hot reload
 ```
 
-On first launch, the app will prompt for your Anthropic API key (stored securely via Electron safeStorage).
+On first launch, the settings panel will open to configure your AI backend — either an Anthropic API key or a Claude CLI subscription. API keys are stored securely via Electron safeStorage.
 
 ### Other Commands
 
@@ -110,10 +110,12 @@ NPCs can use tools (read/write files, search the web, run commands) with an appr
 - [x] **Phase 2.5: NPC Tool Use** — File operations, web search, command execution with folder approval system
 - [x] **Phase 3A: Progression Engine** — XP, leveling, dynamic titles, SQLite persistence, HUD expansion
 - [x] **Phase 3B: Quests & Backpack** — Organic quests (5 v1 quests), backpack panel with tab system, quest board suggestions, title tier prefixes, quest notifications
-- [ ] **Phase 3C: Achievements & Cosmetics** — Achievement system, cosmetic equip system
-- [ ] **Phase 4: Guild Hall** — Custom agent creation
+- [x] **Phase 3C: Achievements & Cosmetics** — 12 achievements, cosmetics (overlays + decorations), equip system, player home
+- [x] **Phase 3D: Inventory & Books** — Collectible books, save NPC responses to backpack, cross-NPC context injection
+- [ ] **Phase 4A: Settings Panel** — Auth type switching (API Key / Claude CLI), global model selector, language toggle
+- [ ] **Phase 4B: Guild Hall** — Custom agent creation
 - [ ] **Phase 5: Party System** — Multi-agent orchestration via Agent SDK
-- [ ] **Phase 6: Onboarding & Polish** — Title screen, API key wizard, character creation, i18n pass
+- [ ] **Phase 6: Onboarding & Polish** — Title screen, character creation, i18n pass
 
 ## License
 
