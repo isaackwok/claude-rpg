@@ -12,7 +12,8 @@ import type {
   PlayerQuest,
   CompletedQuest,
   QuestBoardSuggestion,
-  QuestVisibility
+  QuestVisibility,
+  SettingsMap
 } from '../shared/types'
 import type { PlayerAchievement, AchievementCheckResult } from '../shared/achievement-types'
 import type { PlayerCosmetic, HomePlacement } from '../shared/cosmetic-types'
@@ -97,6 +98,12 @@ interface ChatAPI {
   // Position persistence
   savePosition(scene: string, x: number, y: number): Promise<void>
   getPosition(): Promise<{ scene: string | null; x: number; y: number } | null>
+  // Settings
+  getSettings(): Promise<SettingsMap>
+  setSetting(key: string, value: string): Promise<void>
+  onSettingsChanged(callback: (data: { key: string; value: string }) => void): () => void
+  validateApiKey(key: string): Promise<{ valid: boolean; error?: string }>
+  checkCli(): Promise<{ installed: boolean; authenticated: boolean }>
 }
 
 declare global {
