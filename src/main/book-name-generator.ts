@@ -1,5 +1,16 @@
+import Anthropic from '@anthropic-ai/sdk'
 import { getApiKey } from './api-key'
-import { getOrCreateClient } from './chat'
+
+let cachedClient: { apiKey: string; client: Anthropic } | null = null
+
+function getOrCreateClient(apiKey: string): Anthropic {
+  if (cachedClient && cachedClient.apiKey === apiKey) {
+    return cachedClient.client
+  }
+  const client = new Anthropic({ apiKey })
+  cachedClient = { apiKey, client }
+  return client
+}
 
 /** Strip markdown formatting and truncate for preview text. */
 export function stripMarkdown(text: string, maxLength = 100): string {

@@ -33,7 +33,8 @@ npm run format       # Prettier
 
 ### Process Model (Electron 3-process)
 
-- **Main process** (`src/main/`) — Window management, API key storage (safeStorage), Anthropic SDK calls, NPC tool execution, folder approval management, QuestEngine + ProgressionEngine services. The renderer never sees the raw API key.
+- **Main process** (`src/main/`) — Window management, API key storage (safeStorage), NPC tool execution, folder approval management, QuestEngine + ProgressionEngine services. The renderer never sees the raw API key.
+- **Chat module** (`src/main/chat/`) — Pluggable AI backend architecture. `ChatOrchestrator` handles side effects (XP, quests, achievements, persistence) and delegates AI communication to an `IChatBackend` implementation. Currently: `ApiKeyChatBackend` (Anthropic SDK). Designed for future `ClaudeCliChatBackend` (subscription) and other providers.
 - **Preload** (`src/preload/`) — contextBridge exposing safe IPC channels
 - **Renderer** (`src/renderer/`) — Phaser game + React UI overlays
 - **Shared** (`src/shared/`) — Type definitions shared across all processes (AgentId, ToolName, IPC payloads)
@@ -76,12 +77,14 @@ The project is built in 6 phases, each producing a working deliverable:
 2. **Agent Conversations** — Single-agent NPC dialogue via Anthropic SDK
    2.5. **NPC Tool Use** — File operations, web search, command execution with folder approval system
 3. **Progression** — XP, leveling, titles, quest board. Introduces SQLite (better-sqlite3) persistence via repository pattern.
-4. **Guild Hall** — Custom agent creation
+4. **Settings & Guild Hall**
+   4A. **Settings Panel** — Auth type switching (API Key / Claude CLI), global model selector, language toggle
+   4B. **Guild Hall** — Custom agent creation
 5. **Party System** — Multi-agent orchestration via Agent SDK
 6. **Onboarding & Polish** — Title screen, API key wizard, character creation, i18n pass
 
 Completed: Phase 1 (Shell & World), Phase 2 (Agent Conversations), Phase 2.5 (NPC Tool Use), Phase 3A (Progression Engine), Phase 3B (Quests, Backpack & Title Tiers), Phase 3C (Achievements & Cosmetics), Phase 3D (Inventory & Books)
-Next up: Phase 4 (Guild Hall)
+Next up: Phase 4A (Settings Panel), then Phase 4B (Guild Hall)
 
 - Phase 3C delivered: 12 achievements (progression/exploration/tool_use), cosmetics (overlays + decorations), equip system, player home with decoration placement
 - Phase 3D delivered: inventory tab with collectible books, save NPC responses to backpack with AI-generated RPG names (Sonnet), cross-NPC context injection via "+" menu, BookPickerModal with multi-select, BookDetailModal with editable names

@@ -248,7 +248,7 @@ export function BookPickerModal({ onAttach, onClose }: BookPickerModalProps): Re
                 cursor: 'pointer'
               }}
             >
-              {t('items.deleteNo')}
+              {t('common.cancel')}
             </button>
             <button
               onClick={handleAttach}

@@ -1,7 +1,8 @@
 {
   "common": {
     "close": "Close(Esc)",
-    "retry": "Retry"
+    "retry": "Retry",
+    "cancel": "Cancel"
   },
   "game": {
     "title": "Claude RPG"
@@ -181,7 +182,8 @@
     "attach": "Attach",
     "attachCount": "{{count}} selected",
     "noBooks": "No books to reference yet",
-    "pickBooks": "Select Reference Books"
+    "pickBooks": "Select Reference Books",
+    "loadError": "Failed to load items"
   },
   "quests": {
     "title": "Quests",

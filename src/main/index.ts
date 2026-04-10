@@ -2,15 +2,14 @@ import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { storeApiKey, hasApiKey, clearApiKey } from './api-key'
+import { storeApiKey, hasApiKey, clearApiKey, getApiKey } from './api-key'
 import {
-  handleSendMessage,
-  cancelStream,
+  ChatOrchestrator,
+  ApiKeyChatBackend,
   handleToolApproved,
   handleToolDenied,
   handlePathApproved,
-  handlePathDenied,
-  setChatDependencies
+  handlePathDenied
 } from './chat'
 import {
   getApprovedFolders,
@@ -111,14 +110,16 @@ app.whenReady().then(() => {
   }
 
   // Wire dependencies into chat and folder manager
-  setChatDependencies(
+  const chatBackend = new ApiKeyChatBackend(() => getApiKey())
+  const chatOrchestrator = new ChatOrchestrator(chatBackend)
+  chatOrchestrator.setDependencies({
     progressionEngine,
     questEngine,
     conversationPersistence,
     achievementEngine,
     achievementRepo,
     cosmeticRepo
-  )
+  })
   initFolderManager(folderRepo)
 
   // Progression IPC handlers — let errors propagate so the renderer can handle them
@@ -368,7 +369,7 @@ app.whenReady().then(() => {
       message: string
       locale: string
     }
-    handleSendMessage(agentId, message, locale, event.sender)
+    chatOrchestrator.handleSendMessage(agentId, message, locale, event.sender)
   })
 
   ipcMain.on('chat:cancel-stream', (_event, data: unknown) => {
@@ -380,7 +381,7 @@ app.whenReady().then(() => {
       console.warn('[chat:cancel-stream] Received malformed IPC payload:', data)
       return
     }
-    cancelStream((data as { agentId: string }).agentId)
+    chatOrchestrator.cancelStream((data as { agentId: string }).agentId)
   })
 
   // Tool confirmation responses
