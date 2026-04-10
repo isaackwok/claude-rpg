@@ -75,6 +75,30 @@ describe('ConversationManager', () => {
       })
       expect(conversationManager.getConversation('agent-append-2')).not.toBeNull()
     })
+
+    it('preserves bookRefs on stored message', () => {
+      const refs = [{ id: 'book-1', name: 'Test Book' }]
+      conversationManager.appendMessage('agent-append-refs-1', {
+        role: 'user',
+        content: '📖 Test Book\nhello',
+        timestamp: 300,
+        bookRefs: refs
+      })
+
+      const conv = conversationManager.getConversation('agent-append-refs-1')!
+      expect(conv.messages[0].bookRefs).toEqual(refs)
+    })
+
+    it('message without bookRefs has undefined bookRefs', () => {
+      conversationManager.appendMessage('agent-append-refs-2', {
+        role: 'user',
+        content: 'plain message',
+        timestamp: 400
+      })
+
+      const conv = conversationManager.getConversation('agent-append-refs-2')!
+      expect(conv.messages[0].bookRefs).toBeUndefined()
+    })
   })
 
   describe('appendStreamChunk', () => {
@@ -298,6 +322,44 @@ describe('ConversationManager', () => {
         agentId: 'agent-active-1',
         style: false
       })
+    })
+
+    it('emits streaming bubble when closing dialogue while NPC is waiting', () => {
+      conversationManager.getOrCreateConversation('agent-close-wait-1')
+      conversationManager.setActiveDialogue('agent-close-wait-1')
+      conversationManager.markWaiting('agent-close-wait-1')
+      mockedEmit.mockClear()
+
+      conversationManager.setActiveDialogue(null)
+
+      expect(mockedEmit).toHaveBeenCalledWith('npc:speech-bubble', {
+        agentId: 'agent-close-wait-1',
+        style: 'streaming'
+      })
+    })
+
+    it('emits streaming bubble when closing dialogue while NPC is streaming', () => {
+      conversationManager.getOrCreateConversation('agent-close-stream-1')
+      conversationManager.setActiveDialogue('agent-close-stream-1')
+      conversationManager.appendStreamChunk('agent-close-stream-1', 'partial')
+      mockedEmit.mockClear()
+
+      conversationManager.setActiveDialogue(null)
+
+      expect(mockedEmit).toHaveBeenCalledWith('npc:speech-bubble', {
+        agentId: 'agent-close-stream-1',
+        style: 'streaming'
+      })
+    })
+
+    it('does not emit bubble when closing dialogue while NPC is idle', () => {
+      conversationManager.getOrCreateConversation('agent-close-idle-1')
+      conversationManager.setActiveDialogue('agent-close-idle-1')
+      mockedEmit.mockClear()
+
+      conversationManager.setActiveDialogue(null)
+
+      expect(mockedEmit).not.toHaveBeenCalledWith('npc:speech-bubble', expect.anything())
     })
   })
 
