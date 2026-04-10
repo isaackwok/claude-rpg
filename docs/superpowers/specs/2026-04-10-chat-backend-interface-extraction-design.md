@@ -47,9 +47,16 @@ interface ToolResult {
 
 // ── Stream & interface types ──���──────────────────────────────────────
 
+/** A single tool invocation request from the AI */
+interface ToolCall {
+  toolCallId: string
+  toolName: ToolName
+  args: Record<string, unknown>
+}
+
 type StreamEvent =
   | { type: 'text'; chunk: string }
-  | { type: 'tool_use'; toolCallId: string; toolName: ToolName; args: Record<string, unknown> }
+  | { type: 'tool_use'; calls: ToolCall[] }
   | { type: 'end' }
   | { type: 'error'; error: string }
 
