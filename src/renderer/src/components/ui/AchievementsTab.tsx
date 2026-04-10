@@ -79,8 +79,8 @@ export function AchievementsTab({
               {/* Achievement cards */}
               <div
                 style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
                   gap: 6
                 }}
               >

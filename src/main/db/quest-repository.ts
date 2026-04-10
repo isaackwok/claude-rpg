@@ -77,12 +77,12 @@ export class SqliteQuestRepository {
     }
   }
 
-  /** Get per-category conversation counts. Reads from xp_ledger (not quest tables). */
+  /** Get per-category conversation counts. Only counts real conversations, not bonus XP. */
   getConversationCounts(playerId: string): Record<SkillCategory, number> {
     const rows = this.db
       .prepare(
         `SELECT skill_category as category, COUNT(*) as count
-         FROM xp_ledger WHERE player_id = ? GROUP BY skill_category`
+         FROM xp_ledger WHERE player_id = ? AND source = 'conversation' GROUP BY skill_category`
       )
       .all(playerId) as { category: string; count: number }[]
 
@@ -96,7 +96,7 @@ export class SqliteQuestRepository {
     const row = this.db
       .prepare(
         `SELECT COUNT(*) as count FROM xp_ledger
-         WHERE player_id = ?
+         WHERE player_id = ? AND source = 'conversation'
          AND DATE(created_at / 1000, 'unixepoch', 'localtime') = DATE('now', 'localtime')`
       )
       .get(playerId) as { count: number }
@@ -105,7 +105,9 @@ export class SqliteQuestRepository {
 
   getDistinctCategoryCount(playerId: string): number {
     const row = this.db
-      .prepare(`SELECT COUNT(DISTINCT skill_category) as count FROM xp_ledger WHERE player_id = ?`)
+      .prepare(
+        `SELECT COUNT(DISTINCT skill_category) as count FROM xp_ledger WHERE player_id = ? AND source = 'conversation'`
+      )
       .get(playerId) as { count: number }
     return row.count
   }
@@ -114,7 +116,7 @@ export class SqliteQuestRepository {
     const row = this.db
       .prepare(
         `SELECT MAX(cnt) as maxCount FROM (
-           SELECT COUNT(*) as cnt FROM xp_ledger WHERE player_id = ? GROUP BY skill_category
+           SELECT COUNT(*) as cnt FROM xp_ledger WHERE player_id = ? AND source = 'conversation' GROUP BY skill_category
          )`
       )
       .get(playerId) as { maxCount: number | null }

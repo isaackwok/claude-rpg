@@ -1,5 +1,5 @@
 import type { LocalizedString } from '../i18n/types'
-import type { AgentId, SkillCategory, QuestVisibility } from '../../../shared/types'
+import type { AgentId, SkillCategory, QuestVisibility, BookItem } from '../../../shared/types'
 
 export type { AgentId, SkillCategory }
 
@@ -41,4 +41,6 @@ export interface GameEvents {
   'scene:changed': { sceneName: string; fromScene?: string }
   'zone:visited': { zoneId: string }
   'home:decorate-mode': { active: boolean }
+  'item:added': { item: BookItem }
+  'item:deleted': { itemId: string }
 }

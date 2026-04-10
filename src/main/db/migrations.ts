@@ -112,6 +112,35 @@ const migrations: Record<number, (db: Database.Database) => void> = {
       ALTER TABLE players ADD COLUMN last_x REAL;
       ALTER TABLE players ADD COLUMN last_y REAL;
     `)
+  },
+
+  // Add source column to xp_ledger to distinguish conversation XP from bonus XP.
+  // Quest progress must only count 'conversation' rows, not quest/achievement bonus rows.
+  5: (db) => {
+    db.exec(`ALTER TABLE xp_ledger ADD COLUMN source TEXT NOT NULL DEFAULT 'conversation'`)
+  },
+
+  4: (db) => {
+    db.exec(`
+      CREATE TABLE items (
+        id TEXT PRIMARY KEY,
+        player_id TEXT NOT NULL REFERENCES players(id),
+        type TEXT NOT NULL,
+        name TEXT NOT NULL,
+        icon TEXT NOT NULL,
+        category TEXT NOT NULL,
+        created_at INTEGER NOT NULL
+      );
+      CREATE INDEX idx_items_player ON items(player_id);
+
+      CREATE TABLE book_items (
+        item_id TEXT PRIMARY KEY REFERENCES items(id) ON DELETE CASCADE,
+        markdown_content TEXT NOT NULL,
+        source_agent_id TEXT NOT NULL,
+        source_question TEXT NOT NULL,
+        preview TEXT NOT NULL
+      );
+    `)
   }
 }
 

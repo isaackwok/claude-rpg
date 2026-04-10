@@ -15,8 +15,16 @@ import { conversationManager } from '../../services/ConversationManager'
 import type { Conversation, Message } from '../../services/ConversationManager'
 import type { AgentId } from '../../game/types'
 import { renderMarkdown } from '../../utils/renderMarkdown'
+import { resolveNpcName } from '../../utils/itemUtils'
 import { ToolConfirmDialog } from './ToolConfirmDialog'
+import { BookPickerModal } from './BookPickerModal'
 import { CloseButton } from './CloseButton'
+import type { BookItem } from '../../../../shared/item-types'
+
+/** Unified attachment — files and books shown as inline chips */
+type Attachment =
+  | { type: 'file'; id: string; path: string }
+  | { type: 'book'; id: string; book: BookItem }
 
 interface DialogueState {
   agentId: AgentId
@@ -29,6 +37,7 @@ interface DialoguePanelProps {
 }
 
 // Hoisted outside component to avoid re-injection on every render
+// Note: .md-content and @keyframes fadeInOut styles are in main.css (global)
 const dialogueStyles = (
   <style>{`
     .dialogue-messages ::selection { background: rgba(196, 164, 108, 0.4); color: #fff; }
@@ -47,53 +56,6 @@ const dialogueStyles = (
       from { opacity: 1; transform: translateY(0) scale(1); }
       to   { opacity: 0; transform: translateY(4px) scale(0.95); }
     }
-    .md-content { word-wrap: break-word; }
-    .md-content p { margin: 0 0 0.5em; }
-    .md-content p:last-child { margin-bottom: 0; }
-    .md-content ul, .md-content ol { margin: 0.3em 0; padding-left: 1.4em; }
-    .md-content ul { list-style: disc; }
-    .md-content ol { list-style: decimal; }
-    .md-content li { margin: 0.15em 0; }
-    .md-content strong { color: #e0c888; }
-    .md-content em { color: #c4b8a0; }
-    .md-content code {
-      background: rgba(255,255,255,0.08);
-      padding: 1px 4px;
-      border-radius: 3px;
-      font-size: 13px;
-    }
-    .md-content pre {
-      background: rgba(0,0,0,0.4);
-      padding: 8px;
-      border-radius: 4px;
-      overflow-x: auto;
-      margin: 0.4em 0;
-    }
-    .md-content pre code {
-      background: none;
-      padding: 0;
-    }
-    .md-content h1, .md-content h2, .md-content h3 {
-      color: #c4a46c;
-      margin: 0.5em 0 0.3em;
-      font-size: 14px;
-      font-weight: bold;
-    }
-    .md-content blockquote {
-      border-left: 2px solid rgba(200,180,140,0.4);
-      margin: 0.4em 0;
-      padding: 2px 8px;
-      opacity: 0.85;
-    }
-    .md-content a { color: #7eb8da; text-decoration: underline; }
-    .md-content hr { border: none; border-top: 1px solid rgba(200,180,140,0.2); margin: 0.5em 0; }
-    .md-content table { border-collapse: collapse; margin: 0.4em 0; }
-    .md-content th, .md-content td {
-      border: 1px solid rgba(200,180,140,0.3);
-      padding: 3px 8px;
-      font-size: 13px;
-    }
-    .md-content th { background: rgba(200,180,140,0.1); color: #c4a46c; }
   `}</style>
 )
 
@@ -102,15 +64,36 @@ function MessageBubble({
   msg,
   isLastAssistant,
   isStreaming,
-  t
+  t,
+  onSaveToBackpack
 }: {
   msg: Message
   isLastAssistant: boolean
   isStreaming: boolean
-  t: (key: string) => string
+  t: (key: string, params?: Record<string, string>) => string
+  onSaveToBackpack?: () => Promise<void>
 }) {
   const [copied, setCopied] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [saveFailed, setSaveFailed] = useState(false)
   const isAssistant = msg.role === 'assistant'
+
+  const handleSaveToBackpack = async (): Promise<void> => {
+    if (saving || saved || !onSaveToBackpack) return
+    setSaving(true)
+    try {
+      await onSaveToBackpack()
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } catch (err) {
+      console.error('[DialoguePanel] Failed to save to backpack:', err)
+      setSaveFailed(true)
+      setTimeout(() => setSaveFailed(false), 3000)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const html = useMemo(() => {
     if (!isAssistant) return ''
@@ -191,9 +174,78 @@ function MessageBubble({
                 ? t('dialogue.copyFailed')
                 : t('dialogue.copy')}
           </button>
+          <button
+            onClick={handleSaveToBackpack}
+            disabled={saving}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: saveFailed
+                ? 'rgba(220, 100, 100, 0.8)'
+                : saved
+                  ? 'rgba(140, 200, 140, 0.8)'
+                  : saving
+                    ? 'rgba(200, 180, 140, 0.25)'
+                    : 'rgba(200, 180, 140, 0.4)',
+              cursor: saving ? 'wait' : 'pointer',
+              fontFamily: 'monospace',
+              fontSize: 11,
+              padding: '2px 4px',
+              marginLeft: 4,
+              transition: 'color 0.2s'
+            }}
+          >
+            {saveFailed
+              ? `✗ ${t('dialogue.saveFailed')}`
+              : saved
+                ? `✓ ${t('dialogue.addToBackpack')}`
+                : saving
+                  ? t('dialogue.addingToBackpack')
+                  : `🎒 ${t('dialogue.addToBackpack')}`}
+          </button>
         </div>
       )}
     </div>
+  )
+}
+
+/** Reusable menu item for the attach dropdown */
+function AttachMenuItem({
+  onMouseDown,
+  icon,
+  label
+}: {
+  onMouseDown: () => void
+  icon: string
+  label: string
+}) {
+  return (
+    <button
+      onMouseDown={onMouseDown}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        width: '100%',
+        padding: '7px 12px',
+        background: 'none',
+        border: 'none',
+        color: '#ddd',
+        fontFamily: 'monospace',
+        fontSize: 13,
+        cursor: 'pointer',
+        textAlign: 'left'
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = 'rgba(200, 180, 140, 0.15)'
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = 'none'
+      }}
+    >
+      <span style={{ fontSize: 14 }}>{icon}</span>
+      {label}
+    </button>
   )
 }
 
@@ -204,7 +256,10 @@ function InputArea({
   inputRef,
   isBusy,
   send,
-  t
+  t,
+  attachments,
+  onAddAttachments,
+  onRemoveAttachment
 }: {
   input: string
   setInput: (v: string | ((prev: string) => string)) => void
@@ -212,9 +267,13 @@ function InputArea({
   isBusy: boolean
   send: () => void
   t: (key: string, params?: Record<string, string>) => string
+  attachments: Attachment[]
+  onAddAttachments: (items: Attachment[]) => void
+  onRemoveAttachment: (id: string) => void
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [closing, setClosing] = useState(false)
+  const [bookPickerOpen, setBookPickerOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
   const triggerClose = useCallback(() => {
@@ -240,13 +299,14 @@ function InputArea({
     triggerClose()
     const paths = await window.api.pickFiles()
     if (paths.length === 0) return
-    const formatted = paths.map((p) => `\`${p}\``).join(' ')
-    setInput((prev) => {
-      const separator = prev.length > 0 && !prev.endsWith(' ') ? ' ' : ''
-      return prev + separator + formatted
-    })
+    const fileAttachments: Attachment[] = paths.map((p) => ({
+      type: 'file' as const,
+      id: `file-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      path: p
+    }))
+    onAddAttachments(fileAttachments)
     setTimeout(() => inputRef.current?.focus(), 50)
-  }, [triggerClose, setInput, inputRef])
+  }, [triggerClose, onAddAttachments, inputRef])
 
   const inputHeight = 30
   const maxTextareaHeight = 120
@@ -269,131 +329,203 @@ function InputArea({
     transition: 'background 0.15s'
   }
 
+  const chipStyle: CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 4,
+    padding: '2px 8px',
+    borderRadius: 12,
+    background: 'rgba(200, 180, 140, 0.08)',
+    border: '1px solid rgba(200, 180, 140, 0.3)',
+    color: '#c4a46c',
+    fontFamily: 'monospace',
+    fontSize: 11,
+    whiteSpace: 'nowrap' as const
+  }
+
+  const chipCloseStyle: CSSProperties = {
+    background: 'none',
+    border: 'none',
+    color: 'rgba(200, 180, 140, 0.6)',
+    cursor: 'pointer',
+    padding: 0,
+    fontSize: 11,
+    lineHeight: 1
+  }
+
   return (
-    <div
-      style={{
-        padding: '8px 16px',
-        borderTop: '1px solid rgba(200, 180, 140, 0.3)',
-        display: 'flex',
-        gap: 8,
-        flexShrink: 0,
-        alignItems: 'flex-end'
-      }}
-    >
-      <textarea
-        ref={inputRef}
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault()
-            send()
-            // Reset height after sending
-            if (inputRef.current) inputRef.current.style.height = `${inputHeight}px`
-          }
-        }}
-        onInput={(e) => {
-          const el = e.currentTarget
-          el.style.height = 'auto'
-          el.style.height = Math.min(el.scrollHeight, maxTextareaHeight) + 'px'
-        }}
-        placeholder={t('dialogue.inputPlaceholder')}
-        disabled={isBusy}
-        rows={1}
+    <>
+      <div
         style={{
-          flex: 1,
-          minHeight: inputHeight,
-          maxHeight: maxTextareaHeight,
-          boxSizing: 'border-box',
-          padding: '4px 8px',
-          fontFamily: 'monospace',
-          fontSize: 14,
-          background: 'rgba(255,255,255,0.08)',
-          border: '1px solid rgba(200,180,140,0.3)',
-          color: '#fff',
-          outline: 'none',
-          resize: 'none',
-          overflow: 'auto',
-          lineHeight: '22px'
-        }}
-      />
-      {/* Attach menu */}
-      <div ref={containerRef} style={{ position: 'relative', flexShrink: 0 }}>
-        {menuOpen && (
-          <div
-            style={{
-              position: 'absolute',
-              bottom: 34,
-              right: 0,
-              minWidth: 160,
-              background: 'rgba(20, 20, 40, 0.96)',
-              border: '1px solid rgba(200, 180, 140, 0.4)',
-              borderRadius: 4,
-              padding: '4px 0',
-              animation: closing
-                ? 'attachMenuOut 0.12s ease-in forwards'
-                : 'attachMenuIn 0.15s ease-out',
-              zIndex: 10
-            }}
-          >
-            <button
-              onMouseDown={handlePickFiles}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                width: '100%',
-                padding: '7px 12px',
-                background: 'none',
-                border: 'none',
-                color: '#ddd',
-                fontFamily: 'monospace',
-                fontSize: 13,
-                cursor: 'pointer',
-                textAlign: 'left'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(200, 180, 140, 0.15)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'none'
-              }}
-            >
-              <span style={{ fontSize: 14 }}>+</span>
-              {t('dialogue.attachFiles')}
-            </button>
-          </div>
-        )}
-        <button
-          onClick={() => {
-            if (menuOpen) triggerClose()
-            else setMenuOpen(true)
-          }}
-          disabled={isBusy}
-          style={plusBtnStyle}
-          title={t('dialogue.attachFiles')}
-        >
-          +
-        </button>
-      </div>
-      <button
-        onClick={send}
-        disabled={isBusy || !input.trim()}
-        style={{
-          height: inputHeight,
-          boxSizing: 'border-box',
-          padding: '0 16px',
-          fontFamily: 'monospace',
-          fontSize: 14,
-          background: isBusy ? 'rgba(100,100,100,0.3)' : 'rgba(200,180,140,0.3)',
-          border: '1px solid rgba(200,180,140,0.6)',
-          color: '#c4a46c',
-          cursor: isBusy ? 'wait' : 'pointer'
+          padding: '8px 16px',
+          borderTop: '1px solid rgba(200, 180, 140, 0.3)',
+          display: 'flex',
+          gap: 8,
+          flexShrink: 0,
+          alignItems: 'flex-end'
         }}
       >
-        {t('dialogue.send')}
-      </button>
-    </div>
+        {/* Input container with chips + textarea */}
+        <div
+          style={{
+            flex: 1,
+            background: 'rgba(255,255,255,0.08)',
+            border: '1px solid rgba(200,180,140,0.3)',
+            borderRadius: 2,
+            display: 'flex',
+            flexDirection: 'column'
+          }}
+        >
+          {/* Attachment chips */}
+          {attachments.length > 0 && (
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 4,
+                padding: '6px 8px 2px'
+              }}
+            >
+              {attachments.map((att) => (
+                <span key={att.id} style={chipStyle}>
+                  {att.type === 'book' ? '📖' : '📁'}{' '}
+                  {att.type === 'book'
+                    ? att.book.name.length > 25
+                      ? att.book.name.slice(0, 25) + '…'
+                      : att.book.name
+                    : (att.path.split('/').pop() ?? att.path)}
+                  <button onClick={() => onRemoveAttachment(att.id)} style={chipCloseStyle}>
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          <textarea
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                send()
+                if (inputRef.current) inputRef.current.style.height = `${inputHeight}px`
+              }
+              // Backspace at position 0 removes last attachment
+              if (
+                e.key === 'Backspace' &&
+                attachments.length > 0 &&
+                inputRef.current?.selectionStart === 0 &&
+                inputRef.current?.selectionEnd === 0
+              ) {
+                e.preventDefault()
+                onRemoveAttachment(attachments[attachments.length - 1].id)
+              }
+            }}
+            onInput={(e) => {
+              const el = e.currentTarget
+              el.style.height = 'auto'
+              el.style.height = Math.min(el.scrollHeight, maxTextareaHeight) + 'px'
+            }}
+            placeholder={t('dialogue.inputPlaceholder')}
+            disabled={isBusy}
+            rows={1}
+            style={{
+              minHeight: inputHeight,
+              maxHeight: maxTextareaHeight,
+              boxSizing: 'border-box',
+              padding: '4px 8px',
+              fontFamily: 'monospace',
+              fontSize: 14,
+              background: 'transparent',
+              border: 'none',
+              color: '#fff',
+              outline: 'none',
+              resize: 'none',
+              overflow: 'auto',
+              lineHeight: '22px'
+            }}
+          />
+        </div>
+        {/* Attach menu */}
+        <div ref={containerRef} style={{ position: 'relative', flexShrink: 0 }}>
+          {menuOpen && (
+            <div
+              style={{
+                position: 'absolute',
+                bottom: 34,
+                right: 0,
+                minWidth: 160,
+                background: 'rgba(20, 20, 40, 0.96)',
+                border: '1px solid rgba(200, 180, 140, 0.4)',
+                borderRadius: 4,
+                padding: '4px 0',
+                animation: closing
+                  ? 'attachMenuOut 0.12s ease-in forwards'
+                  : 'attachMenuIn 0.15s ease-out',
+                zIndex: 10
+              }}
+            >
+              <AttachMenuItem
+                onMouseDown={handlePickFiles}
+                icon="📁"
+                label={t('dialogue.attachFiles')}
+              />
+              <AttachMenuItem
+                onMouseDown={() => {
+                  triggerClose()
+                  setBookPickerOpen(true)
+                }}
+                icon="📖"
+                label={t('dialogue.referenceBooks')}
+              />
+            </div>
+          )}
+          <button
+            onClick={() => {
+              if (menuOpen) triggerClose()
+              else setMenuOpen(true)
+            }}
+            disabled={isBusy}
+            style={plusBtnStyle}
+            title={t('dialogue.attachFiles')}
+          >
+            +
+          </button>
+        </div>
+        <button
+          onClick={send}
+          disabled={isBusy || (!input.trim() && attachments.length === 0)}
+          style={{
+            height: inputHeight,
+            boxSizing: 'border-box',
+            padding: '0 16px',
+            fontFamily: 'monospace',
+            fontSize: 14,
+            background: isBusy ? 'rgba(100,100,100,0.3)' : 'rgba(200,180,140,0.3)',
+            border: '1px solid rgba(200,180,140,0.6)',
+            color: '#c4a46c',
+            cursor: isBusy ? 'wait' : 'pointer'
+          }}
+        >
+          {t('dialogue.send')}
+        </button>
+      </div>
+      {bookPickerOpen && (
+        <BookPickerModal
+          onAttach={(books) => {
+            const bookAttachments: Attachment[] = books.map((b) => ({
+              type: 'book' as const,
+              id: b.id,
+              book: b
+            }))
+            onAddAttachments(bookAttachments)
+            setBookPickerOpen(false)
+          }}
+          onClose={() => setBookPickerOpen(false)}
+        />
+      )}
+    </>
   )
 }
 
@@ -432,6 +564,7 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
   const [input, setInput] = useState('')
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null)
   const [expanded, setExpanded] = useState(false)
+  const [attachments, setAttachments] = useState<Attachment[]>([])
   const [unreadDividerIndex, setUnreadDividerIndex] = useState<number | null>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const unreadMarkerRef = useRef<HTMLDivElement>(null)
@@ -456,8 +589,7 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
   // Open dialogue on NPC interact
   useEffect(() => {
     const handler = (data: { agentId: string }): void => {
-      const npc = BUILT_IN_NPCS.find((n) => n.id === data.agentId)
-      const npcName = npc?.name[locale] ?? npc?.name['zh-TW'] ?? data.agentId
+      const npcName = resolveNpcName(data.agentId, locale)
 
       // Capture unread state before setActiveDialogue clears hasUnread
       const conv = conversationManager.getConversation(data.agentId)
@@ -486,6 +618,7 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
       setDialogue(null)
       setInput('')
       setExpanded(false)
+      setAttachments([])
     }
   }, [dialogue])
 
@@ -533,23 +666,55 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
 
   // Send message
   const send = useCallback(() => {
-    if (!dialogue || !input.trim()) return
+    if (!dialogue || (!input.trim() && attachments.length === 0)) return
     if (!hasApiKey) {
       onRequestApiKey()
       return
     }
     const text = input.trim()
+    // Build context from attachments
+    let finalText = text
+    if (attachments.length > 0) {
+      const referenceLabel = t('dialogue.referenceLabel')
+      const colon = locale === 'en' ? ': ' : '：'
+      const contextBlocks: string[] = []
+      for (const att of attachments) {
+        if (att.type === 'book') {
+          contextBlocks.push(
+            `[📖 ${referenceLabel}${colon}${att.book.name}]\n${att.book.markdownContent}`
+          )
+        } else {
+          contextBlocks.push(`\`${att.path}\``)
+        }
+      }
+      const fileAtts = contextBlocks.filter((_, i) => attachments[i].type === 'file')
+      const bookAtts = contextBlocks.filter((_, i) => attachments[i].type === 'book')
+      const parts: string[] = []
+      if (fileAtts.length > 0) parts.push(fileAtts.join(' '))
+      if (bookAtts.length > 0) parts.push(bookAtts.join('\n---\n'))
+      parts.push(text)
+      finalText = parts.join('\n---\n\n')
+    }
     setInput('')
+    setAttachments([])
     setUnreadDividerIndex(null)
     userScrolledRef.current = false
+    // Build display text with attachment labels
+    let displayText = text
+    if (attachments.length > 0) {
+      const labels = attachments.map((att) =>
+        att.type === 'book' ? `📖 ${att.book.name}` : `📁 ${att.path.split('/').pop() ?? att.path}`
+      )
+      displayText = labels.join('  ') + (text ? '\n' + text : '')
+    }
     conversationManager.appendMessage(dialogue.agentId, {
       role: 'user',
-      content: text,
+      content: displayText,
       timestamp: Date.now()
     })
     conversationManager.markWaiting(dialogue.agentId)
-    window.api.sendMessage(dialogue.agentId, text, locale)
-  }, [dialogue, input, hasApiKey, locale, onRequestApiKey])
+    window.api.sendMessage(dialogue.agentId, finalText, locale)
+  }, [dialogue, input, hasApiKey, locale, onRequestApiKey, attachments, t])
 
   if (!dialogue) return null
 
@@ -659,6 +824,28 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
               isLastAssistant={msg.role === 'assistant' && i === messages.length - 1}
               isStreaming={isStreaming}
               t={t}
+              onSaveToBackpack={
+                msg.role === 'assistant'
+                  ? async () => {
+                      const npcDef = BUILT_IN_NPCS.find((n) => n.id === dialogue.agentId)
+                      const npcName = resolveNpcName(dialogue.agentId, locale)
+                      const prevQuestion =
+                        messages
+                          .slice(0, i)
+                          .filter((m) => m.role === 'user')
+                          .at(-1)?.content ?? ''
+                      const book = await window.api.addBookItem({
+                        markdownContent: msg.content,
+                        sourceAgentId: dialogue.agentId,
+                        sourceQuestion: prevQuestion,
+                        category: npcDef?.skills?.[0] ?? 'general',
+                        locale,
+                        npcName
+                      })
+                      EventBus.emit('item:added', { item: book })
+                    }
+                  : undefined
+              }
             />
           </Fragment>
         ))}
@@ -831,6 +1018,14 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
           isBusy={isBusy}
           send={send}
           t={t}
+          attachments={attachments}
+          onAddAttachments={(items) =>
+            setAttachments((prev) => [
+              ...prev,
+              ...items.filter((a) => !prev.some((p) => p.id === a.id))
+            ])
+          }
+          onRemoveAttachment={(id) => setAttachments((prev) => prev.filter((a) => a.id !== id))}
         />
       )}
 
