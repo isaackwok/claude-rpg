@@ -49,15 +49,7 @@ export class ClaudeCliChatBackend implements IChatBackend {
   /** Spawn claude CLI with explicit args array — no shell, safe against injection. */
   private runClaude(opts: ChatOpts, prompt: string): Promise<string> {
     return new Promise((resolve, reject) => {
-      const args = [
-        '--print',
-        '--model',
-        opts.model,
-        '--max-tokens',
-        String(opts.maxTokens),
-        '--system-prompt',
-        opts.systemPrompt
-      ]
+      const args = ['--print', '--model', opts.model, '--system-prompt', opts.systemPrompt]
 
       const proc = spawn('claude', args, {
         stdio: ['pipe', 'pipe', 'pipe'],

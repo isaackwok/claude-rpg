@@ -733,6 +733,7 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
         bottom: 0,
         left: 0,
         right: 0,
+        zIndex: 110,
         height: expanded ? '100%' : '35%',
         background: 'rgba(10, 10, 30, 0.93)',
         border: '3px solid rgba(200, 180, 140, 0.6)',

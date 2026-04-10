@@ -92,6 +92,7 @@ class InMemoryConversationRepository implements IConversationRepository {
   }
 
   setActiveDialogue(agentId: AgentId | null): void {
+    const prevAgentId = this.activeDialogueAgentId
     this.activeDialogueAgentId = agentId
     if (agentId) {
       const conv = this.conversations.get(agentId)
@@ -100,6 +101,12 @@ class InMemoryConversationRepository implements IConversationRepository {
         // Keep firstUnreadIndex — DialoguePanel reads it before clearing
         EventBus.emit('npc:speech-bubble', { agentId, style: false })
         this.notify()
+      }
+    } else if (prevAgentId) {
+      // Dialogue closed — if NPC is still processing, show a thinking bubble
+      const prev = this.conversations.get(prevAgentId)
+      if (prev && (prev.status.state === 'waiting' || prev.status.state === 'streaming')) {
+        EventBus.emit('npc:speech-bubble', { agentId: prevAgentId, style: 'streaming' })
       }
     }
   }
