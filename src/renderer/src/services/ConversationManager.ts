@@ -54,6 +54,7 @@ export interface Message {
   readonly role: MessageRole
   readonly content: string
   readonly timestamp: number
+  readonly bookRefs?: ReadonlyArray<{ id: string; name: string }>
 }
 
 export type StreamingState = ConversationStatus['state']

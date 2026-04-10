@@ -18,7 +18,9 @@ import { renderMarkdown } from '../../utils/renderMarkdown'
 import { resolveNpcName } from '../../utils/itemUtils'
 import { ToolConfirmDialog } from './ToolConfirmDialog'
 import { BookPickerModal } from './BookPickerModal'
+import { BookPreviewModal } from './BookPreviewModal'
 import { CloseButton } from './CloseButton'
+import { useItems } from '../../hooks/useItems'
 import type { BookItem } from '../../../../shared/item-types'
 
 /** Unified attachment — files and books shown as inline chips */
@@ -59,19 +61,78 @@ const dialogueStyles = (
   `}</style>
 )
 
+const bookLinkStyle: CSSProperties = {
+  color: '#e8d5a8',
+  cursor: 'pointer',
+  textDecoration: 'underline',
+  textDecorationColor: 'rgba(200, 180, 140, 0.4)',
+  textUnderlineOffset: 2
+}
+
+/** Split user message content into text and clickable book references.
+ *  Uses regex to find 📖 patterns and cross-references against bookRefs.
+ *  No user-supplied strings are interpreted as code — output is React elements. */
+function renderUserContent(msg: Message, onBookClick?: (bookId: string) => void): React.ReactNode {
+  const { bookRefs, content } = msg
+  if (!bookRefs || bookRefs.length === 0 || !onBookClick) return content
+
+  // Build a lookup: book display name → bookRef id
+  const refsByName = new Map(bookRefs.map((r) => [r.name, r.id]))
+
+  // Match 📖 BookName patterns — they appear as "📖 Name" separated by double-space or newline
+  const parts: React.ReactNode[] = []
+  const bookPattern = /📖 ([^\n]+?)(?=  📖 |\n|$)/g
+  let result: RegExpExecArray | null
+  let lastIndex = 0
+
+  while ((result = bookPattern.exec(content)) !== null) {
+    // Text before the match
+    if (result.index > lastIndex) {
+      parts.push(content.slice(lastIndex, result.index))
+    }
+    const bookName = result[1].trim()
+    const bookId = refsByName.get(bookName)
+    if (bookId) {
+      parts.push(
+        <span
+          key={`book-${bookId}`}
+          style={bookLinkStyle}
+          onClick={(e) => {
+            e.stopPropagation()
+            onBookClick(bookId)
+          }}
+        >
+          📖 {bookName}
+        </span>
+      )
+    } else {
+      parts.push(result[0])
+    }
+    lastIndex = result.index + result[0].length
+  }
+
+  if (lastIndex < content.length) {
+    parts.push(content.slice(lastIndex))
+  }
+
+  return parts.length > 0 ? parts : content
+}
+
 /** Renders a single message bubble with markdown (assistant) or plain text (user) */
 function MessageBubble({
   msg,
   isLastAssistant,
   isStreaming,
   t,
-  onSaveToBackpack
+  onSaveToBackpack,
+  onBookClick
 }: {
   msg: Message
   isLastAssistant: boolean
   isStreaming: boolean
   t: (key: string, params?: Record<string, string>) => string
   onSaveToBackpack?: () => Promise<void>
+  onBookClick?: (bookId: string) => void
 }) {
   const [copied, setCopied] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -138,10 +199,11 @@ function MessageBubble({
           position: 'relative'
         }}
       >
+        {/* Assistant messages use sanitized markdown; user messages use React elements */}
         {isAssistant ? (
           <div className="md-content" dangerouslySetInnerHTML={{ __html: html }} />
         ) : (
-          <span style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</span>
+          <span style={{ whiteSpace: 'pre-wrap' }}>{renderUserContent(msg, onBookClick)}</span>
         )}
         {/* Blinking cursor for streaming */}
         {isLastAssistant && isStreaming && (
@@ -566,11 +628,23 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
   const [expanded, setExpanded] = useState(false)
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const [unreadDividerIndex, setUnreadDividerIndex] = useState<number | null>(null)
+  const [previewBook, setPreviewBook] = useState<BookItem | null>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const unreadMarkerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const openedAtRef = useRef(0)
   const userScrolledRef = useRef(false)
+
+  // Items for book reference lookups in messages
+  const { items } = useItems()
+  const itemsById = useMemo(() => new Map(items.map((i) => [i.id, i])), [items])
+  const handleBookClick = useCallback(
+    (bookId: string) => {
+      const book = itemsById.get(bookId)
+      if (book && book.type === 'book') setPreviewBook(book)
+    },
+    [itemsById]
+  )
 
   // Subscribe to ConversationManager changes — version counter ensures React detects mutations
   useSyncExternalStore(
@@ -707,10 +781,14 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
       )
       displayText = labels.join('  ') + (text ? '\n' + text : '')
     }
+    const bookRefs = attachments
+      .filter((att): att is Attachment & { type: 'book' } => att.type === 'book')
+      .map((att) => ({ id: att.book.id, name: att.book.name }))
     conversationManager.appendMessage(dialogue.agentId, {
       role: 'user',
       content: displayText,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      ...(bookRefs.length > 0 && { bookRefs })
     })
     conversationManager.markWaiting(dialogue.agentId)
     window.api.sendMessage(dialogue.agentId, finalText, locale)
@@ -825,6 +903,9 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
               isLastAssistant={msg.role === 'assistant' && i === messages.length - 1}
               isStreaming={isStreaming}
               t={t}
+              onBookClick={
+                msg.bookRefs?.some((r) => itemsById.has(r.id)) ? handleBookClick : undefined
+              }
               onSaveToBackpack={
                 msg.role === 'assistant'
                   ? async () => {
@@ -1031,6 +1112,7 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
       )}
 
       {dialogueStyles}
+      {previewBook && <BookPreviewModal item={previewBook} onClose={() => setPreviewBook(null)} />}
     </div>
   )
 }
