@@ -228,7 +228,22 @@ const api = {
   savePosition: (scene: string, x: number, y: number): Promise<void> =>
     ipcRenderer.invoke('player:save-position', scene, x, y),
   getPosition: (): Promise<{ scene: string | null; x: number; y: number } | null> =>
-    ipcRenderer.invoke('player:get-position')
+    ipcRenderer.invoke('player:get-position'),
+
+  // Settings
+  getSettings: (): Promise<import('../shared/types').SettingsMap> =>
+    ipcRenderer.invoke('settings:get-all'),
+  setSetting: (key: string, value: string): Promise<void> =>
+    ipcRenderer.invoke('settings:set', { key, value }),
+  onSettingsChanged: (callback: (data: { key: string; value: string }) => void): (() => void) => {
+    const handler = (_event: unknown, data: { key: string; value: string }): void => callback(data)
+    ipcRenderer.on('settings:changed', handler)
+    return () => ipcRenderer.removeListener('settings:changed', handler)
+  },
+  validateApiKey: (key: string): Promise<{ valid: boolean; error?: string }> =>
+    ipcRenderer.invoke('settings:validate-api-key', { key }),
+  checkCli: (): Promise<{ installed: boolean; authenticated: boolean }> =>
+    ipcRenderer.invoke('settings:check-cli')
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to
