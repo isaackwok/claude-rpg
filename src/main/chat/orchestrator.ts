@@ -52,6 +52,13 @@ export class ChatOrchestrator {
   private achievementRepo: SqliteAchievementRepository | null = null
   private cosmeticRepo: SqliteCosmeticRepository | null = null
   private dependenciesInitialized = false
+  private getModelOverride: ((agentDefault: string) => string) | null = null
+
+  /** Set a callback that returns the effective model, given the agent's default.
+   *  Used by settings to inject global model preference. */
+  setModelResolver(resolver: (agentDefault: string) => string): void {
+    this.getModelOverride = resolver
+  }
 
   constructor(backend: IChatBackend) {
     this.backend = backend
@@ -152,7 +159,7 @@ export class ChatOrchestrator {
       agentId,
       systemPrompt,
       tools: this.convertTools(agentId),
-      model: config.model,
+      model: this.getModelOverride?.(config.model) ?? config.model,
       maxTokens: config.maxTokens,
       temperature: config.temperature
     }

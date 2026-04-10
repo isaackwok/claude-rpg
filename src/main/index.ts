@@ -5,12 +5,14 @@ import icon from '../../resources/icon.png?asset'
 import { storeApiKey, hasApiKey, clearApiKey, getApiKey } from './api-key'
 import {
   ChatOrchestrator,
-  ApiKeyChatBackend,
+  BackendManager,
   handleToolApproved,
   handleToolDenied,
   handlePathApproved,
   handlePathDenied
 } from './chat'
+import { SqliteSettingsRepository } from './db/settings-repository'
+import type { AuthType, Locale } from '../shared/types'
 import {
   getApprovedFolders,
   addApprovedFolder,
@@ -109,9 +111,17 @@ app.whenReady().then(() => {
     console.error('[init] Failed to seed starter quests:', err)
   }
 
-  // Wire dependencies into chat and folder manager
-  const chatBackend = new ApiKeyChatBackend(() => getApiKey())
-  const chatOrchestrator = new ChatOrchestrator(chatBackend)
+  // Settings
+  const settingsRepo = new SqliteSettingsRepository(db)
+
+  // Wire BackendManager → ChatOrchestrator
+  const backendManager = new BackendManager(settingsRepo.getAuthType(), {
+    getApiKey: () => getApiKey()
+  })
+  const chatOrchestrator = new ChatOrchestrator(backendManager.getBackend())
+
+  // Model resolver: use global setting as default for all agents
+  chatOrchestrator.setModelResolver((_agentDefault) => settingsRepo.getModel())
   chatOrchestrator.setDependencies({
     progressionEngine,
     questEngine,
@@ -464,6 +474,41 @@ app.whenReady().then(() => {
     })
     if (result.canceled) return []
     return result.filePaths
+  })
+
+  // Settings IPC handlers
+  ipcMain.handle('settings:get-all', () => {
+    return settingsRepo.getAll()
+  })
+
+  ipcMain.handle('settings:set', (_e, { key, value }: { key: string; value: string }) => {
+    switch (key) {
+      case 'auth_type': {
+        settingsRepo.setAuthType(value as AuthType)
+        backendManager.switchBackend(value as AuthType)
+        chatOrchestrator.setBackend(backendManager.getBackend())
+        break
+      }
+      case 'model':
+        settingsRepo.setModel(value)
+        break
+      case 'locale':
+        settingsRepo.setLocale(value as Locale)
+        break
+    }
+    // Broadcast change to renderer
+    const win = BrowserWindow.getAllWindows()[0]
+    if (win && !win.isDestroyed()) {
+      win.webContents.send('settings:changed', { key, value })
+    }
+  })
+
+  ipcMain.handle('settings:validate-api-key', async (_e, { key }: { key: string }) => {
+    return backendManager.validateApiKey(key)
+  })
+
+  ipcMain.handle('settings:check-cli', async () => {
+    return backendManager.checkCli()
   })
 
   createWindow()
