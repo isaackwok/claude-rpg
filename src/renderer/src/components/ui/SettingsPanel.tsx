@@ -425,14 +425,19 @@ function ModelTabContent({
         onChange={(e) => onUpdateSetting('model', e.target.value)}
         style={{
           width: '100%',
-          padding: '10px 12px',
+          padding: '10px 32px 10px 12px',
           background: 'rgba(200, 180, 140, 0.08)',
           border: '1px solid rgba(200, 180, 140, 0.25)',
           borderRadius: 6,
           color: '#e8d5a8',
           fontFamily: 'monospace',
           fontSize: 13,
-          cursor: 'pointer'
+          cursor: 'pointer',
+          WebkitAppearance: 'none',
+          appearance: 'none',
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23a89060' d='M2 4l4 4 4-4'/%3E%3C/svg%3E")`,
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'right 12px center'
         }}
       >
         {MODELS.map((m) => (
