@@ -159,6 +159,7 @@ export class ChatOrchestrator {
 
     this.activeAgents.add(agentId)
     let fullTextResponse = ''
+    let sawError = false
 
     try {
       for await (const event of this.backend.sendMessage(opts, finalMessage)) {
@@ -192,12 +193,13 @@ export class ChatOrchestrator {
             break
 
           case 'error':
+            sawError = true
             webContents.send('chat:stream-error', { agentId, error: event.error })
             break
         }
       }
 
-      if (!webContents.isDestroyed()) {
+      if (!webContents.isDestroyed() && !sawError) {
         webContents.send('chat:stream-end', { agentId })
       }
     } catch (err) {

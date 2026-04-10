@@ -185,10 +185,6 @@ export async function checkAndApproveMessagePaths(
       .trim()
   }
 
-  if (!webContents.isDestroyed()) {
-    webContents.send('chat:stream-end', { agentId })
-  }
-
   return finalMessage
 }
 

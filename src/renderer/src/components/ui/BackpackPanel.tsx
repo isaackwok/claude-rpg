@@ -217,7 +217,7 @@ export function BackpackPanel({ onClose }: BackpackPanelProps): React.JSX.Elemen
                     gap: 12
                   }}
                 >
-                  <div style={{ color: '#a89060', fontSize: 13 }}>{itemsError}</div>
+                  <div style={{ color: '#a89060', fontSize: 13 }}>{t('items.loadError')}</div>
                   <button
                     onClick={() => refreshItems()}
                     style={{

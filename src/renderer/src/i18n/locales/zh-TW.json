@@ -1,7 +1,8 @@
 {
   "common": {
     "close": "關閉(Esc)",
-    "retry": "重試"
+    "retry": "重試",
+    "cancel": "取消"
   },
   "game": {
     "title": "Claude RPG"
@@ -181,7 +182,8 @@
     "attach": "附加",
     "attachCount": "已選 {{count}} 本",
     "noBooks": "還沒有任何書籍可以參考",
-    "pickBooks": "選擇參考書籍"
+    "pickBooks": "選擇參考書籍",
+    "loadError": "無法載入物品"
   },
   "quests": {
     "title": "任務",
