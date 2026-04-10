@@ -141,6 +141,17 @@ const migrations: Record<number, (db: Database.Database) => void> = {
         preview TEXT NOT NULL
       );
     `)
+  },
+
+  6: (db) => {
+    db.exec('CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);')
+    // Migrate locale from players table to settings table
+    const row = db.prepare("SELECT locale FROM players WHERE id = 'player-1'").get() as
+      | { locale: string }
+      | undefined
+    if (row && row.locale) {
+      db.prepare("INSERT INTO settings (key, value) VALUES ('locale', ?)").run(row.locale)
+    }
   }
 }
 

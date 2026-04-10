@@ -43,4 +43,5 @@ export interface GameEvents {
   'home:decorate-mode': { active: boolean }
   'item:added': { item: BookItem }
   'item:deleted': { itemId: string }
+  'settings:toggle': Record<string, never>
 }

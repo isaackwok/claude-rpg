@@ -14,6 +14,8 @@ import { AchievementNotification } from './components/ui/AchievementNotification
 import { ItemNotification } from './components/ui/ItemNotification'
 import { QuestBoardPanel } from './components/ui/QuestBoardPanel'
 import { HomeHUD } from './components/ui/HomeHUD'
+import { SettingsPanel } from './components/ui/SettingsPanel'
+import { SettingsGearButton } from './components/ui/SettingsGearButton'
 import { conversationManager } from './services/ConversationManager'
 import { EventBus } from './game/EventBus'
 import type { AgentId } from '../../shared/types'
@@ -25,6 +27,8 @@ function App(): React.JSX.Element {
   const [showSkillsPanel, setShowSkillsPanel] = useState(false)
   const [showBackpack, setShowBackpack] = useState(false)
   const [showQuestBoard, setShowQuestBoard] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
+  const [dialogueActive, setDialogueActive] = useState(false)
   const [levelUpBanner, setLevelUpBanner] = useState<number | null>(null)
   const [apiKeyVersion, setApiKeyVersion] = useState(0)
   const hydratedAgents = useRef(new Set<string>())
@@ -105,12 +109,54 @@ function App(): React.JSX.Element {
     }
   }, [])
 
+  // Track dialogue open/close for ESC priority
+  useEffect(() => {
+    const onOpen = () => setDialogueActive(true)
+    const onClose = () => setDialogueActive(false)
+    EventBus.on('npc:interact', onOpen)
+    EventBus.on('dialogue:closed', onClose)
+    return () => {
+      EventBus.off('npc:interact', onOpen)
+      EventBus.off('dialogue:closed', onClose)
+    }
+  }, [])
+
+  // Settings toggle from EventBus (gear button)
+  useEffect(() => {
+    const handler = () => {
+      if (!dialogueActive) setShowSettings((v) => !v)
+    }
+    EventBus.on('settings:toggle', handler)
+    return () => {
+      EventBus.off('settings:toggle', handler)
+    }
+  }, [dialogueActive])
+
+  // Auto-open settings if no auth is configured
+  useEffect(() => {
+    const checkAuth = async () => {
+      const settings = await window.api.getSettings()
+      if (settings.auth_type === 'api_key') {
+        const hasKey = await window.api.checkApiKey()
+        if (!hasKey) {
+          setShowSettings(true)
+        }
+      } else if (settings.auth_type === 'claude_cli') {
+        const status = await window.api.checkCli()
+        if (!status.installed || !status.authenticated) {
+          setShowSettings(true)
+        }
+      }
+    }
+    checkAuth()
+  }, [])
+
   // Keyboard shortcuts for panels
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      // Skip if focus is on an input/textarea
+      // Skip if focus is on an input/textarea/select
       const tag = (e.target as HTMLElement)?.tagName
-      if (tag === 'INPUT' || tag === 'TEXTAREA') return
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
 
       if (e.code === 'KeyP') {
         setShowSkillsPanel((v) => !v)
@@ -122,14 +168,17 @@ function App(): React.JSX.Element {
         setShowQuestBoard((v) => !v)
       }
       if (e.code === 'Escape') {
+        // Close panels in priority order; never open settings during active dialogue
         if (showSkillsPanel) setShowSkillsPanel(false)
-        if (showBackpack) setShowBackpack(false)
-        if (showQuestBoard) setShowQuestBoard(false)
+        else if (showBackpack) setShowBackpack(false)
+        else if (showQuestBoard) setShowQuestBoard(false)
+        else if (showSettings) setShowSettings(false)
+        else if (!dialogueActive) setShowSettings(true)
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [showSkillsPanel, showBackpack, showQuestBoard])
+  }, [showSkillsPanel, showBackpack, showQuestBoard, showSettings, dialogueActive])
 
   // Hydrate conversation history from SQLite on first dialogue open
   const hydrateConversation = useCallback(async (agentId: AgentId) => {
@@ -181,6 +230,7 @@ function App(): React.JSX.Element {
       >
         <HUD />
         <BackpackButton />
+        <SettingsGearButton />
         <ProximityHint />
         <DialoguePanel
           onRequestApiKey={() => setShowApiKeyModal(true)}
@@ -194,6 +244,7 @@ function App(): React.JSX.Element {
         {showSkillsPanel && <SkillsPanel onClose={() => setShowSkillsPanel(false)} />}
         {showBackpack && <BackpackPanel onClose={() => setShowBackpack(false)} />}
         {showQuestBoard && <QuestBoardPanel onClose={() => setShowQuestBoard(false)} />}
+        {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
         {levelUpBanner !== null && (
           <LevelUpBanner level={levelUpBanner} onDone={() => setLevelUpBanner(null)} />
         )}

@@ -6,6 +6,19 @@
 /** NPC/agent identifier. Used consistently across AgentConfig, AgentDef, GameEvents, and IPC. */
 export type AgentId = string
 
+/** Authentication backend type */
+export type AuthType = 'api_key' | 'claude_cli'
+
+/** Supported locale */
+export type Locale = 'zh-TW' | 'en'
+
+/** Settings key-value map returned from settings:get-all */
+export interface SettingsMap {
+  auth_type: AuthType
+  model: string
+  locale: Locale
+}
+
 /** Message role for Anthropic API conversations. */
 export type MessageRole = 'user' | 'assistant'
 

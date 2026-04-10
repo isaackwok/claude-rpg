@@ -7,6 +7,39 @@
   "game": {
     "title": "Claude RPG"
   },
+  "settings": {
+    "title": "Settings",
+    "tabs": {
+      "auth": "Auth",
+      "model": "Model",
+      "language": "Language"
+    },
+    "auth": {
+      "label": "Authentication",
+      "apiKey": "API Key",
+      "apiKeyDescription": "Use an Anthropic API key",
+      "claudeCli": "Claude Subscription",
+      "claudeCliDescription": "Use Claude CLI (requires subscription)",
+      "apiKeyPlaceholder": "sk-ant-...",
+      "apiKeySaved": "API key saved",
+      "apiKeyInvalid": "Invalid API key",
+      "validating": "Validating...",
+      "cliNotInstalled": "Claude CLI not detected. Please install the Claude CLI first.",
+      "cliNotAuthenticated": "Claude CLI not logged in. Run claude login in your terminal.",
+      "cliReady": "Claude CLI ready",
+      "checkCliStatus": "Check CLI Status"
+    },
+    "model": {
+      "label": "Default Model",
+      "description": "AI model used for all NPC conversations"
+    },
+    "language": {
+      "label": "Language",
+      "description": "Interface and NPC response language",
+      "zhTW": "繁體中文",
+      "en": "English"
+    }
+  },
   "interaction": {
     "hint": "Press Space to talk",
     "hintWithName": "Press Space to talk to {{npcName}}",
