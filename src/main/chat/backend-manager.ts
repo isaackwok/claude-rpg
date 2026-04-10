@@ -3,6 +3,7 @@ import { promisify } from 'util'
 import type { IChatBackend } from './types'
 import type { AuthType } from '../../shared/types'
 import { ApiKeyChatBackend } from './api-key-backend'
+import { ClaudeCliChatBackend } from './claude-cli-backend'
 
 const execFileAsync = promisify(execFile)
 
@@ -26,8 +27,7 @@ export class BackendManager {
       case 'api_key':
         return new ApiKeyChatBackend(this.deps.getApiKey)
       case 'claude_cli':
-        // ClaudeCliChatBackend will be added in Task 4
-        throw new Error('Claude CLI backend not yet implemented')
+        return new ClaudeCliChatBackend()
     }
   }
 
