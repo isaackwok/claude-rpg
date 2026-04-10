@@ -7,6 +7,38 @@
   "game": {
     "title": "Claude RPG"
   },
+  "settings": {
+    "title": "設定",
+    "tabs": {
+      "auth": "認證",
+      "model": "模型",
+      "language": "語言"
+    },
+    "auth": {
+      "label": "認證方式",
+      "apiKey": "API Key",
+      "apiKeyDescription": "使用 Anthropic API 金鑰",
+      "claudeCli": "Claude 訂閱",
+      "claudeCliDescription": "使用 Claude CLI（需要訂閱）",
+      "apiKeyPlaceholder": "sk-ant-...",
+      "apiKeySaved": "API 金鑰已儲存",
+      "apiKeyInvalid": "無效的 API 金鑰",
+      "validating": "驗證中...",
+      "cliNotInstalled": "未偵測到 Claude CLI。請先安裝 Claude CLI。",
+      "cliNotAuthenticated": "Claude CLI 尚未登入。請在終端機執行 claude login。",
+      "cliReady": "Claude CLI 已就緒"
+    },
+    "model": {
+      "label": "預設模型",
+      "description": "所有 NPC 對話使用的 AI 模型"
+    },
+    "language": {
+      "label": "語言",
+      "description": "介面語言與 NPC 回覆語言",
+      "zhTW": "繁體中文",
+      "en": "English"
+    }
+  },
   "interaction": {
     "hint": "按 Space 對話",
     "hintWithName": "按 Space 與{{npcName}}對話",
