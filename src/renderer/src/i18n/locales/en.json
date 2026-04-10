@@ -26,7 +26,8 @@
       "validating": "Validating...",
       "cliNotInstalled": "Claude CLI not detected. Please install the Claude CLI first.",
       "cliNotAuthenticated": "Claude CLI not logged in. Run claude login in your terminal.",
-      "cliReady": "Claude CLI ready"
+      "cliReady": "Claude CLI ready",
+      "checkCliStatus": "Check CLI Status"
     },
     "model": {
       "label": "Default Model",

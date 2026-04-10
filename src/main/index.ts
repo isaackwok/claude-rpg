@@ -120,8 +120,10 @@ app.whenReady().then(() => {
   })
   const chatOrchestrator = new ChatOrchestrator(backendManager.getBackend())
 
-  // Model resolver: use global setting as default for all agents
-  chatOrchestrator.setModelResolver((_agentDefault) => settingsRepo.getModel())
+  // Model resolver: respect agent-specific model if set, otherwise use global setting
+  chatOrchestrator.setModelResolver((agentDefault) =>
+    agentDefault && agentDefault !== 'default' ? agentDefault : settingsRepo.getModel()
+  )
   chatOrchestrator.setDependencies({
     progressionEngine,
     questEngine,

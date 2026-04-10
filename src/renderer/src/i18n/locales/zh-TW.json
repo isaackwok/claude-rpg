@@ -26,7 +26,8 @@
       "validating": "驗證中...",
       "cliNotInstalled": "未偵測到 Claude CLI。請先安裝 Claude CLI。",
       "cliNotAuthenticated": "Claude CLI 尚未登入。請在終端機執行 claude login。",
-      "cliReady": "Claude CLI 已就緒"
+      "cliReady": "Claude CLI 已就緒",
+      "checkCliStatus": "檢查 CLI 狀態"
     },
     "model": {
       "label": "預設模型",

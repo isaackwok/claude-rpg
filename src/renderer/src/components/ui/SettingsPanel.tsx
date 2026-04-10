@@ -93,6 +93,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
     >
       <div
         style={{
+          position: 'relative',
           background: 'rgba(10, 10, 30, 0.96)',
           border: '3px solid rgba(200, 180, 140, 0.6)',
           borderRadius: 12,
@@ -105,6 +106,29 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
         }}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          style={{
+            position: 'absolute',
+            top: 8,
+            right: 8,
+            width: 28,
+            height: 28,
+            borderRadius: 4,
+            background: 'transparent',
+            border: '1px solid rgba(200, 180, 140, 0.2)',
+            color: '#a89060',
+            fontSize: 14,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          ✕
+        </button>
+
         {/* Sidebar */}
         <div
           style={{
@@ -332,7 +356,7 @@ function AuthTabContent({
                 fontFamily: 'monospace'
               }}
             >
-              Check CLI Status
+              {t('settings.auth.checkCliStatus')}
             </button>
           ) : !cliStatus.installed ? (
             <div style={{ fontSize: 11, color: '#f87171' }}>

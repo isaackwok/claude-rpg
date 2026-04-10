@@ -28,6 +28,7 @@ function App(): React.JSX.Element {
   const [showBackpack, setShowBackpack] = useState(false)
   const [showQuestBoard, setShowQuestBoard] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [dialogueActive, setDialogueActive] = useState(false)
   const [levelUpBanner, setLevelUpBanner] = useState<number | null>(null)
   const [apiKeyVersion, setApiKeyVersion] = useState(0)
   const hydratedAgents = useRef(new Set<string>())
@@ -108,14 +109,28 @@ function App(): React.JSX.Element {
     }
   }, [])
 
+  // Track dialogue open/close for ESC priority
+  useEffect(() => {
+    const onOpen = () => setDialogueActive(true)
+    const onClose = () => setDialogueActive(false)
+    EventBus.on('npc:interact', onOpen)
+    EventBus.on('dialogue:closed', onClose)
+    return () => {
+      EventBus.off('npc:interact', onOpen)
+      EventBus.off('dialogue:closed', onClose)
+    }
+  }, [])
+
   // Settings toggle from EventBus (gear button)
   useEffect(() => {
-    const handler = () => setShowSettings((v) => !v)
+    const handler = () => {
+      if (!dialogueActive) setShowSettings((v) => !v)
+    }
     EventBus.on('settings:toggle', handler)
     return () => {
       EventBus.off('settings:toggle', handler)
     }
-  }, [])
+  }, [dialogueActive])
 
   // Auto-open settings if no auth is configured
   useEffect(() => {
@@ -153,17 +168,17 @@ function App(): React.JSX.Element {
         setShowQuestBoard((v) => !v)
       }
       if (e.code === 'Escape') {
-        // Close panels in priority order
+        // Close panels in priority order; never open settings during active dialogue
         if (showSkillsPanel) setShowSkillsPanel(false)
         else if (showBackpack) setShowBackpack(false)
         else if (showQuestBoard) setShowQuestBoard(false)
         else if (showSettings) setShowSettings(false)
-        else setShowSettings(true)
+        else if (!dialogueActive) setShowSettings(true)
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [showSkillsPanel, showBackpack, showQuestBoard, showSettings])
+  }, [showSkillsPanel, showBackpack, showQuestBoard, showSettings, dialogueActive])
 
   // Hydrate conversation history from SQLite on first dialogue open
   const hydrateConversation = useCallback(async (agentId: AgentId) => {
