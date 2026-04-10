@@ -232,145 +232,165 @@ function AuthTabContent({
       </div>
 
       {/* API Key option */}
-      <label
+      <div
         style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: 10,
-          padding: 12,
-          background: settings.auth_type === 'api_key' ? 'rgba(200, 180, 140, 0.1)' : 'transparent',
           border: `1px solid ${settings.auth_type === 'api_key' ? 'rgba(200, 180, 140, 0.4)' : 'rgba(200, 180, 140, 0.15)'}`,
           borderRadius: 6,
-          cursor: 'pointer',
+          background: settings.auth_type === 'api_key' ? 'rgba(200, 180, 140, 0.1)' : 'transparent',
           marginBottom: 8
         }}
       >
-        <input
-          type="radio"
-          name="auth_type"
-          checked={settings.auth_type === 'api_key'}
-          onChange={() => onUpdateSetting('auth_type', 'api_key')}
-          style={{ marginTop: 2 }}
-        />
-        <div>
-          <div style={{ fontSize: 14 }}>{t('settings.auth.apiKey')}</div>
-          <div style={{ fontSize: 11, color: '#a89060', marginTop: 2 }}>
-            {t('settings.auth.apiKeyDescription')}
+        <label
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 10,
+            padding: 12,
+            cursor: 'pointer'
+          }}
+        >
+          <input
+            type="radio"
+            name="auth_type"
+            checked={settings.auth_type === 'api_key'}
+            onChange={() => onUpdateSetting('auth_type', 'api_key')}
+            style={{ marginTop: 2 }}
+          />
+          <div>
+            <div style={{ fontSize: 14 }}>{t('settings.auth.apiKey')}</div>
+            <div style={{ fontSize: 11, color: '#a89060', marginTop: 2 }}>
+              {t('settings.auth.apiKeyDescription')}
+            </div>
           </div>
-        </div>
-      </label>
+        </label>
 
-      {/* API Key input (shown when api_key is selected) */}
-      {settings.auth_type === 'api_key' && (
-        <div style={{ marginLeft: 24, marginBottom: 12 }}>
-          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-            <input
-              type="password"
-              value={apiKeyInput}
-              onChange={(e) => onApiKeyInputChange(e.target.value)}
-              placeholder={t('settings.auth.apiKeyPlaceholder')}
-              style={{
-                flex: 1,
-                background: 'rgba(200, 180, 140, 0.08)',
-                border: '1px solid rgba(200, 180, 140, 0.25)',
-                borderRadius: 4,
-                padding: '6px 8px',
-                color: '#e8d5a8',
-                fontFamily: 'monospace',
-                fontSize: 12
-              }}
-            />
-            <button
-              onClick={onSaveApiKey}
-              disabled={!apiKeyInput.trim() || apiKeyStatus === 'validating'}
-              style={{
-                padding: '6px 14px',
-                background: 'rgba(200, 180, 140, 0.15)',
-                border: '1px solid rgba(200, 180, 140, 0.3)',
-                borderRadius: 4,
-                color: '#c4a46c',
-                cursor: 'pointer',
-                fontSize: 12,
-                fontFamily: 'monospace'
-              }}
-            >
-              {apiKeyStatus === 'validating' ? t('settings.auth.validating') : t('apiKey.save')}
-            </button>
+        {/* API Key input (shown when api_key is selected) */}
+        {settings.auth_type === 'api_key' && (
+          <div
+            style={{
+              padding: '8px 12px 12px',
+              borderTop: '1px solid rgba(200, 180, 140, 0.15)'
+            }}
+          >
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                type="password"
+                value={apiKeyInput}
+                onChange={(e) => onApiKeyInputChange(e.target.value)}
+                placeholder={t('settings.auth.apiKeyPlaceholder')}
+                style={{
+                  flex: 1,
+                  background: 'rgba(200, 180, 140, 0.08)',
+                  border: '1px solid rgba(200, 180, 140, 0.25)',
+                  borderRadius: 4,
+                  padding: '6px 8px',
+                  color: '#e8d5a8',
+                  fontFamily: 'monospace',
+                  fontSize: 12
+                }}
+              />
+              <button
+                onClick={onSaveApiKey}
+                disabled={!apiKeyInput.trim() || apiKeyStatus === 'validating'}
+                style={{
+                  padding: '6px 14px',
+                  background: 'rgba(200, 180, 140, 0.15)',
+                  border: '1px solid rgba(200, 180, 140, 0.3)',
+                  borderRadius: 4,
+                  color: '#c4a46c',
+                  cursor: 'pointer',
+                  fontSize: 12,
+                  fontFamily: 'monospace'
+                }}
+              >
+                {apiKeyStatus === 'validating' ? t('settings.auth.validating') : t('apiKey.save')}
+              </button>
+            </div>
+            {apiKeyStatus === 'saved' && (
+              <div style={{ fontSize: 11, color: '#4ade80', marginTop: 6 }}>
+                {t('settings.auth.apiKeySaved')}
+              </div>
+            )}
+            {apiKeyStatus === 'invalid' && (
+              <div style={{ fontSize: 11, color: '#f87171', marginTop: 6 }}>
+                {t('settings.auth.apiKeyInvalid')}
+              </div>
+            )}
           </div>
-          {apiKeyStatus === 'saved' && (
-            <div style={{ fontSize: 11, color: '#4ade80', marginTop: 6 }}>
-              {t('settings.auth.apiKeySaved')}
-            </div>
-          )}
-          {apiKeyStatus === 'invalid' && (
-            <div style={{ fontSize: 11, color: '#f87171', marginTop: 6 }}>
-              {t('settings.auth.apiKeyInvalid')}
-            </div>
-          )}
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Claude CLI option */}
-      <label
+      <div
         style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: 10,
-          padding: 12,
-          background:
-            settings.auth_type === 'claude_cli' ? 'rgba(200, 180, 140, 0.1)' : 'transparent',
           border: `1px solid ${settings.auth_type === 'claude_cli' ? 'rgba(200, 180, 140, 0.4)' : 'rgba(200, 180, 140, 0.15)'}`,
           borderRadius: 6,
-          cursor: 'pointer'
+          background:
+            settings.auth_type === 'claude_cli' ? 'rgba(200, 180, 140, 0.1)' : 'transparent'
         }}
       >
-        <input
-          type="radio"
-          name="auth_type"
-          checked={settings.auth_type === 'claude_cli'}
-          onChange={() => onUpdateSetting('auth_type', 'claude_cli')}
-          style={{ marginTop: 2 }}
-        />
-        <div>
-          <div style={{ fontSize: 14 }}>{t('settings.auth.claudeCli')}</div>
-          <div style={{ fontSize: 11, color: '#a89060', marginTop: 2 }}>
-            {t('settings.auth.claudeCliDescription')}
+        <label
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 10,
+            padding: 12,
+            cursor: 'pointer'
+          }}
+        >
+          <input
+            type="radio"
+            name="auth_type"
+            checked={settings.auth_type === 'claude_cli'}
+            onChange={() => onUpdateSetting('auth_type', 'claude_cli')}
+            style={{ marginTop: 2 }}
+          />
+          <div>
+            <div style={{ fontSize: 14 }}>{t('settings.auth.claudeCli')}</div>
+            <div style={{ fontSize: 11, color: '#a89060', marginTop: 2 }}>
+              {t('settings.auth.claudeCliDescription')}
+            </div>
           </div>
-        </div>
-      </label>
+        </label>
 
-      {/* CLI status (shown when claude_cli is selected) */}
-      {settings.auth_type === 'claude_cli' && (
-        <div style={{ marginLeft: 24, marginTop: 8 }}>
-          {cliStatus === null ? (
-            <button
-              onClick={onCheckCli}
-              style={{
-                padding: '6px 14px',
-                background: 'rgba(200, 180, 140, 0.15)',
-                border: '1px solid rgba(200, 180, 140, 0.3)',
-                borderRadius: 4,
-                color: '#c4a46c',
-                cursor: 'pointer',
-                fontSize: 12,
-                fontFamily: 'monospace'
-              }}
-            >
-              {t('settings.auth.checkCliStatus')}
-            </button>
-          ) : !cliStatus.installed ? (
-            <div style={{ fontSize: 11, color: '#f87171' }}>
-              {t('settings.auth.cliNotInstalled')}
-            </div>
-          ) : !cliStatus.authenticated ? (
-            <div style={{ fontSize: 11, color: '#fbbf24' }}>
-              {t('settings.auth.cliNotAuthenticated')}
-            </div>
-          ) : (
-            <div style={{ fontSize: 11, color: '#4ade80' }}>{t('settings.auth.cliReady')}</div>
-          )}
-        </div>
-      )}
+        {/* CLI status (shown when claude_cli is selected) */}
+        {settings.auth_type === 'claude_cli' && (
+          <div
+            style={{
+              padding: '8px 12px 12px',
+              borderTop: '1px solid rgba(200, 180, 140, 0.15)'
+            }}
+          >
+            {cliStatus === null ? (
+              <button
+                onClick={onCheckCli}
+                style={{
+                  padding: '6px 14px',
+                  background: 'rgba(200, 180, 140, 0.15)',
+                  border: '1px solid rgba(200, 180, 140, 0.3)',
+                  borderRadius: 4,
+                  color: '#c4a46c',
+                  cursor: 'pointer',
+                  fontSize: 12,
+                  fontFamily: 'monospace'
+                }}
+              >
+                {t('settings.auth.checkCliStatus')}
+              </button>
+            ) : !cliStatus.installed ? (
+              <div style={{ fontSize: 11, color: '#f87171' }}>
+                {t('settings.auth.cliNotInstalled')}
+              </div>
+            ) : !cliStatus.authenticated ? (
+              <div style={{ fontSize: 11, color: '#fbbf24' }}>
+                {t('settings.auth.cliNotAuthenticated')}
+              </div>
+            ) : (
+              <div style={{ fontSize: 11, color: '#4ade80' }}>{t('settings.auth.cliReady')}</div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
