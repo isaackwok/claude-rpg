@@ -301,5 +301,11 @@
     "herald": "Herald Naomi",
     "wizard": "Wizard Merlin",
     "bartender": "Bartender Rex"
+  },
+  "permissionMode": {
+    "default": "Default Mode",
+    "acceptEdits": "Accept Edits",
+    "auto": "Auto Mode",
+    "plan": "Plan Mode"
   }
 }

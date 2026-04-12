@@ -301,5 +301,11 @@
     "herald": "傳令使 娜歐蜜",
     "wizard": "巫師 瑪琳",
     "bartender": "酒保 雷克斯"
+  },
+  "permissionMode": {
+    "default": "預設模式",
+    "acceptEdits": "接受編輯",
+    "auto": "自動模式",
+    "plan": "計畫模式"
   }
 }
