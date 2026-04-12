@@ -57,7 +57,7 @@ describe('ConversationHistoryManager', () => {
       const repaired = history[2]
       expect(repaired.role).toBe('user')
       expect(Array.isArray(repaired.content)).toBe(true)
-      const blocks = repaired.content as Array<{
+      const blocks = repaired.content as unknown as Array<{
         type: string
         tool_use_id: string
         is_error: boolean
