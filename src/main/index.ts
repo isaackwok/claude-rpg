@@ -35,6 +35,8 @@ import { SqliteCosmeticRepository } from './db/cosmetic-repository'
 import { SqliteItemRepository } from './db/item-repository'
 import { AchievementEngine } from './achievement-engine'
 import { generateBookName, stripMarkdown } from './book-name-generator'
+import { getAgentConfig } from './agents/system-prompts'
+import type { AtSource } from '../shared/types'
 import { COSMETIC_DEFINITIONS } from './cosmetic-definitions'
 import type { PlayerCosmetic } from '../shared/cosmetic-types'
 
@@ -531,6 +533,76 @@ app.whenReady().then(() => {
   ipcMain.handle('slash:list-commands', async () => {
     return slashCommandRegistry.getCommands()
   })
+
+  const KNOWN_AGENT_IDS = [
+    'elder',
+    'guildMaster',
+    'scholar',
+    'scribe',
+    'merchant',
+    'commander',
+    'artisan',
+    'herald',
+    'wizard',
+    'bartender'
+  ]
+
+  ipcMain.handle(
+    'at:list-sources',
+    async (_e, { query: _query, agentId: _agentId }: { query: string; agentId: string }) => {
+      const sources: AtSource[] = []
+
+      // NPCs — use known agent IDs with getAgentConfig
+      for (const id of KNOWN_AGENT_IDS) {
+        const config = getAgentConfig(id)
+        if (config) {
+          sources.push({ type: 'npc', id, label: id })
+        }
+      }
+
+      // Books — from items repo
+      try {
+        const items = itemRepo.getItems('player-1')
+        for (const item of items) {
+          if (item.type === 'book') {
+            sources.push({
+              type: 'book',
+              id: item.id,
+              label: item.name,
+              secondary: item.sourceAgentId ?? undefined
+            })
+          }
+        }
+      } catch {
+        /* items not available */
+      }
+
+      // Files — from approved folders (shallow listing)
+      try {
+        const { readdirSync } = await import('fs')
+        const folders = getApprovedFolders()
+        for (const folder of folders) {
+          try {
+            const entries = readdirSync(folder.path, { withFileTypes: true }).slice(0, 50)
+            for (const entry of entries) {
+              sources.push({
+                type: 'file',
+                id: `${folder.path}/${entry.name}`,
+                label: entry.name,
+                secondary: folder.path
+              })
+            }
+          } catch {
+            /* folder not accessible */
+          }
+        }
+      } catch {
+        /* fs error */
+      }
+
+      return sources
+    }
+  )
 
   createWindow()
 
