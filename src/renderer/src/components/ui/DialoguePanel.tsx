@@ -20,8 +20,16 @@ import { ToolConfirmDialog } from './ToolConfirmDialog'
 import { BookPickerModal } from './BookPickerModal'
 import { BookPreviewModal } from './BookPreviewModal'
 import { CloseButton } from './CloseButton'
+import { SmartInput } from './SmartInput'
+import { PermissionModeButton } from './PermissionModeButton'
 import { useItems } from '../../hooks/useItems'
 import type { BookItem } from '../../../../shared/item-types'
+import type {
+  UIPermissionMode,
+  SlashCommand,
+  AtSource,
+  AutocompleteItem
+} from '../../../../shared/dialogue-control-types'
 
 /** Unified attachment — files and books shown as inline chips */
 type Attachment =
@@ -321,7 +329,13 @@ function InputArea({
   t,
   attachments,
   onAddAttachments,
-  onRemoveAttachment
+  onRemoveAttachment,
+  slashCommands,
+  atSources,
+  isAgentSdk,
+  agentMode,
+  onModeChange,
+  onAutocompleteAttach
 }: {
   input: string
   setInput: (v: string | ((prev: string) => string)) => void
@@ -332,6 +346,12 @@ function InputArea({
   attachments: Attachment[]
   onAddAttachments: (items: Attachment[]) => void
   onRemoveAttachment: (id: string) => void
+  slashCommands: SlashCommand[]
+  atSources: AtSource[]
+  isAgentSdk: boolean
+  agentMode: UIPermissionMode
+  onModeChange: (mode: UIPermissionMode) => void
+  onAutocompleteAttach: (item: AutocompleteItem) => void
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [closing, setClosing] = useState(false)
@@ -371,7 +391,6 @@ function InputArea({
   }, [triggerClose, onAddAttachments, inputRef])
 
   const inputHeight = 30
-  const maxTextareaHeight = 120
 
   const plusBtnStyle: CSSProperties = {
     width: inputHeight,
@@ -427,15 +446,13 @@ function InputArea({
           alignItems: 'flex-end'
         }}
       >
-        {/* Input container with chips + textarea */}
+        {/* Input column: chips above + SmartInput */}
         <div
           style={{
             flex: 1,
-            background: 'rgba(255,255,255,0.08)',
-            border: '1px solid rgba(200,180,140,0.3)',
-            borderRadius: 2,
             display: 'flex',
-            flexDirection: 'column'
+            flexDirection: 'column',
+            gap: 4
           }}
         >
           {/* Attachment chips */}
@@ -444,8 +461,7 @@ function InputArea({
               style={{
                 display: 'flex',
                 flexWrap: 'wrap',
-                gap: 4,
-                padding: '6px 8px 2px'
+                gap: 4
               }}
             >
               {attachments.map((att) => (
@@ -463,52 +479,31 @@ function InputArea({
               ))}
             </div>
           )}
-          <textarea
-            ref={inputRef}
+          <SmartInput
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault()
-                send()
-                if (inputRef.current) inputRef.current.style.height = `${inputHeight}px`
-              }
-              // Backspace at position 0 removes last attachment
-              if (
-                e.key === 'Backspace' &&
-                attachments.length > 0 &&
-                inputRef.current?.selectionStart === 0 &&
-                inputRef.current?.selectionEnd === 0
-              ) {
-                e.preventDefault()
+            onChange={(v) => setInput(v)}
+            onSend={send}
+            onAttach={onAutocompleteAttach}
+            disabled={isBusy}
+            placeholder={t('dialogue.inputPlaceholder')}
+            slashCommands={slashCommands}
+            atSources={atSources}
+            inputRef={inputRef}
+            onBackspaceEmpty={() => {
+              if (attachments.length > 0) {
                 onRemoveAttachment(attachments[attachments.length - 1].id)
               }
             }}
-            onInput={(e) => {
-              const el = e.currentTarget
-              el.style.height = 'auto'
-              el.style.height = Math.min(el.scrollHeight, maxTextareaHeight) + 'px'
-            }}
-            placeholder={t('dialogue.inputPlaceholder')}
-            disabled={isBusy}
-            rows={1}
-            style={{
-              minHeight: inputHeight,
-              maxHeight: maxTextareaHeight,
-              boxSizing: 'border-box',
-              padding: '4px 8px',
-              fontFamily: 'monospace',
-              fontSize: 14,
-              background: 'transparent',
-              border: 'none',
-              color: '#fff',
-              outline: 'none',
-              resize: 'none',
-              overflow: 'auto',
-              lineHeight: '22px'
-            }}
           />
         </div>
+        {/* Permission mode button — only shown when using Agent SDK */}
+        {isAgentSdk && (
+          <PermissionModeButton
+            currentMode={agentMode}
+            onModeChange={onModeChange}
+            disabled={isBusy}
+          />
+        )}
         {/* Attach menu */}
         <div ref={containerRef} style={{ position: 'relative', flexShrink: 0 }}>
           {menuOpen && (
@@ -634,6 +629,68 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const openedAtRef = useRef(0)
   const userScrolledRef = useRef(false)
+
+  // Permission mode state (per-agent)
+  const [agentMode, setAgentMode] = useState<UIPermissionMode>('default')
+  const [slashCommands, setSlashCommands] = useState<SlashCommand[]>([])
+  const [atSources, setAtSources] = useState<AtSource[]>([])
+  const [isAgentSdk, setIsAgentSdk] = useState(false)
+
+  // Fetch permission mode, slash commands, and backend type on dialogue open
+  useEffect(() => {
+    if (!dialogue) return
+    window.api.getAgentMode(dialogue.agentId).then((mode) => {
+      setAgentMode(mode as UIPermissionMode)
+    })
+    window.api.getSettings().then((settings) => {
+      setIsAgentSdk(settings.auth_type === 'claude_cli')
+    })
+    window.api.listSlashCommands().then(setSlashCommands)
+    window.api.listAtSources('', dialogue.agentId).then(setAtSources)
+  }, [dialogue?.agentId])
+
+  const handleModeChange = useCallback(
+    (mode: UIPermissionMode) => {
+      if (!dialogue) return
+      setAgentMode(mode)
+      window.api.setAgentMode(dialogue.agentId, mode)
+    },
+    [dialogue]
+  )
+
+  const handleAutocompleteAttach = useCallback(
+    (item: AutocompleteItem) => {
+      if (item.type === 'book') {
+        window.api.getItems().then((allItems) => {
+          const book = allItems.find((i) => i.id === item.id)
+          if (book && book.type === 'book') {
+            setAttachments((prev) => [...prev, { type: 'book', id: book.id, book }])
+          }
+        })
+      } else if (item.type === 'file') {
+        setAttachments((prev) => [
+          ...prev,
+          { type: 'file', id: `file-${Date.now()}`, path: item.id }
+        ])
+      } else if (item.type === 'npc') {
+        window.api.getConversationHistory(item.id).then((history) => {
+          const recentMessages = history.slice(-5)
+          const contextText = recentMessages.map((m) => `[${m.role}] ${m.content}`).join('\n')
+          if (contextText) {
+            setAttachments((prev) => [
+              ...prev,
+              {
+                type: 'file',
+                id: `npc-${item.id}-${Date.now()}`,
+                path: `@${item.id} context`
+              }
+            ])
+          }
+        })
+      }
+    },
+    [dialogue]
+  )
 
   // Items for book reference lookups in messages
   const { items } = useItems()
@@ -1108,6 +1165,12 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
             ])
           }
           onRemoveAttachment={(id) => setAttachments((prev) => prev.filter((a) => a.id !== id))}
+          slashCommands={slashCommands}
+          atSources={atSources}
+          isAgentSdk={isAgentSdk}
+          agentMode={agentMode}
+          onModeChange={handleModeChange}
+          onAutocompleteAttach={handleAutocompleteAttach}
         />
       )}
 
