@@ -12,7 +12,7 @@ import {
   oneTimeApprovedPaths
 } from './tool-confirm'
 import { getAgentConfig, getAgentToolContext } from '../agents/system-prompts'
-import { getToolsForAgent } from '../tools/tool-definitions'
+import { getToolsForAgent, AGENT_TOOLS } from '../tools/tool-definitions'
 import { executeTool } from '../tools/tool-executor'
 import { getApprovedFolders, isPathApproved, addApprovedFolder } from '../folder-manager'
 import { getParentFolder } from '../tools/path-utils'
@@ -34,6 +34,16 @@ export interface ChatDependencies {
 }
 
 const MAX_CONCURRENT_STREAMS = 3
+
+/** Maps RPG tool names → Agent SDK built-in tool names */
+const SDK_TOOL_MAP: Record<string, string> = {
+  read_file: 'Read',
+  write_file: 'Write',
+  edit_file: 'Edit',
+  list_files: 'Glob',
+  web_search: 'WebSearch',
+  run_command: 'Bash'
+}
 
 export class ChatOrchestrator {
   private backend: IChatBackend
@@ -111,6 +121,13 @@ export class ChatOrchestrator {
     })
   }
 
+  /** Map agent's RPG tool names to Agent SDK built-in tool names */
+  private getSdkToolNames(agentId: AgentId): string[] {
+    const toolNames = AGENT_TOOLS[agentId]
+    if (!toolNames || toolNames.length === 0) return []
+    return toolNames.map((name) => SDK_TOOL_MAP[name] ?? name)
+  }
+
   private async processStream(
     agentId: AgentId,
     message: string,
@@ -148,8 +165,10 @@ export class ChatOrchestrator {
       }
     }
 
-    // Build ChatOpts
-    const toolContext = getAgentToolContext(agentId, getApprovedFolders())
+    // Build ChatOpts — skip tool context injection when backend manages tools internally
+    const toolContext = this.backend.managesTools
+      ? ''
+      : getAgentToolContext(agentId, getApprovedFolders())
     const systemPrompt =
       locale === 'en'
         ? config.systemPrompt + toolContext + '\n\nThe player is using English. Respond in English.'
@@ -158,7 +177,15 @@ export class ChatOrchestrator {
     const opts: ChatOpts = {
       agentId,
       systemPrompt,
-      tools: this.convertTools(agentId),
+      tools: this.backend.managesTools ? [] : this.convertTools(agentId),
+      allowedToolNames: this.backend.managesTools ? this.getSdkToolNames(agentId) : undefined,
+      onToolProgress: this.backend.managesTools
+        ? (toolName) => {
+            if (!webContents.isDestroyed()) {
+              webContents.send('chat:tool-executing', { agentId, toolName })
+            }
+          }
+        : undefined,
       model: this.getModelOverride?.(config.model) ?? config.model,
       maxTokens: config.maxTokens,
       temperature: config.temperature

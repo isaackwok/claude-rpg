@@ -3,12 +3,13 @@ import { promisify } from 'util'
 import type { IChatBackend } from './types'
 import type { AuthType } from '../../shared/types'
 import { ApiKeyChatBackend } from './api-key-backend'
-import { ClaudeCliChatBackend } from './claude-cli-backend'
+import { AgentSdkBackend } from './agent-sdk-backend'
 
 const execFileAsync = promisify(execFile)
 
 export interface BackendManagerDeps {
   getApiKey: () => string | null
+  getPermissionMode: () => string
 }
 
 export class BackendManager {
@@ -27,7 +28,7 @@ export class BackendManager {
       case 'api_key':
         return new ApiKeyChatBackend(this.deps.getApiKey)
       case 'claude_cli':
-        return new ClaudeCliChatBackend()
+        return new AgentSdkBackend(this.deps.getPermissionMode())
     }
   }
 
@@ -43,6 +44,13 @@ export class BackendManager {
     if (authType === this.currentAuthType) return
     this.currentBackend = this.createBackend(authType)
     this.currentAuthType = authType
+  }
+
+  /** Recreate the CLI backend (e.g. when permission mode changes). Returns null if not on CLI auth. */
+  recreateCliBackend(): IChatBackend | null {
+    if (this.currentAuthType !== 'claude_cli') return null
+    this.currentBackend = this.createBackend('claude_cli')
+    return this.currentBackend
   }
 
   /** Check if claude CLI is installed and authenticated.
