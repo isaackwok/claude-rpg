@@ -243,7 +243,20 @@ const api = {
   validateApiKey: (key: string): Promise<{ valid: boolean; error?: string }> =>
     ipcRenderer.invoke('settings:validate-api-key', { key }),
   checkCli: (): Promise<{ installed: boolean; authenticated: boolean }> =>
-    ipcRenderer.invoke('settings:check-cli')
+    ipcRenderer.invoke('settings:check-cli'),
+
+  // Dialogue controls
+  setAgentMode: (agentId: string, mode: string): void =>
+    ipcRenderer.send('chat:set-agent-mode', { agentId, mode }),
+  getAgentMode: (agentId: string): Promise<string> =>
+    ipcRenderer.invoke('chat:get-agent-mode', agentId),
+  listSlashCommands: (): Promise<import('../shared/dialogue-control-types').SlashCommand[]> =>
+    ipcRenderer.invoke('slash:list-commands'),
+  listAtSources: (
+    query: string,
+    agentId: string
+  ): Promise<import('../shared/dialogue-control-types').AtSource[]> =>
+    ipcRenderer.invoke('at:list-sources', { query, agentId })
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to
