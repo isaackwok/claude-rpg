@@ -45,13 +45,6 @@ export class BackendManager {
     this.currentAuthType = authType
   }
 
-  /** Recreate the CLI backend (e.g. when permission mode changes). Returns null if not on CLI auth. */
-  recreateCliBackend(): IChatBackend | null {
-    if (this.currentAuthType !== 'claude_cli') return null
-    this.currentBackend = this.createBackend('claude_cli')
-    return this.currentBackend
-  }
-
   /** Check if claude CLI is installed and authenticated.
    *  Uses execFile (not exec) — args are passed as array, no shell injection risk.
    *  Uses `claude auth status` which returns JSON with { loggedIn: boolean }. */

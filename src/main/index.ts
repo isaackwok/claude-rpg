@@ -497,12 +497,9 @@ app.whenReady().then(() => {
       case 'locale':
         settingsRepo.setLocale(value as Locale)
         break
-      case 'permission_mode': {
+      case 'permission_mode':
         settingsRepo.setPermissionMode(value as PermissionMode)
-        const newBackend = backendManager.recreateCliBackend()
-        if (newBackend) chatOrchestrator.setBackend(newBackend)
         break
-      }
     }
     // Broadcast change to renderer
     const win = BrowserWindow.getAllWindows()[0]
