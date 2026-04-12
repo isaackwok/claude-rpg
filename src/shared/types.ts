@@ -214,3 +214,4 @@ export interface QuestBoardSuggestion {
 export * from './achievement-types'
 export * from './cosmetic-types'
 export * from './item-types'
+export * from './dialogue-control-types'
