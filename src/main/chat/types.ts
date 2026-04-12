@@ -39,9 +39,16 @@ export interface ChatOpts {
   model: string
   maxTokens: number
   temperature: number
+  /** SDK tool names for backends that manage tools internally */
+  allowedToolNames?: string[]
+  /** Callback for tool progress events (informational) */
+  onToolProgress?: (toolName: string) => void
 }
 
 export interface IChatBackend {
+  /** If true, this backend manages tool execution internally (e.g. Agent SDK). */
+  readonly managesTools?: boolean
+
   /** Start or continue a conversation. Returns an async iterable of stream events. */
   sendMessage(opts: ChatOpts, message: string): AsyncIterable<StreamEvent>
 

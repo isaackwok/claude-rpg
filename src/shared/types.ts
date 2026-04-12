@@ -9,6 +9,15 @@ export type AgentId = string
 /** Authentication backend type */
 export type AuthType = 'api_key' | 'claude_cli'
 
+/** Claude Agent SDK permission mode */
+export type PermissionMode =
+  | 'default'
+  | 'acceptEdits'
+  | 'bypassPermissions'
+  | 'plan'
+  | 'dontAsk'
+  | 'auto'
+
 /** Supported locale */
 export type Locale = 'zh-TW' | 'en'
 
@@ -17,6 +26,7 @@ export interface SettingsMap {
   auth_type: AuthType
   model: string
   locale: Locale
+  permission_mode: PermissionMode
 }
 
 /** Message role for Anthropic API conversations. */

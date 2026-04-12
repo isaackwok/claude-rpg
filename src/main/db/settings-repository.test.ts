@@ -43,12 +43,22 @@ describe('SqliteSettingsRepository', () => {
     expect(repo.getLocale()).toBe('en')
   })
 
+  it('returns default permission_mode when not set', () => {
+    expect(repo.getPermissionMode()).toBe('acceptEdits')
+  })
+
+  it('sets and gets permission_mode', () => {
+    repo.setPermissionMode('bypassPermissions')
+    expect(repo.getPermissionMode()).toBe('bypassPermissions')
+  })
+
   it('getAll returns all settings with defaults', () => {
     const all = repo.getAll()
     expect(all).toEqual({
       auth_type: 'api_key',
       model: 'claude-sonnet-4-6',
-      locale: 'zh-TW'
+      locale: 'zh-TW',
+      permission_mode: 'acceptEdits'
     })
   })
 
@@ -56,11 +66,13 @@ describe('SqliteSettingsRepository', () => {
     repo.setAuthType('claude_cli')
     repo.setModel('claude-opus-4-6')
     repo.setLocale('en')
+    repo.setPermissionMode('auto')
     const all = repo.getAll()
     expect(all).toEqual({
       auth_type: 'claude_cli',
       model: 'claude-opus-4-6',
-      locale: 'en'
+      locale: 'en',
+      permission_mode: 'auto'
     })
   })
 

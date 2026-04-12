@@ -1,10 +1,11 @@
 import type Database from 'better-sqlite3'
-import type { AuthType, Locale, SettingsMap } from '../../shared/types'
+import type { AuthType, Locale, PermissionMode, SettingsMap } from '../../shared/types'
 
 const DEFAULTS: SettingsMap = {
   auth_type: 'api_key',
   model: 'claude-sonnet-4-6',
-  locale: 'zh-TW'
+  locale: 'zh-TW',
+  permission_mode: 'acceptEdits'
 }
 
 export class SqliteSettingsRepository {
@@ -49,11 +50,20 @@ export class SqliteSettingsRepository {
     this.set('locale', value)
   }
 
+  getPermissionMode(): PermissionMode {
+    return (this.get('permission_mode') as PermissionMode) ?? DEFAULTS.permission_mode
+  }
+
+  setPermissionMode(value: PermissionMode): void {
+    this.set('permission_mode', value)
+  }
+
   getAll(): SettingsMap {
     return {
       auth_type: this.getAuthType(),
       model: this.getModel(),
-      locale: this.getLocale()
+      locale: this.getLocale(),
+      permission_mode: this.getPermissionMode()
     }
   }
 }

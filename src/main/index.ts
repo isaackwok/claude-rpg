@@ -12,7 +12,7 @@ import {
   handlePathDenied
 } from './chat'
 import { SqliteSettingsRepository } from './db/settings-repository'
-import type { AuthType, Locale } from '../shared/types'
+import type { AuthType, Locale, PermissionMode } from '../shared/types'
 import {
   getApprovedFolders,
   addApprovedFolder,
@@ -116,7 +116,8 @@ app.whenReady().then(() => {
 
   // Wire BackendManager → ChatOrchestrator
   const backendManager = new BackendManager(settingsRepo.getAuthType(), {
-    getApiKey: () => getApiKey()
+    getApiKey: () => getApiKey(),
+    getPermissionMode: () => settingsRepo.getPermissionMode()
   })
   const chatOrchestrator = new ChatOrchestrator(backendManager.getBackend())
 
@@ -497,6 +498,12 @@ app.whenReady().then(() => {
       case 'locale':
         settingsRepo.setLocale(value as Locale)
         break
+      case 'permission_mode': {
+        settingsRepo.setPermissionMode(value as PermissionMode)
+        const newBackend = backendManager.recreateCliBackend()
+        if (newBackend) chatOrchestrator.setBackend(newBackend)
+        break
+      }
     }
     // Broadcast change to renderer
     const win = BrowserWindow.getAllWindows()[0]
