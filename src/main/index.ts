@@ -11,6 +11,7 @@ import {
   handlePathApproved,
   handlePathDenied
 } from './chat'
+import { SlashCommandRegistry } from './chat/slash-command-registry'
 import { SqliteSettingsRepository } from './db/settings-repository'
 import type { AuthType, Locale, PermissionMode } from '../shared/types'
 import {
@@ -119,6 +120,7 @@ app.whenReady().then(() => {
     getApiKey: () => getApiKey()
   })
   const chatOrchestrator = new ChatOrchestrator(backendManager.getBackend())
+  const slashCommandRegistry = new SlashCommandRegistry()
 
   // Model resolver: respect agent-specific model if set, otherwise use global setting
   chatOrchestrator.setModelResolver((agentDefault) =>
@@ -524,6 +526,10 @@ app.whenReady().then(() => {
 
   ipcMain.handle('chat:get-agent-mode', (_e, agentId: string) => {
     return chatOrchestrator.getAgentMode(agentId)
+  })
+
+  ipcMain.handle('slash:list-commands', async () => {
+    return slashCommandRegistry.getCommands()
   })
 
   createWindow()
