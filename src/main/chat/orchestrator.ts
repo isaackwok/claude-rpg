@@ -63,11 +63,25 @@ export class ChatOrchestrator {
   private cosmeticRepo: SqliteCosmeticRepository | null = null
   private dependenciesInitialized = false
   private getModelOverride: ((agentDefault: string) => string) | null = null
+  private agentModes = new Map<AgentId, import('../../shared/types').PermissionMode>()
+  private globalModeFallback: (() => import('../../shared/types').PermissionMode) | null = null
 
   /** Set a callback that returns the effective model, given the agent's default.
    *  Used by settings to inject global model preference. */
   setModelResolver(resolver: (agentDefault: string) => string): void {
     this.getModelOverride = resolver
+  }
+
+  setAgentMode(agentId: AgentId, mode: import('../../shared/types').PermissionMode): void {
+    this.agentModes.set(agentId, mode)
+  }
+
+  getAgentMode(agentId: AgentId): import('../../shared/types').PermissionMode {
+    return this.agentModes.get(agentId) ?? this.globalModeFallback?.() ?? 'default'
+  }
+
+  setGlobalModeFallback(fn: () => import('../../shared/types').PermissionMode): void {
+    this.globalModeFallback = fn
   }
 
   constructor(backend: IChatBackend) {
@@ -188,7 +202,8 @@ export class ChatOrchestrator {
         : undefined,
       model: this.getModelOverride?.(config.model) ?? config.model,
       maxTokens: config.maxTokens,
-      temperature: config.temperature
+      temperature: config.temperature,
+      permissionMode: this.backend.managesTools ? this.getAgentMode(agentId) : undefined
     }
 
     this.activeAgents.add(agentId)

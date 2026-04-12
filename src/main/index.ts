@@ -124,6 +124,7 @@ app.whenReady().then(() => {
   chatOrchestrator.setModelResolver((agentDefault) =>
     agentDefault && agentDefault !== 'default' ? agentDefault : settingsRepo.getModel()
   )
+  chatOrchestrator.setGlobalModeFallback(() => settingsRepo.getPermissionMode())
   chatOrchestrator.setDependencies({
     progressionEngine,
     questEngine,
@@ -514,6 +515,15 @@ app.whenReady().then(() => {
 
   ipcMain.handle('settings:check-cli', async () => {
     return backendManager.checkCli()
+  })
+
+  // Per-agent permission mode
+  ipcMain.on('chat:set-agent-mode', (_event, data: { agentId: string; mode: string }) => {
+    chatOrchestrator.setAgentMode(data.agentId, data.mode as PermissionMode)
+  })
+
+  ipcMain.handle('chat:get-agent-mode', (_e, agentId: string) => {
+    return chatOrchestrator.getAgentMode(agentId)
   })
 
   createWindow()
