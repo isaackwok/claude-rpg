@@ -11,7 +11,7 @@ Claude RPG is an Electron desktop app presenting a pixel-art RPG world where NPC
 - **Shell:** Electron (electron-vite scaffold)
 - **Game Engine:** Phaser 3.90 (2D world, tilemaps, sprites, collision)
 - **UI Framework:** React 19 (overlay panels — dialogue, menus, skill trees)
-- **AI:** Anthropic SDK / Agent SDK (future phases)
+- **AI:** Anthropic SDK (direct API) / Claude Agent SDK (`@anthropic-ai/claude-agent-sdk`)
 - **Storage:** SQLite via better-sqlite3 (main process, migrations in `src/main/db/migrations.ts`)
 - **Language:** TypeScript throughout
 - **Build:** Vite via electron-vite (3-process config: main/preload/renderer)
@@ -34,7 +34,7 @@ npm run format       # Prettier
 ### Process Model (Electron 3-process)
 
 - **Main process** (`src/main/`) — Window management, API key storage (safeStorage), NPC tool execution, folder approval management, QuestEngine + ProgressionEngine services. The renderer never sees the raw API key.
-- **Chat module** (`src/main/chat/`) — Pluggable AI backend architecture. `ChatOrchestrator` handles side effects (XP, quests, achievements, persistence) and delegates AI communication to an `IChatBackend` implementation. Two backends: `ApiKeyChatBackend` (Anthropic SDK) and `ClaudeCliChatBackend` (Claude CLI subprocess). `BackendManager` owns backend lifecycle and hot-swapping via settings.
+- **Chat module** (`src/main/chat/`) — Pluggable AI backend architecture. `ChatOrchestrator` handles side effects (XP, quests, achievements, persistence) and delegates AI communication to an `IChatBackend` implementation. Two backends: `ApiKeyChatBackend` (Anthropic SDK, manages tools via orchestrator) and `AgentSdkBackend` (Claude Agent SDK, manages tools internally via SDK sessions). `BackendManager` owns backend lifecycle, hot-swapping via settings, and passes `PermissionMode` to SDK backends.
 - **Preload** (`src/preload/`) — contextBridge exposing safe IPC channels
 - **Renderer** (`src/renderer/`) — Phaser game + React UI overlays
 - **Shared** (`src/shared/`) — Type definitions shared across all processes (AgentId, ToolName, IPC payloads)

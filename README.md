@@ -6,17 +6,17 @@ Built as a spatial interface for non-technical users (designers, PMs) to interac
 
 ## Tech Stack
 
-| Layer        | Technology                                       |
-| ------------ | ------------------------------------------------ |
-| Shell        | Electron 39 (electron-vite)                      |
-| Game Engine  | Phaser 3.90 (tilemaps, sprites, arcade physics)  |
-| UI Framework | React 19 (overlay panels — dialogue, menus, HUD) |
-| AI           | Anthropic SDK / Claude CLI (pluggable backend)   |
-| Storage      | SQLite via better-sqlite3 (main process)         |
-| Language     | TypeScript                                       |
-| Build        | Vite via electron-vite (3-process config)        |
-| Maps         | Tiled Map Editor → JSON → Phaser                 |
-| Testing      | Vitest (unit) + Playwright (e2e)                 |
+| Layer        | Technology                                           |
+| ------------ | ---------------------------------------------------- |
+| Shell        | Electron 39 (electron-vite)                          |
+| Game Engine  | Phaser 3.90 (tilemaps, sprites, arcade physics)      |
+| UI Framework | React 19 (overlay panels — dialogue, menus, HUD)     |
+| AI           | Anthropic SDK / Claude Agent SDK (pluggable backend) |
+| Storage      | SQLite via better-sqlite3 (main process)             |
+| Language     | TypeScript                                           |
+| Build        | Vite via electron-vite (3-process config)            |
+| Maps         | Tiled Map Editor → JSON → Phaser                     |
+| Testing      | Vitest (unit) + Playwright (e2e)                     |
 
 ## Project Structure
 
@@ -25,7 +25,7 @@ src/
 ├── main/                  # Electron main process
 │   ├── index.ts           # Window management, IPC handlers
 │   ├── api-key.ts         # API key storage (safeStorage)
-│   ├── chat/              # Pluggable AI backend (IChatBackend, ChatOrchestrator)
+│   ├── chat/              # Pluggable AI backend (ApiKey + AgentSdk backends, ChatOrchestrator)
 │   ├── folder-manager.ts  # Approved folder management
 │   ├── progression-engine.ts  # XP, leveling, title computation + tier prefixes
 │   ├── quest-engine.ts    # Quest trigger evaluation, board suggestions
@@ -72,7 +72,7 @@ npm install
 npm run dev       # Start Electron dev server with hot reload
 ```
 
-On first launch, the settings panel will open to configure your AI backend — either an Anthropic API key or a Claude CLI subscription. API keys are stored securely via Electron safeStorage.
+On first launch, the settings panel will open to configure your AI backend — either an Anthropic API key or a Claude subscription (via Agent SDK). API keys are stored securely via Electron safeStorage.
 
 ### Other Commands
 
@@ -97,7 +97,7 @@ npm run build:linux   # Linux
 
 Electron's 3-process model keeps the AI layer secure:
 
-- **Main process** — Holds the API key (never exposed to renderer), runs Anthropic SDK calls, executes NPC tools with user approval.
+- **Main process** — Holds the API key (never exposed to renderer), runs AI calls via Anthropic SDK or Claude Agent SDK, executes NPC tools with user approval.
 - **Preload** — Bridges main ↔ renderer via typed IPC channels.
 - **Renderer** — Phaser game canvas + React UI overlays, communicating through a typed EventBus.
 
