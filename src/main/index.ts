@@ -116,8 +116,7 @@ app.whenReady().then(() => {
 
   // Wire BackendManager → ChatOrchestrator
   const backendManager = new BackendManager(settingsRepo.getAuthType(), {
-    getApiKey: () => getApiKey(),
-    getPermissionMode: () => settingsRepo.getPermissionMode()
+    getApiKey: () => getApiKey()
   })
   const chatOrchestrator = new ChatOrchestrator(backendManager.getBackend())
 

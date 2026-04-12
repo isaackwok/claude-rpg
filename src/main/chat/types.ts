@@ -43,6 +43,8 @@ export interface ChatOpts {
   allowedToolNames?: string[]
   /** Callback for tool progress events (informational) */
   onToolProgress?: (toolName: string) => void
+  /** Permission mode for Agent SDK backends (per-query) */
+  permissionMode?: import('../../shared/types').PermissionMode
 }
 
 export interface IChatBackend {

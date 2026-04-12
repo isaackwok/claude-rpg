@@ -9,7 +9,6 @@ const execFileAsync = promisify(execFile)
 
 export interface BackendManagerDeps {
   getApiKey: () => string | null
-  getPermissionMode: () => string
 }
 
 export class BackendManager {
@@ -28,7 +27,7 @@ export class BackendManager {
       case 'api_key':
         return new ApiKeyChatBackend(this.deps.getApiKey)
       case 'claude_cli':
-        return new AgentSdkBackend(this.deps.getPermissionMode())
+        return new AgentSdkBackend()
     }
   }
 
