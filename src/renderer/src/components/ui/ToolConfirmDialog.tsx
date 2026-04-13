@@ -1,5 +1,4 @@
 import { useTranslation } from '../../i18n'
-import { dirname } from '../../utils/path'
 
 interface ToolConfirmDialogProps {
   agentId: string
@@ -31,23 +30,6 @@ export function ToolConfirmDialog({
     toolName === 'run_command'
       ? (args.cwd as string | undefined)
       : (args.path as string | undefined)
-
-  const handleApprove = () => {
-    window.api.approveToolCall(agentId, toolCallId)
-  }
-
-  const handlePostScroll = () => {
-    // Add the target directory to approved folders, then approve.
-    // For file-oriented tools (read/write/edit), approve the parent directory.
-    // For directory-oriented tools (list_files) or run_command cwd, approve the path itself.
-    if (targetPath) {
-      const isDirectoryTool = toolName === 'list_files' || toolName === 'run_command'
-      const folderToApprove = isDirectoryTool ? targetPath : dirname(targetPath)
-      window.api.approveToolCall(agentId, toolCallId, folderToApprove)
-    } else {
-      window.api.approveToolCall(agentId, toolCallId)
-    }
-  }
 
   const handleAllowOnce = () => {
     window.api.approveToolCall(agentId, toolCallId)
@@ -131,22 +113,10 @@ export function ToolConfirmDialog({
 
       {/* Action buttons */}
       <div style={{ display: 'flex', gap: 8 }}>
-        {folderApproved ? (
-          <>
-            <ToolButton onClick={handleApprove} primary>
-              {t('tool.approve')}
-            </ToolButton>
-            <ToolButton onClick={handleDeny}>{t('tool.deny')}</ToolButton>
-          </>
-        ) : (
-          <>
-            <ToolButton onClick={handlePostScroll} primary>
-              {t('tool.postScroll')}
-            </ToolButton>
-            <ToolButton onClick={handleAllowOnce}>{t('tool.allowOnce')}</ToolButton>
-            <ToolButton onClick={handleDeny}>{t('tool.deny')}</ToolButton>
-          </>
-        )}
+        <ToolButton onClick={handleAllowOnce} primary>
+          {t('tool.allowOnce')}
+        </ToolButton>
+        <ToolButton onClick={handleDeny}>{t('tool.deny')}</ToolButton>
       </div>
     </div>
   )

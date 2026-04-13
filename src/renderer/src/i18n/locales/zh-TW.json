@@ -303,6 +303,15 @@
     "wizard": "巫師 瑪琳",
     "bartender": "酒保 雷克斯"
   },
+  "onboarding": {
+    "projectDir": {
+      "title": "選擇你的探索基地",
+      "description": "在踏上冒險之旅前，請先選擇你要探索的專案目錄。鎮上的居民將在這片領地中為你效勞。",
+      "selectButton": "選擇目錄",
+      "confirm": "開始冒險",
+      "selected": "已選擇："
+    }
+  },
   "permissionMode": {
     "label": "權限模式",
     "default": "預設模式",

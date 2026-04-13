@@ -303,6 +303,15 @@
     "wizard": "Wizard Merlin",
     "bartender": "Bartender Rex"
   },
+  "onboarding": {
+    "projectDir": {
+      "title": "Choose Your Base Camp",
+      "description": "Before your quest begins, choose the project directory for your adventure. The townsfolk will serve you within this realm.",
+      "selectButton": "Select Directory",
+      "confirm": "Begin Adventure",
+      "selected": "Selected:"
+    }
+  },
   "permissionMode": {
     "label": "Permission Mode",
     "default": "Default Mode",

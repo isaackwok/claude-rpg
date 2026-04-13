@@ -1081,13 +1081,7 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
                 >
                   {path}
                 </code>
-                <ApprovalBtn
-                  primary
-                  onClick={() => window.api.approvePath(dialogue.agentId, path, path)}
-                >
-                  {t('tool.postScroll')}
-                </ApprovalBtn>
-                <ApprovalBtn onClick={() => window.api.approvePath(dialogue.agentId, path)}>
+                <ApprovalBtn primary onClick={() => window.api.approvePath(dialogue.agentId, path)}>
                   {t('tool.allowOnce')}
                 </ApprovalBtn>
                 <ApprovalBtn onClick={() => window.api.denyPath(dialogue.agentId, path)}>
