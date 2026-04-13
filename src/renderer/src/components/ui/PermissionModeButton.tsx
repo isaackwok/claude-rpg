@@ -79,7 +79,7 @@ export function PermissionModeButton({
               fontFamily: 'monospace'
             }}
           >
-            Permission Mode
+            {t('permissionMode.label')}
           </div>
           {UI_PERMISSION_MODES.map((mode) => (
             <div

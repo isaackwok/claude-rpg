@@ -18,6 +18,7 @@ import type {
 import type { PlayerAchievement, AchievementCheckResult } from '../shared/achievement-types'
 import type { PlayerCosmetic, HomePlacement } from '../shared/cosmetic-types'
 import type { Item, BookItem, ItemCategory } from '../shared/item-types'
+import type { SlashCommand, AtSource } from '../shared/dialogue-control-types'
 
 interface ChatAPI {
   // API key
@@ -104,6 +105,11 @@ interface ChatAPI {
   onSettingsChanged(callback: (data: { key: string; value: string }) => void): () => void
   validateApiKey(key: string): Promise<{ valid: boolean; error?: string }>
   checkCli(): Promise<{ installed: boolean; authenticated: boolean }>
+  // Dialogue controls
+  setAgentMode(agentId: string, mode: string): void
+  getAgentMode(agentId: string): Promise<string>
+  listSlashCommands(): Promise<SlashCommand[]>
+  listAtSources(query: string, agentId: string): Promise<AtSource[]>
 }
 
 declare global {

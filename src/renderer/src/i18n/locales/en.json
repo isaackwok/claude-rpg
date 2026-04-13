@@ -303,6 +303,7 @@
     "bartender": "Bartender Rex"
   },
   "permissionMode": {
+    "label": "Permission Mode",
     "default": "Default Mode",
     "acceptEdits": "Accept Edits",
     "auto": "Auto Mode",

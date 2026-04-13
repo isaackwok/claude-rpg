@@ -33,7 +33,7 @@ import type {
 
 /** Unified attachment — files and books shown as inline chips */
 type Attachment =
-  | { type: 'file'; id: string; path: string }
+  | { type: 'file'; id: string; path: string; content?: string }
   | { type: 'book'; id: string; book: BookItem }
 
 interface DialogueState {
@@ -639,14 +639,17 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
   // Fetch permission mode, slash commands, and backend type on dialogue open
   useEffect(() => {
     if (!dialogue) return
-    window.api.getAgentMode(dialogue.agentId).then((mode) => {
+    Promise.all([
+      window.api.getAgentMode(dialogue.agentId),
+      window.api.getSettings(),
+      window.api.listSlashCommands(),
+      window.api.listAtSources('', dialogue.agentId)
+    ]).then(([mode, settings, commands, sources]) => {
       setAgentMode(mode as UIPermissionMode)
-    })
-    window.api.getSettings().then((settings) => {
       setIsAgentSdk(settings.auth_type === 'claude_cli')
+      setSlashCommands(commands)
+      setAtSources(sources)
     })
-    window.api.listSlashCommands().then(setSlashCommands)
-    window.api.listAtSources('', dialogue.agentId).then(setAtSources)
   }, [dialogue?.agentId])
 
   const handleModeChange = useCallback(
@@ -682,7 +685,8 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
               {
                 type: 'file',
                 id: `npc-${item.id}-${Date.now()}`,
-                path: `@${item.id} context`
+                path: `@${item.id} context`,
+                content: contextText
               }
             ])
           }
@@ -815,7 +819,7 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
             `[📖 ${referenceLabel}${colon}${att.book.name}]\n${att.book.markdownContent}`
           )
         } else {
-          contextBlocks.push(`\`${att.path}\``)
+          contextBlocks.push(att.content ?? `\`${att.path}\``)
         }
       }
       const fileAtts = contextBlocks.filter((_, i) => attachments[i].type === 'file')

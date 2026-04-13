@@ -303,6 +303,7 @@
     "bartender": "酒保 雷克斯"
   },
   "permissionMode": {
+    "label": "權限模式",
     "default": "預設模式",
     "acceptEdits": "接受編輯",
     "auto": "自動模式",
