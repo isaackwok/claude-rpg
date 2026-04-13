@@ -1,7 +1,7 @@
 // src/main/chat/tool-confirm.ts
 import type { WebContents } from 'electron'
 import { resolve, normalize } from 'path'
-import { addApprovedFolder, isPathApproved } from '../folder-manager'
+import { isPathInProject } from '../project-directory'
 import type { AgentId, ToolConfirmPayload, PathApprovalPayload } from '../../shared/types'
 
 interface PendingToolConfirm {
@@ -92,16 +92,12 @@ export function requestToolConfirmation(
 }
 
 /** Handle user's tool approval response. */
-export function handleToolApproved(
-  _agentId: string,
-  toolCallId: string,
-  addToApproved?: string
-): void {
+export function handleToolApproved(_agentId: string, toolCallId: string): void {
   const pending = pendingToolConfirms.get(toolCallId)
   if (!pending) return
   clearTimeout(pending.timer)
   pendingToolConfirms.delete(toolCallId)
-  pending.resolve({ approved: true, addToApproved })
+  pending.resolve({ approved: true })
 }
 
 /** Handle user's tool denial response. */
@@ -136,7 +132,7 @@ export async function checkAndApproveMessagePaths(
   if (paths.length === 0) return message
 
   const unapproved = paths.filter(
-    (p) => !isPathApproved(p) && !oneTimeApprovedPaths.has(resolve(normalize(p)))
+    (p) => !isPathInProject(p) && !oneTimeApprovedPaths.has(resolve(normalize(p)))
   )
   if (unapproved.length === 0) return message
 
@@ -188,13 +184,9 @@ export async function checkAndApproveMessagePaths(
   return finalMessage
 }
 
-/** Handle user's path approval response (post scroll or allow once). */
-export function handlePathApproved(agentId: string, path: string, addToApproved?: string): void {
-  if (addToApproved) {
-    addApprovedFolder(addToApproved)
-  } else {
-    oneTimeApprovedPaths.add(resolve(normalize(path)))
-  }
+/** Handle user's path approval response (one-time session approval). */
+export function handlePathApproved(agentId: string, path: string): void {
+  oneTimeApprovedPaths.add(resolve(normalize(path)))
   const pending = pendingPathApprovals.get(agentId)
   if (!pending || !pending.remaining.has(path)) return
   pending.approved.push(path)

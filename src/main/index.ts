@@ -411,12 +411,11 @@ app.whenReady().then(() => {
     ) {
       return
     }
-    const { agentId, toolCallId, addToApproved } = data as {
+    const { agentId, toolCallId } = data as {
       agentId: string
       toolCallId: string
-      addToApproved?: string
     }
-    handleToolApproved(agentId, toolCallId, addToApproved)
+    handleToolApproved(agentId, toolCallId)
   })
 
   ipcMain.on('chat:tool-denied', (_event, data: unknown) => {
@@ -442,12 +441,11 @@ app.whenReady().then(() => {
     ) {
       return
     }
-    const { agentId, path, addToApproved } = data as {
+    const { agentId, path } = data as {
       agentId: string
       path: string
-      addToApproved?: string
     }
-    handlePathApproved(agentId, path, addToApproved)
+    handlePathApproved(agentId, path)
   })
 
   ipcMain.on('chat:path-denied', (_event, data: unknown) => {

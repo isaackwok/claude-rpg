@@ -1,4 +1,4 @@
-import type { AgentId, ApprovedFolder, SkillCategory } from '../../shared/types'
+import type { AgentId, SkillCategory } from '../../shared/types'
 import { AGENT_TOOLS } from '../tools/tool-definitions'
 
 export interface AgentConfig {
@@ -213,9 +213,9 @@ const TOOL_DESCRIPTIONS: Record<string, string> = {
 
 /**
  * Generates tool-awareness context to append to an NPC's system prompt.
- * Lists available tools and currently approved folders.
+ * Lists available tools and the project directory.
  */
-export function getAgentToolContext(agentId: AgentId, approvedFolders: ApprovedFolder[]): string {
+export function getAgentToolContext(agentId: AgentId, projectDirectory: string): string {
   const tools = AGENT_TOOLS[agentId]
   if (!tools || tools.length === 0) return ''
 
@@ -225,16 +225,13 @@ export function getAgentToolContext(agentId: AgentId, approvedFolders: ApprovedF
     context += `- ${tool}: ${TOOL_DESCRIPTIONS[tool] ?? tool}\n`
   }
 
-  if (approvedFolders.length > 0) {
-    context += '\n## 已探索的領地\n\n'
-    context += '冒險者已在公告欄核發以下通行令，你可以存取這些路徑：\n'
-    for (const f of approvedFolders) {
-      context += `- ${f.path} (${f.label})\n`
-    }
+  if (projectDirectory) {
+    context += '\n## 冒險者的領地\n\n'
+    context += '冒險者已指定以下目錄作為探索基地：\n'
+    context += `- ${projectDirectory}\n`
     context += '\n建議先使用 list_files 了解專案結構，再進行其他操作。\n'
   } else {
-    context +=
-      '\n目前公告欄上沒有任何通行令。請告訴冒險者到城鎮廣場的公告欄核發通行令，這樣你才能幫助他們處理檔案。\n'
+    context += '\n目前冒險者尚未指定探索基地。請告訴冒險者到公告欄或設定中指定一個專案目錄。\n'
   }
 
   return context

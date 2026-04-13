@@ -14,7 +14,7 @@ import {
 import { getAgentConfig, getAgentToolContext } from '../agents/system-prompts'
 import { getToolsForAgent, AGENT_TOOLS } from '../tools/tool-definitions'
 import { executeTool } from '../tools/tool-executor'
-import { getApprovedFolders, isPathApproved, addApprovedFolder } from '../folder-manager'
+import { getProjectDirectory, isPathInProject } from '../project-directory'
 import { getParentFolder } from '../tools/path-utils'
 import { getCosmeticDefinition } from '../cosmetic-definitions'
 import type { ProgressionEngine } from '../progression-engine'
@@ -180,9 +180,8 @@ export class ChatOrchestrator {
     }
 
     // Build ChatOpts — skip tool context injection when backend manages tools internally
-    const toolContext = this.backend.managesTools
-      ? ''
-      : getAgentToolContext(agentId, getApprovedFolders())
+    const projectDir = getProjectDirectory()
+    const toolContext = this.backend.managesTools ? '' : getAgentToolContext(agentId, projectDir)
     const systemPrompt =
       locale === 'en'
         ? config.systemPrompt + toolContext + '\n\nThe player is using English. Respond in English.'
@@ -203,7 +202,8 @@ export class ChatOrchestrator {
       model: this.getModelOverride?.(config.model) ?? config.model,
       maxTokens: config.maxTokens,
       temperature: config.temperature,
-      permissionMode: this.backend.managesTools ? this.getAgentMode(agentId) : undefined
+      permissionMode: this.backend.managesTools ? this.getAgentMode(agentId) : undefined,
+      projectDirectory: projectDir || undefined
     }
 
     this.activeAgents.add(agentId)
@@ -271,14 +271,14 @@ export class ChatOrchestrator {
     webContents: WebContents
   ): Promise<ToolResult> {
     const targetPath = getToolTargetPath(toolName, args)
-    const folderApproved =
+    const pathApproved =
       toolName === 'run_command'
         ? false
         : targetPath
-          ? isPathApproved(targetPath) || oneTimeApprovedPaths.has(resolve(normalize(targetPath)))
+          ? isPathInProject(targetPath) || oneTimeApprovedPaths.has(resolve(normalize(targetPath)))
           : true
 
-    if (folderApproved) {
+    if (pathApproved) {
       return this.executeAndTrackTool(agentId, toolCallId, toolName, args, webContents)
     }
 
@@ -289,10 +289,10 @@ export class ChatOrchestrator {
       toolName,
       args,
       summary: buildToolSummary(toolName, args),
-      folderApproved
+      folderApproved: pathApproved
     }
 
-    const { approved, addToApproved } = await requestToolConfirmation(confirmPayload, webContents)
+    const { approved } = await requestToolConfirmation(confirmPayload, webContents)
 
     if (!approved) {
       return {
@@ -302,19 +302,7 @@ export class ChatOrchestrator {
       }
     }
 
-    if (addToApproved) {
-      addApprovedFolder(addToApproved)
-    }
-
-    return this.executeAndTrackTool(
-      agentId,
-      toolCallId,
-      toolName,
-      args,
-      webContents,
-      targetPath,
-      addToApproved
-    )
+    return this.executeAndTrackTool(agentId, toolCallId, toolName, args, webContents, targetPath)
   }
 
   private async executeAndTrackTool(
@@ -323,28 +311,28 @@ export class ChatOrchestrator {
     toolName: ToolName,
     args: Record<string, unknown>,
     webContents: WebContents,
-    targetPath?: string | null,
-    addToApproved?: string
+    targetPath?: string | null
   ): Promise<ToolResult> {
     if (!webContents.isDestroyed()) {
       webContents.send('chat:tool-executing', { agentId, toolName })
     }
 
-    const approvedFolders = [
-      ...getApprovedFolders().map((f) => f.path),
+    const projectDir = getProjectDirectory()
+    const allowedDirs = [
+      projectDir,
       ...Array.from(oneTimeApprovedPaths).map((p) => getParentFolder(p))
-    ]
+    ].filter(Boolean)
 
-    // For "Just Once" approvals: if targetPath is not in approved folders,
+    // For "Just Once" approvals: if targetPath is not in the project directory,
     // temporarily include the relevant directory.
-    if (targetPath && !isPathApproved(targetPath) && !addToApproved) {
+    if (targetPath && !isPathInProject(targetPath)) {
       const isDirectoryTool = toolName === 'list_files' || toolName === 'run_command'
-      approvedFolders.push(
+      allowedDirs.push(
         isDirectoryTool ? resolve(normalize(targetPath)) : getParentFolder(targetPath)
       )
     }
 
-    const result = await executeTool(toolName, args, approvedFolders)
+    const result = await executeTool(toolName, args, allowedDirs)
 
     // Record tool usage for achievements
     try {

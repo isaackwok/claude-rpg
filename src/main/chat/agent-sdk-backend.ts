@@ -33,7 +33,8 @@ export class AgentSdkBackend implements IChatBackend {
       includePartialMessages: true,
       abortController,
       persistSession: true,
-      ...(this.sessionIds.has(opts.agentId) ? { resume: this.sessionIds.get(opts.agentId)! } : {})
+      ...(this.sessionIds.has(opts.agentId) ? { resume: this.sessionIds.get(opts.agentId)! } : {}),
+      ...(opts.projectDirectory ? { cwd: opts.projectDirectory } : {})
     }
 
     try {

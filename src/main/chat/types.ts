@@ -45,6 +45,8 @@ export interface ChatOpts {
   onToolProgress?: (toolName: string) => void
   /** Permission mode for Agent SDK backends (per-query) */
   permissionMode?: import('../../shared/types').PermissionMode
+  /** Project directory — passed as cwd to Agent SDK, used for tool sandboxing */
+  projectDirectory?: string
 }
 
 export interface IChatBackend {
