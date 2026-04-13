@@ -1,6 +1,5 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
 import type {
-  ApprovedFolder,
   ToolConfirmPayload,
   ToolExecutingPayload,
   PathApprovalPayload,
@@ -18,6 +17,7 @@ import type {
 import type { PlayerAchievement, AchievementCheckResult } from '../shared/achievement-types'
 import type { PlayerCosmetic, HomePlacement } from '../shared/cosmetic-types'
 import type { Item, BookItem, ItemCategory } from '../shared/item-types'
+import type { SlashCommand, AtSource } from '../shared/dialogue-control-types'
 
 interface ChatAPI {
   // API key
@@ -30,22 +30,19 @@ interface ChatAPI {
   onStreamChunk(callback: (data: { agentId: string; chunk: string }) => void): () => void
   onStreamEnd(callback: (data: { agentId: string }) => void): () => void
   onStreamError(callback: (data: { agentId: string; error: string }) => void): () => void
-  // Folder management (Notice Board)
-  getApprovedFolders(): Promise<ApprovedFolder[]>
-  addApprovedFolder(path: string): Promise<ApprovedFolder>
-  removeApprovedFolder(path: string): Promise<void>
-  selectAndAddFolder(): Promise<ApprovedFolder | null>
+  // Project directory
+  getProjectDirectory(): Promise<string>
+  setProjectDirectory(dirPath: string): Promise<string>
+  selectProjectDirectory(): Promise<string | null>
   // Tool confirmation
   onToolConfirm(callback: (data: ToolConfirmPayload) => void): () => void
   onToolExecuting(callback: (data: ToolExecutingPayload) => void): () => void
-  approveToolCall(agentId: string, toolCallId: string, addToApproved?: string): void
+  approveToolCall(agentId: string, toolCallId: string): void
   denyToolCall(agentId: string, toolCallId: string): void
   // Path approval
   onPathApproval(callback: (data: PathApprovalPayload) => void): () => void
-  approvePath(agentId: string, path: string, addToApproved?: string): void
+  approvePath(agentId: string, path: string): void
   denyPath(agentId: string, path: string): void
-  // Path approval check
-  checkPaths(paths: string[]): Promise<Array<{ path: string; approved: boolean }>>
   // File/folder picker
   pickFiles(): Promise<string[]>
   // Progression
@@ -104,6 +101,11 @@ interface ChatAPI {
   onSettingsChanged(callback: (data: { key: string; value: string }) => void): () => void
   validateApiKey(key: string): Promise<{ valid: boolean; error?: string }>
   checkCli(): Promise<{ installed: boolean; authenticated: boolean }>
+  // Dialogue controls
+  setAgentMode(agentId: string, mode: string): void
+  getAgentMode(agentId: string): Promise<string>
+  listSlashCommands(): Promise<SlashCommand[]>
+  listAtSources(query: string, agentId: string): Promise<AtSource[]>
 }
 
 declare global {

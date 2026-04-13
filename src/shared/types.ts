@@ -27,6 +27,7 @@ export interface SettingsMap {
   model: string
   locale: Locale
   permission_mode: PermissionMode
+  project_directory: string // empty string = not set
 }
 
 /** Message role for Anthropic API conversations. */
@@ -40,13 +41,6 @@ export type ToolName =
   | 'list_files'
   | 'web_search'
   | 'run_command'
-
-/** A directory approved for NPC file access ("scroll on the Notice Board"). */
-export interface ApprovedFolder {
-  path: string
-  label: string
-  addedAt: number
-}
 
 /** Sent from main → renderer when an NPC wants to use a tool and needs user confirmation. */
 export interface ToolConfirmPayload {
@@ -214,3 +208,4 @@ export interface QuestBoardSuggestion {
 export * from './achievement-types'
 export * from './cosmetic-types'
 export * from './item-types'
+export * from './dialogue-control-types'

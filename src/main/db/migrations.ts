@@ -152,6 +152,17 @@ const migrations: Record<number, (db: Database.Database) => void> = {
     if (row && row.locale) {
       db.prepare("INSERT INTO settings (key, value) VALUES ('locale', ?)").run(row.locale)
     }
+  },
+
+  7: (db) => {
+    const first = db
+      .prepare('SELECT path FROM approved_folders ORDER BY added_at ASC LIMIT 1')
+      .get() as { path: string } | undefined
+    if (first) {
+      db.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES ('project_directory', ?)").run(
+        first.path
+      )
+    }
   }
 }
 

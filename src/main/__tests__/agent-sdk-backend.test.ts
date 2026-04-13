@@ -19,6 +19,7 @@ function makeChatOpts(overrides: Partial<ChatOpts> = {}): ChatOpts {
     maxTokens: 1024,
     temperature: 0.7,
     allowedToolNames: ['Read', 'Write', 'Edit'],
+    permissionMode: 'acceptEdits',
     ...overrides
   }
 }
@@ -45,7 +46,7 @@ beforeEach(() => {
 
 describe('AgentSdkBackend', () => {
   it('has managesTools set to true', () => {
-    const backend = new AgentSdkBackend('acceptEdits')
+    const backend = new AgentSdkBackend()
     expect(backend.managesTools).toBe(true)
   })
 
@@ -69,7 +70,7 @@ describe('AgentSdkBackend', () => {
       ])
     )
 
-    const backend = new AgentSdkBackend('acceptEdits')
+    const backend = new AgentSdkBackend()
     const events: StreamEvent[] = []
     for await (const event of backend.sendMessage(makeChatOpts(), 'hello')) {
       events.push(event)
@@ -101,7 +102,7 @@ describe('AgentSdkBackend', () => {
       ])
     )
 
-    const backend = new AgentSdkBackend('acceptEdits')
+    const backend = new AgentSdkBackend()
     const events: StreamEvent[] = []
     for await (const event of backend.sendMessage(makeChatOpts(), 'hello')) {
       events.push(event)
@@ -130,7 +131,7 @@ describe('AgentSdkBackend', () => {
       ])
     )
 
-    const backend = new AgentSdkBackend('acceptEdits')
+    const backend = new AgentSdkBackend()
     const events: StreamEvent[] = []
     for await (const event of backend.sendMessage(makeChatOpts(), 'hello')) {
       events.push(event)
@@ -153,7 +154,7 @@ describe('AgentSdkBackend', () => {
       ])
     )
 
-    const backend = new AgentSdkBackend('acceptEdits')
+    const backend = new AgentSdkBackend()
     const events: StreamEvent[] = []
     for await (const event of backend.sendMessage(makeChatOpts(), 'hello')) {
       events.push(event)
@@ -179,7 +180,7 @@ describe('AgentSdkBackend', () => {
       ])
     )
 
-    const backend = new AgentSdkBackend('acceptEdits')
+    const backend = new AgentSdkBackend()
     const events: StreamEvent[] = []
     for await (const event of backend.sendMessage(
       makeChatOpts({ onToolProgress }),
@@ -201,7 +202,7 @@ describe('AgentSdkBackend', () => {
       ])
     )
 
-    const backend = new AgentSdkBackend('acceptEdits')
+    const backend = new AgentSdkBackend()
     // Drain first call
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     for await (const _msg of backend.sendMessage(makeChatOpts(), 'first')) {
@@ -229,7 +230,7 @@ describe('AgentSdkBackend', () => {
       ])
     )
 
-    const backend = new AgentSdkBackend('acceptEdits')
+    const backend = new AgentSdkBackend()
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     for await (const _msg of backend.sendMessage(makeChatOpts(), 'first')) {
       /* consume */
@@ -254,12 +255,12 @@ describe('AgentSdkBackend', () => {
   })
 
   it('supplyToolResults is a no-op', () => {
-    const backend = new AgentSdkBackend('acceptEdits')
+    const backend = new AgentSdkBackend()
     expect(() => backend.supplyToolResults('wizard', [])).not.toThrow()
   })
 
   it('cancelStream does not throw when no active query', () => {
-    const backend = new AgentSdkBackend('acceptEdits')
+    const backend = new AgentSdkBackend()
     expect(() => backend.cancelStream('wizard')).not.toThrow()
   })
 
@@ -271,10 +272,10 @@ describe('AgentSdkBackend', () => {
       ])
     )
 
-    const backend = new AgentSdkBackend('bypassPermissions')
+    const backend = new AgentSdkBackend()
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     for await (const _msg of backend.sendMessage(
-      makeChatOpts({ allowedToolNames: ['Read', 'Bash'] }),
+      makeChatOpts({ allowedToolNames: ['Read', 'Bash'], permissionMode: 'bypassPermissions' }),
       'test'
     )) {
       /* consume */
@@ -287,6 +288,26 @@ describe('AgentSdkBackend', () => {
     expect(opts.includePartialMessages).toBe(true)
   })
 
+  it('passes permissionMode from ChatOpts to SDK query', async () => {
+    mockQuery.mockReturnValue(
+      makeFakeQuery([
+        { type: 'system', subtype: 'init', session_id: 'sess-1' },
+        { type: 'result', subtype: 'success', session_id: 'sess-1' }
+      ])
+    )
+    const backend = new AgentSdkBackend()
+    const opts = makeChatOpts({ permissionMode: 'plan' })
+    const events: StreamEvent[] = []
+    for await (const e of backend.sendMessage(opts, 'hello')) {
+      events.push(e)
+    }
+    expect(mockQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({ permissionMode: 'plan' })
+      })
+    )
+  })
+
   it('yields end on abort error', async () => {
     mockQuery.mockImplementation(() => {
       // eslint-disable-next-line require-yield
@@ -295,7 +316,7 @@ describe('AgentSdkBackend', () => {
       })()
     })
 
-    const backend = new AgentSdkBackend('acceptEdits')
+    const backend = new AgentSdkBackend()
     const events: StreamEvent[] = []
     for await (const event of backend.sendMessage(makeChatOpts(), 'hello')) {
       events.push(event)
@@ -312,7 +333,7 @@ describe('AgentSdkBackend', () => {
       })()
     })
 
-    const backend = new AgentSdkBackend('acceptEdits')
+    const backend = new AgentSdkBackend()
     const events: StreamEvent[] = []
     for await (const event of backend.sendMessage(makeChatOpts(), 'hello')) {
       events.push(event)

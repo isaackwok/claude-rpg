@@ -33,10 +33,9 @@ vi.mock('../tools/tool-executor', () => ({
   executeTool: vi.fn(() => Promise.resolve({ success: true, content: 'ok', summary: '' }))
 }))
 
-vi.mock('../folder-manager', () => ({
-  getApprovedFolders: vi.fn(() => []),
-  isPathApproved: vi.fn(() => false),
-  addApprovedFolder: vi.fn()
+vi.mock('../project-directory', () => ({
+  getProjectDirectory: vi.fn(() => '/tmp/project'),
+  isPathInProject: vi.fn(() => true)
 }))
 
 vi.mock('../tools/path-utils', () => ({

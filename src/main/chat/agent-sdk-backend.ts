@@ -15,8 +15,6 @@ export class AgentSdkBackend implements IChatBackend {
   private sessionIds = new Map<AgentId, string>()
   private activeAborts = new Map<AgentId, AbortController>()
 
-  constructor(private permissionMode: string) {}
-
   async *sendMessage(opts: ChatOpts, message: string): AsyncIterable<StreamEvent> {
     // Dynamic import — the SDK is ESM-only and spawns a child process,
     // so we import lazily to avoid issues with electron-vite's CJS bundling.
@@ -30,12 +28,13 @@ export class AgentSdkBackend implements IChatBackend {
     const sdkOptions = {
       systemPrompt: opts.systemPrompt,
       model: opts.model,
-      permissionMode: this.permissionMode as SdkPermissionMode,
+      permissionMode: (opts.permissionMode ?? 'acceptEdits') as SdkPermissionMode,
       allowedTools: opts.allowedToolNames ?? [],
       includePartialMessages: true,
       abortController,
       persistSession: true,
-      ...(this.sessionIds.has(opts.agentId) ? { resume: this.sessionIds.get(opts.agentId)! } : {})
+      ...(this.sessionIds.has(opts.agentId) ? { resume: this.sessionIds.get(opts.agentId)! } : {}),
+      ...(opts.projectDirectory ? { cwd: opts.projectDirectory } : {})
     }
 
     try {

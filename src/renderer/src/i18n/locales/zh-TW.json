@@ -123,9 +123,10 @@
   },
   "noticeBoard": {
     "title": "公告欄",
+    "projectDirectory": "專案目錄",
     "postedScrolls": "已核發的通行令:",
-    "empty": "公告欄上尚無任何通行令。\n請點擊下方按鈕核發你的第一份通行令，讓 NPC 能存取你的檔案。",
-    "postNew": "核發新通行令",
+    "empty": "尚未設定專案目錄。\n請點擊下方按鈕選擇目錄，讓 NPC 能存取你的檔案。",
+    "postNew": "選擇目錄",
     "remove": "移除",
     "postedOn": "張貼於",
     "close": "關閉"
@@ -301,5 +302,28 @@
     "herald": "傳令使 娜歐蜜",
     "wizard": "巫師 瑪琳",
     "bartender": "酒保 雷克斯"
+  },
+  "onboarding": {
+    "projectDir": {
+      "title": "選擇你的探索基地",
+      "description": "在踏上冒險之旅前，請先選擇你要探索的專案目錄。鎮上的居民將在這片領地中為你效勞。",
+      "selectButton": "選擇目錄",
+      "confirm": "開始冒險",
+      "selected": "已選擇："
+    }
+  },
+  "permissionMode": {
+    "label": "權限模式",
+    "default": "預設模式",
+    "acceptEdits": "接受編輯",
+    "auto": "自動模式",
+    "plan": "計畫模式",
+    "requiresMax": "需要 Max 訂閱方案"
+  },
+  "autocomplete": {
+    "slash": "斜線指令",
+    "npc": "NPC",
+    "book": "書籍",
+    "file": "檔案"
   }
 }

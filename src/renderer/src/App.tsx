@@ -16,6 +16,7 @@ import { QuestBoardPanel } from './components/ui/QuestBoardPanel'
 import { HomeHUD } from './components/ui/HomeHUD'
 import { SettingsPanel } from './components/ui/SettingsPanel'
 import { SettingsGearButton } from './components/ui/SettingsGearButton'
+import { ProjectDirectoryModal } from './components/ui/ProjectDirectoryModal'
 import { conversationManager } from './services/ConversationManager'
 import { EventBus } from './game/EventBus'
 import type { AgentId } from '../../shared/types'
@@ -28,6 +29,7 @@ function App(): React.JSX.Element {
   const [showBackpack, setShowBackpack] = useState(false)
   const [showQuestBoard, setShowQuestBoard] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [showProjectDirModal, setShowProjectDirModal] = useState(false)
   const [dialogueActive, setDialogueActive] = useState(false)
   const [levelUpBanner, setLevelUpBanner] = useState<number | null>(null)
   const [apiKeyVersion, setApiKeyVersion] = useState(0)
@@ -151,6 +153,13 @@ function App(): React.JSX.Element {
     checkAuth()
   }, [])
 
+  // Show project directory onboarding modal if no directory is set
+  useEffect(() => {
+    window.api.getProjectDirectory().then((dir) => {
+      if (!dir) setShowProjectDirModal(true)
+    })
+  }, [])
+
   // Keyboard shortcuts for panels
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -254,6 +263,14 @@ function App(): React.JSX.Element {
             onSaved={() => {
               setShowApiKeyModal(false)
               setApiKeyVersion((v) => v + 1)
+            }}
+          />
+        )}
+        {showProjectDirModal && (
+          <ProjectDirectoryModal
+            onComplete={async (directory) => {
+              await window.api.setProjectDirectory(directory)
+              setShowProjectDirModal(false)
             }}
           />
         )}

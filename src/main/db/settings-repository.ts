@@ -5,7 +5,8 @@ const DEFAULTS: SettingsMap = {
   auth_type: 'api_key',
   model: 'claude-sonnet-4-6',
   locale: 'zh-TW',
-  permission_mode: 'acceptEdits'
+  permission_mode: 'acceptEdits',
+  project_directory: ''
 }
 
 export class SqliteSettingsRepository {
@@ -58,12 +59,21 @@ export class SqliteSettingsRepository {
     this.set('permission_mode', value)
   }
 
+  getProjectDirectory(): string {
+    return this.get('project_directory') ?? ''
+  }
+
+  setProjectDirectory(value: string): void {
+    this.set('project_directory', value)
+  }
+
   getAll(): SettingsMap {
     return {
       auth_type: this.getAuthType(),
       model: this.getModel(),
       locale: this.getLocale(),
-      permission_mode: this.getPermissionMode()
+      permission_mode: this.getPermissionMode(),
+      project_directory: this.getProjectDirectory()
     }
   }
 }

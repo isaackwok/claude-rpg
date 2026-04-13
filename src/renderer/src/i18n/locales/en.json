@@ -123,9 +123,10 @@
   },
   "noticeBoard": {
     "title": "Notice Board",
+    "projectDirectory": "Project Directory",
     "postedScrolls": "Issued Permits",
-    "empty": "No permits issued yet.\nClick the button below to issue your first permit, allowing NPCs to access your files.",
-    "postNew": "Issue New Permit",
+    "empty": "No project directory set.\nClick the button below to select a directory, allowing NPCs to access your files.",
+    "postNew": "Select Directory",
     "remove": "Remove",
     "postedOn": "Posted on",
     "close": "Close"
@@ -301,5 +302,28 @@
     "herald": "Herald Naomi",
     "wizard": "Wizard Merlin",
     "bartender": "Bartender Rex"
+  },
+  "onboarding": {
+    "projectDir": {
+      "title": "Choose Your Base Camp",
+      "description": "Before your quest begins, choose the project directory for your adventure. The townsfolk will serve you within this realm.",
+      "selectButton": "Select Directory",
+      "confirm": "Begin Adventure",
+      "selected": "Selected:"
+    }
+  },
+  "permissionMode": {
+    "label": "Permission Mode",
+    "default": "Default Mode",
+    "acceptEdits": "Accept Edits",
+    "auto": "Auto Mode",
+    "plan": "Plan Mode",
+    "requiresMax": "Requires Max subscription"
+  },
+  "autocomplete": {
+    "slash": "Slash Commands",
+    "npc": "NPCs",
+    "book": "Books",
+    "file": "Files"
   }
 }

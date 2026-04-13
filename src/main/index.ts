@@ -11,21 +11,19 @@ import {
   handlePathApproved,
   handlePathDenied
 } from './chat'
+import { SlashCommandRegistry } from './chat/slash-command-registry'
 import { SqliteSettingsRepository } from './db/settings-repository'
 import type { AuthType, Locale, PermissionMode } from '../shared/types'
 import {
-  getApprovedFolders,
-  addApprovedFolder,
-  removeApprovedFolder,
-  selectAndAddFolder,
-  isPathApproved,
-  initFolderManager
-} from './folder-manager'
+  getProjectDirectory,
+  setProjectDirectory,
+  selectProjectDirectory,
+  initProjectDirectory
+} from './project-directory'
 import { getDatabase, closeDatabase } from './db/database'
 import { SqlitePlayerRepository } from './db/player-repository'
 import { SqliteXPRepository } from './db/xp-repository'
 import { SqliteConversationPersistence } from './db/conversation-persistence'
-import { SqliteFolderRepository } from './db/folder-repository'
 import { ProgressionEngine } from './progression-engine'
 import { SqliteQuestRepository } from './db/quest-repository'
 import { QuestEngine } from './quest-engine'
@@ -34,6 +32,8 @@ import { SqliteCosmeticRepository } from './db/cosmetic-repository'
 import { SqliteItemRepository } from './db/item-repository'
 import { AchievementEngine } from './achievement-engine'
 import { generateBookName, stripMarkdown } from './book-name-generator'
+import { getAllAgentConfigs } from './agents/system-prompts'
+import type { AtSource } from '../shared/types'
 import { COSMETIC_DEFINITIONS } from './cosmetic-definitions'
 import type { PlayerCosmetic } from '../shared/cosmetic-types'
 
@@ -92,7 +92,6 @@ app.whenReady().then(() => {
   const playerRepo = new SqlitePlayerRepository(db)
   const xpRepo = new SqliteXPRepository(db)
   const conversationPersistence = new SqliteConversationPersistence(db)
-  const folderRepo = new SqliteFolderRepository(db)
   const questRepo = new SqliteQuestRepository(db)
   const achievementRepo = new SqliteAchievementRepository(db)
   const cosmeticRepo = new SqliteCosmeticRepository(db)
@@ -116,15 +115,16 @@ app.whenReady().then(() => {
 
   // Wire BackendManager → ChatOrchestrator
   const backendManager = new BackendManager(settingsRepo.getAuthType(), {
-    getApiKey: () => getApiKey(),
-    getPermissionMode: () => settingsRepo.getPermissionMode()
+    getApiKey: () => getApiKey()
   })
   const chatOrchestrator = new ChatOrchestrator(backendManager.getBackend())
+  const slashCommandRegistry = new SlashCommandRegistry()
 
   // Model resolver: respect agent-specific model if set, otherwise use global setting
   chatOrchestrator.setModelResolver((agentDefault) =>
     agentDefault && agentDefault !== 'default' ? agentDefault : settingsRepo.getModel()
   )
+  chatOrchestrator.setGlobalModeFallback(() => settingsRepo.getPermissionMode())
   chatOrchestrator.setDependencies({
     progressionEngine,
     questEngine,
@@ -133,7 +133,7 @@ app.whenReady().then(() => {
     achievementRepo,
     cosmeticRepo
   })
-  initFolderManager(folderRepo)
+  initProjectDirectory(settingsRepo)
 
   // Progression IPC handlers — let errors propagate so the renderer can handle them
   ipcMain.handle('progression:get-player', () => {
@@ -407,12 +407,11 @@ app.whenReady().then(() => {
     ) {
       return
     }
-    const { agentId, toolCallId, addToApproved } = data as {
+    const { agentId, toolCallId } = data as {
       agentId: string
       toolCallId: string
-      addToApproved?: string
     }
-    handleToolApproved(agentId, toolCallId, addToApproved)
+    handleToolApproved(agentId, toolCallId)
   })
 
   ipcMain.on('chat:tool-denied', (_event, data: unknown) => {
@@ -438,12 +437,11 @@ app.whenReady().then(() => {
     ) {
       return
     }
-    const { agentId, path, addToApproved } = data as {
+    const { agentId, path } = data as {
       agentId: string
       path: string
-      addToApproved?: string
     }
-    handlePathApproved(agentId, path, addToApproved)
+    handlePathApproved(agentId, path)
   })
 
   ipcMain.on('chat:path-denied', (_event, data: unknown) => {
@@ -459,16 +457,13 @@ app.whenReady().then(() => {
     handlePathDenied(agentId, path)
   })
 
-  // Folder management (Notice Board)
-  ipcMain.handle('folders:get-all', () => getApprovedFolders())
-  ipcMain.handle('folders:add', (_event, path: string) => addApprovedFolder(path))
-  ipcMain.handle('folders:remove', (_event, path: string) => removeApprovedFolder(path))
-  ipcMain.handle('folders:select-add', () => selectAndAddFolder())
-
-  // Check which paths are approved
-  ipcMain.handle('folders:check-paths', (_event, paths: string[]) => {
-    return paths.map((p) => ({ path: p, approved: isPathApproved(p) }))
+  // Project directory
+  ipcMain.handle('project-dir:get', () => getProjectDirectory())
+  ipcMain.handle('project-dir:set', (_e, dirPath: string) => {
+    setProjectDirectory(dirPath)
+    return getProjectDirectory()
   })
+  ipcMain.handle('project-dir:select', async () => selectProjectDirectory())
 
   // File/folder picker (returns paths without adding to approved list)
   ipcMain.handle('dialog:pick-files', async () => {
@@ -498,12 +493,9 @@ app.whenReady().then(() => {
       case 'locale':
         settingsRepo.setLocale(value as Locale)
         break
-      case 'permission_mode': {
+      case 'permission_mode':
         settingsRepo.setPermissionMode(value as PermissionMode)
-        const newBackend = backendManager.recreateCliBackend()
-        if (newBackend) chatOrchestrator.setBackend(newBackend)
         break
-      }
     }
     // Broadcast change to renderer
     const win = BrowserWindow.getAllWindows()[0]
@@ -519,6 +511,69 @@ app.whenReady().then(() => {
   ipcMain.handle('settings:check-cli', async () => {
     return backendManager.checkCli()
   })
+
+  // Per-agent permission mode
+  ipcMain.on('chat:set-agent-mode', (_event, data: { agentId: string; mode: string }) => {
+    chatOrchestrator.setAgentMode(data.agentId, data.mode as PermissionMode)
+  })
+
+  ipcMain.handle('chat:get-agent-mode', (_e, agentId: string) => {
+    return chatOrchestrator.getAgentMode(agentId)
+  })
+
+  ipcMain.handle('slash:list-commands', async () => {
+    return slashCommandRegistry.getCommands()
+  })
+
+  ipcMain.handle(
+    'at:list-sources',
+    async (_e, { query: _query, agentId: _agentId }: { query: string; agentId: string }) => {
+      const sources: AtSource[] = []
+
+      // NPCs — from the canonical agent registry
+      for (const config of getAllAgentConfigs()) {
+        sources.push({ type: 'npc', id: config.id, label: config.id })
+      }
+
+      // Books — from items repo
+      try {
+        const items = itemRepo.getItems('player-1')
+        for (const item of items) {
+          if (item.type === 'book') {
+            sources.push({
+              type: 'book',
+              id: item.id,
+              label: item.name,
+              secondary: item.sourceAgentId ?? undefined
+            })
+          }
+        }
+      } catch {
+        /* items not available */
+      }
+
+      // Files — from project directory (shallow listing)
+      const projectDir = getProjectDirectory()
+      if (projectDir) {
+        try {
+          const { readdir } = await import('fs/promises')
+          const entries = await readdir(projectDir, { withFileTypes: true })
+          for (const entry of entries.slice(0, 50)) {
+            sources.push({
+              type: 'file',
+              id: `${projectDir}/${entry.name}`,
+              label: entry.name,
+              secondary: projectDir
+            })
+          }
+        } catch {
+          /* dir not accessible */
+        }
+      }
+
+      return sources
+    }
+  )
 
   createWindow()
 
