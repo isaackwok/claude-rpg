@@ -30,14 +30,11 @@ const api = {
     return () => ipcRenderer.removeListener('chat:stream-error', handler)
   },
 
-  // Folder management (Notice Board)
-  getApprovedFolders: (): Promise<import('../shared/types').ApprovedFolder[]> =>
-    ipcRenderer.invoke('folders:get-all'),
-  addApprovedFolder: (path: string): Promise<import('../shared/types').ApprovedFolder> =>
-    ipcRenderer.invoke('folders:add', path),
-  removeApprovedFolder: (path: string): Promise<void> => ipcRenderer.invoke('folders:remove', path),
-  selectAndAddFolder: (): Promise<import('../shared/types').ApprovedFolder | null> =>
-    ipcRenderer.invoke('folders:select-add'),
+  // Project directory
+  getProjectDirectory: (): Promise<string> => ipcRenderer.invoke('project-dir:get'),
+  setProjectDirectory: (dirPath: string): Promise<string> =>
+    ipcRenderer.invoke('project-dir:set', dirPath),
+  selectProjectDirectory: (): Promise<string | null> => ipcRenderer.invoke('project-dir:select'),
 
   // Tool confirmation
   onToolConfirm: (
@@ -56,8 +53,8 @@ const api = {
     ipcRenderer.on('chat:tool-executing', handler)
     return () => ipcRenderer.removeListener('chat:tool-executing', handler)
   },
-  approveToolCall: (agentId: string, toolCallId: string, addToApproved?: string): void =>
-    ipcRenderer.send('chat:tool-approved', { agentId, toolCallId, addToApproved }),
+  approveToolCall: (agentId: string, toolCallId: string): void =>
+    ipcRenderer.send('chat:tool-approved', { agentId, toolCallId }),
   denyToolCall: (agentId: string, toolCallId: string): void =>
     ipcRenderer.send('chat:tool-denied', { agentId, toolCallId }),
 
@@ -70,14 +67,10 @@ const api = {
     ipcRenderer.on('chat:path-approval', handler)
     return () => ipcRenderer.removeListener('chat:path-approval', handler)
   },
-  approvePath: (agentId: string, path: string, addToApproved?: string): void =>
-    ipcRenderer.send('chat:path-approved', { agentId, path, addToApproved }),
+  approvePath: (agentId: string, path: string): void =>
+    ipcRenderer.send('chat:path-approved', { agentId, path }),
   denyPath: (agentId: string, path: string): void =>
     ipcRenderer.send('chat:path-denied', { agentId, path }),
-
-  // Path approval check
-  checkPaths: (paths: string[]): Promise<Array<{ path: string; approved: boolean }>> =>
-    ipcRenderer.invoke('folders:check-paths', paths),
 
   // File/folder picker
   pickFiles: (): Promise<string[]> => ipcRenderer.invoke('dialog:pick-files'),

@@ -123,9 +123,10 @@
   },
   "noticeBoard": {
     "title": "Notice Board",
+    "projectDirectory": "Project Directory",
     "postedScrolls": "Issued Permits",
-    "empty": "No permits issued yet.\nClick the button below to issue your first permit, allowing NPCs to access your files.",
-    "postNew": "Issue New Permit",
+    "empty": "No project directory set.\nClick the button below to select a directory, allowing NPCs to access your files.",
+    "postNew": "Select Directory",
     "remove": "Remove",
     "postedOn": "Posted on",
     "close": "Close"

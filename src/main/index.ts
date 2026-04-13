@@ -15,18 +15,15 @@ import { SlashCommandRegistry } from './chat/slash-command-registry'
 import { SqliteSettingsRepository } from './db/settings-repository'
 import type { AuthType, Locale, PermissionMode } from '../shared/types'
 import {
-  getApprovedFolders,
-  addApprovedFolder,
-  removeApprovedFolder,
-  selectAndAddFolder,
-  isPathApproved,
-  initFolderManager
-} from './folder-manager'
+  getProjectDirectory,
+  setProjectDirectory,
+  selectProjectDirectory,
+  initProjectDirectory
+} from './project-directory'
 import { getDatabase, closeDatabase } from './db/database'
 import { SqlitePlayerRepository } from './db/player-repository'
 import { SqliteXPRepository } from './db/xp-repository'
 import { SqliteConversationPersistence } from './db/conversation-persistence'
-import { SqliteFolderRepository } from './db/folder-repository'
 import { ProgressionEngine } from './progression-engine'
 import { SqliteQuestRepository } from './db/quest-repository'
 import { QuestEngine } from './quest-engine'
@@ -95,7 +92,6 @@ app.whenReady().then(() => {
   const playerRepo = new SqlitePlayerRepository(db)
   const xpRepo = new SqliteXPRepository(db)
   const conversationPersistence = new SqliteConversationPersistence(db)
-  const folderRepo = new SqliteFolderRepository(db)
   const questRepo = new SqliteQuestRepository(db)
   const achievementRepo = new SqliteAchievementRepository(db)
   const cosmeticRepo = new SqliteCosmeticRepository(db)
@@ -137,7 +133,7 @@ app.whenReady().then(() => {
     achievementRepo,
     cosmeticRepo
   })
-  initFolderManager(folderRepo)
+  initProjectDirectory(settingsRepo)
 
   // Progression IPC handlers — let errors propagate so the renderer can handle them
   ipcMain.handle('progression:get-player', () => {
@@ -461,16 +457,13 @@ app.whenReady().then(() => {
     handlePathDenied(agentId, path)
   })
 
-  // Folder management (Notice Board)
-  ipcMain.handle('folders:get-all', () => getApprovedFolders())
-  ipcMain.handle('folders:add', (_event, path: string) => addApprovedFolder(path))
-  ipcMain.handle('folders:remove', (_event, path: string) => removeApprovedFolder(path))
-  ipcMain.handle('folders:select-add', () => selectAndAddFolder())
-
-  // Check which paths are approved
-  ipcMain.handle('folders:check-paths', (_event, paths: string[]) => {
-    return paths.map((p) => ({ path: p, approved: isPathApproved(p) }))
+  // Project directory
+  ipcMain.handle('project-dir:get', () => getProjectDirectory())
+  ipcMain.handle('project-dir:set', (_e, dirPath: string) => {
+    setProjectDirectory(dirPath)
+    return getProjectDirectory()
   })
+  ipcMain.handle('project-dir:select', async () => selectProjectDirectory())
 
   // File/folder picker (returns paths without adding to approved list)
   ipcMain.handle('dialog:pick-files', async () => {
@@ -575,27 +568,23 @@ app.whenReady().then(() => {
         /* items not available */
       }
 
-      // Files — from approved folders (shallow listing)
-      try {
-        const { readdirSync } = await import('fs')
-        const folders = getApprovedFolders()
-        for (const folder of folders) {
-          try {
-            const entries = readdirSync(folder.path, { withFileTypes: true }).slice(0, 50)
-            for (const entry of entries) {
-              sources.push({
-                type: 'file',
-                id: `${folder.path}/${entry.name}`,
-                label: entry.name,
-                secondary: folder.path
-              })
-            }
-          } catch {
-            /* folder not accessible */
+      // Files — from project directory (shallow listing)
+      const projectDir = getProjectDirectory()
+      if (projectDir) {
+        try {
+          const { readdirSync } = await import('fs')
+          const entries = readdirSync(projectDir, { withFileTypes: true }).slice(0, 50)
+          for (const entry of entries) {
+            sources.push({
+              type: 'file',
+              id: `${projectDir}/${entry.name}`,
+              label: entry.name,
+              secondary: projectDir
+            })
           }
+        } catch {
+          /* dir not accessible */
         }
-      } catch {
-        /* fs error */
       }
 
       return sources

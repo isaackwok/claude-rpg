@@ -123,9 +123,10 @@
   },
   "noticeBoard": {
     "title": "公告欄",
+    "projectDirectory": "專案目錄",
     "postedScrolls": "已核發的通行令:",
-    "empty": "公告欄上尚無任何通行令。\n請點擊下方按鈕核發你的第一份通行令，讓 NPC 能存取你的檔案。",
-    "postNew": "核發新通行令",
+    "empty": "尚未設定專案目錄。\n請點擊下方按鈕選擇目錄，讓 NPC 能存取你的檔案。",
+    "postNew": "選擇目錄",
     "remove": "移除",
     "postedOn": "張貼於",
     "close": "關閉"

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from '../../i18n'
-import type { ApprovedFolder } from '../../../../shared/types'
 import { CloseButton } from './CloseButton'
 
 interface NoticeBoardPanelProps {
@@ -9,24 +8,24 @@ interface NoticeBoardPanelProps {
 
 export function NoticeBoardPanel({ onClose }: NoticeBoardPanelProps) {
   const { t } = useTranslation()
-  const [folders, setFolders] = useState<ApprovedFolder[]>([])
+  const [projectDir, setProjectDir] = useState<string>('')
 
   const refresh = () => {
-    window.api.getApprovedFolders().then(setFolders)
+    window.api.getProjectDirectory().then(setProjectDir)
   }
 
   useEffect(() => {
     refresh()
   }, [])
 
-  const handleAdd = async () => {
-    await window.api.selectAndAddFolder()
-    refresh()
+  const handleSelect = async () => {
+    const dir = await window.api.selectProjectDirectory()
+    if (dir !== null) setProjectDir(dir)
   }
 
-  const handleRemove = async (path: string) => {
-    await window.api.removeApprovedFolder(path)
-    refresh()
+  const handleClear = async () => {
+    await window.api.setProjectDirectory('')
+    setProjectDir('')
   }
 
   useEffect(() => {
@@ -84,56 +83,46 @@ export function NoticeBoardPanel({ onClose }: NoticeBoardPanelProps) {
           <CloseButton onClick={onClose} />
         </div>
 
-        {/* Folder list */}
+        {/* Project directory */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
-          {folders.length === 0 ? (
+          <div style={{ fontSize: 12, opacity: 0.6, marginBottom: 8 }}>
+            {t('noticeBoard.projectDirectory')}
+          </div>
+          {projectDir ? (
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '8px 10px',
+                background: 'rgba(200, 180, 140, 0.08)',
+                border: '1px solid rgba(200, 180, 140, 0.15)',
+                borderRadius: 3
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 13, color: '#e0c888' }}>📁 {projectDir}</div>
+              </div>
+              <button
+                onClick={handleClear}
+                style={{
+                  padding: '3px 8px',
+                  fontFamily: 'monospace',
+                  fontSize: 11,
+                  background: 'rgba(255, 100, 100, 0.15)',
+                  border: '1px solid rgba(255, 100, 100, 0.3)',
+                  color: '#ff8888',
+                  cursor: 'pointer',
+                  borderRadius: 3
+                }}
+              >
+                {t('noticeBoard.remove')}
+              </button>
+            </div>
+          ) : (
             <div style={{ opacity: 0.5, fontSize: 13, textAlign: 'center', padding: '20px 0' }}>
               {t('noticeBoard.empty')}
             </div>
-          ) : (
-            <>
-              <div style={{ fontSize: 12, opacity: 0.6, marginBottom: 8 }}>
-                {t('noticeBoard.postedScrolls')}
-              </div>
-              {folders.map((folder) => (
-                <div
-                  key={folder.path}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '8px 10px',
-                    marginBottom: 6,
-                    background: 'rgba(200, 180, 140, 0.08)',
-                    border: '1px solid rgba(200, 180, 140, 0.15)',
-                    borderRadius: 3
-                  }}
-                >
-                  <div>
-                    <div style={{ fontSize: 13, color: '#e0c888' }}>📁 {folder.label}</div>
-                    <div style={{ fontSize: 11, opacity: 0.5, marginTop: 2 }}>{folder.path}</div>
-                    <div style={{ fontSize: 10, opacity: 0.3, marginTop: 2 }}>
-                      {t('noticeBoard.postedOn')} {new Date(folder.addedAt).toLocaleDateString()}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => handleRemove(folder.path)}
-                    style={{
-                      padding: '3px 8px',
-                      fontFamily: 'monospace',
-                      fontSize: 11,
-                      background: 'rgba(255, 100, 100, 0.15)',
-                      border: '1px solid rgba(255, 100, 100, 0.3)',
-                      color: '#ff8888',
-                      cursor: 'pointer',
-                      borderRadius: 3
-                    }}
-                  >
-                    {t('noticeBoard.remove')}
-                  </button>
-                </div>
-              ))}
-            </>
           )}
         </div>
 
@@ -147,7 +136,7 @@ export function NoticeBoardPanel({ onClose }: NoticeBoardPanelProps) {
           }}
         >
           <button
-            onClick={handleAdd}
+            onClick={handleSelect}
             style={{
               padding: '6px 16px',
               fontFamily: 'monospace',

@@ -5,7 +5,7 @@ import { isPathInProject } from '../project-directory'
 import type { AgentId, ToolConfirmPayload, PathApprovalPayload } from '../../shared/types'
 
 interface PendingToolConfirm {
-  resolve: (result: { approved: boolean; addToApproved?: string }) => void
+  resolve: (result: { approved: boolean }) => void
   timer: ReturnType<typeof setTimeout>
 }
 
@@ -75,7 +75,7 @@ export function buildToolSummary(toolName: string, args: Record<string, unknown>
 export function requestToolConfirmation(
   payload: ToolConfirmPayload,
   webContents: WebContents
-): Promise<{ approved: boolean; addToApproved?: string }> {
+): Promise<{ approved: boolean }> {
   if (webContents.isDestroyed()) {
     return Promise.resolve({ approved: false })
   }
