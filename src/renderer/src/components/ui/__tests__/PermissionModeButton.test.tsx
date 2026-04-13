@@ -13,7 +13,8 @@ vi.mock('../../../i18n', () => ({
         'permissionMode.default': 'Default Mode',
         'permissionMode.acceptEdits': 'Accept Edits',
         'permissionMode.auto': 'Auto Mode',
-        'permissionMode.plan': 'Plan Mode'
+        'permissionMode.plan': 'Plan Mode',
+        'permissionMode.requiresMax': 'Requires Max subscription'
       }
       return map[key] ?? key
     }
@@ -48,5 +49,20 @@ describe('PermissionModeButton', () => {
     render(<PermissionModeButton currentMode="default" onModeChange={vi.fn()} disabled={true} />)
     fireEvent.click(screen.getByTitle('Default Mode'))
     expect(screen.queryByText('Auto Mode')).toBeNull()
+  })
+
+  it('does not call onModeChange for disabled modes', () => {
+    const onModeChange = vi.fn()
+    render(
+      <PermissionModeButton
+        currentMode="default"
+        onModeChange={onModeChange}
+        disabled={false}
+        disabledModes={['auto']}
+      />
+    )
+    fireEvent.click(screen.getByTitle('Default Mode'))
+    fireEvent.click(screen.getByText('Auto Mode'))
+    expect(onModeChange).not.toHaveBeenCalled()
   })
 })

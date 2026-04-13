@@ -317,6 +317,7 @@
     "default": "Default Mode",
     "acceptEdits": "Accept Edits",
     "auto": "Auto Mode",
-    "plan": "Plan Mode"
+    "plan": "Plan Mode",
+    "requiresMax": "Requires Max subscription"
   }
 }

@@ -317,6 +317,7 @@
     "default": "預設模式",
     "acceptEdits": "接受編輯",
     "auto": "自動模式",
-    "plan": "計畫模式"
+    "plan": "計畫模式",
+    "requiresMax": "需要 Max 訂閱方案"
   }
 }

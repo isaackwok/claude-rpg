@@ -10,6 +10,7 @@ interface PermissionModeButtonProps {
   currentMode: UIPermissionMode
   onModeChange: (mode: UIPermissionMode) => void
   disabled: boolean
+  disabledModes?: UIPermissionMode[]
 }
 
 const btnSize = 30
@@ -17,7 +18,8 @@ const btnSize = 30
 export function PermissionModeButton({
   currentMode,
   onModeChange,
-  disabled
+  disabled,
+  disabledModes = []
 }: PermissionModeButtonProps) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
@@ -56,7 +58,7 @@ export function PermissionModeButton({
     position: 'absolute',
     bottom: btnSize + 4,
     right: 0,
-    minWidth: 150,
+    minWidth: 200,
     background: 'rgba(20, 20, 40, 0.98)',
     border: '1px solid rgba(200, 180, 140, 0.4)',
     borderRadius: 4,
@@ -81,36 +83,46 @@ export function PermissionModeButton({
           >
             {t('permissionMode.label')}
           </div>
-          {UI_PERMISSION_MODES.map((mode) => (
-            <div
-              key={mode}
-              onMouseDown={(e) => {
-                e.preventDefault()
-                onModeChange(mode)
-                setOpen(false)
-              }}
-              onClick={() => {
-                onModeChange(mode)
-                setOpen(false)
-              }}
-              style={{
-                padding: '6px 10px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                background: mode === currentMode ? 'rgba(200, 180, 140, 0.12)' : 'transparent',
-                fontFamily: 'monospace',
-                fontSize: 13
-              }}
-            >
-              <span style={{ fontSize: 14 }}>{PERMISSION_MODE_ICONS[mode]}</span>
-              <span style={{ color: '#e8d5a8' }}>{t(`permissionMode.${mode}`)}</span>
-              {mode === currentMode && (
-                <span style={{ marginLeft: 'auto', color: '#c4a46c', fontSize: 11 }}>✓</span>
-              )}
-            </div>
-          ))}
+          {UI_PERMISSION_MODES.map((mode) => {
+            const isModeDisabled = disabledModes.includes(mode)
+            return (
+              <div
+                key={mode}
+                onMouseDown={(e) => {
+                  e.preventDefault()
+                  if (isModeDisabled) return
+                  onModeChange(mode)
+                  setOpen(false)
+                }}
+                onClick={() => {
+                  if (isModeDisabled) return
+                  onModeChange(mode)
+                  setOpen(false)
+                }}
+                title={isModeDisabled ? t('permissionMode.requiresMax') : undefined}
+                style={{
+                  padding: '6px 10px',
+                  cursor: isModeDisabled ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  background: mode === currentMode ? 'rgba(200, 180, 140, 0.12)' : 'transparent',
+                  opacity: isModeDisabled ? 0.4 : 1,
+                  fontFamily: 'monospace',
+                  fontSize: 13,
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                <span style={{ width: 20, textAlign: 'center', fontSize: 14, flexShrink: 0 }}>
+                  {PERMISSION_MODE_ICONS[mode]}
+                </span>
+                <span style={{ color: '#e8d5a8' }}>{t(`permissionMode.${mode}`)}</span>
+                {mode === currentMode && (
+                  <span style={{ marginLeft: 'auto', color: '#c4a46c', fontSize: 11 }}>✓</span>
+                )}
+              </div>
+            )
+          })}
         </div>
       )}
       <button

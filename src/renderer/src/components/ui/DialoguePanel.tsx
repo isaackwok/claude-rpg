@@ -502,6 +502,7 @@ function InputArea({
             currentMode={agentMode}
             onModeChange={onModeChange}
             disabled={isBusy}
+            disabledModes={['auto']}
           />
         )}
         {/* Attach menu */}
