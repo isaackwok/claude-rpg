@@ -42,7 +42,6 @@ export function ProjectDirectoryModal({ onComplete }: ProjectDirectoryModalProps
           maxWidth: '90%'
         }}
       >
-        {/* Title */}
         <h2
           style={{
             color: '#c4a46c',
@@ -55,7 +54,6 @@ export function ProjectDirectoryModal({ onComplete }: ProjectDirectoryModalProps
           {t('onboarding.projectDir.title')}
         </h2>
 
-        {/* Description */}
         <p
           style={{
             fontSize: 14,
@@ -67,7 +65,6 @@ export function ProjectDirectoryModal({ onComplete }: ProjectDirectoryModalProps
           {t('onboarding.projectDir.description')}
         </p>
 
-        {/* Folder picker button */}
         <button
           onClick={handleSelect}
           style={{
@@ -87,7 +84,6 @@ export function ProjectDirectoryModal({ onComplete }: ProjectDirectoryModalProps
           📁 {t('onboarding.projectDir.selectButton')}
         </button>
 
-        {/* Selected directory display */}
         {selectedDir && (
           <div
             style={{
@@ -108,7 +104,6 @@ export function ProjectDirectoryModal({ onComplete }: ProjectDirectoryModalProps
           </div>
         )}
 
-        {/* Confirm button */}
         <div
           style={{ display: 'flex', justifyContent: 'flex-end', marginTop: selectedDir ? 0 : 20 }}
         >

@@ -41,7 +41,7 @@ describe('PermissionModeButton', () => {
       <PermissionModeButton currentMode="default" onModeChange={onModeChange} disabled={false} />
     )
     fireEvent.click(screen.getByTitle('Default Mode'))
-    fireEvent.click(screen.getByText('Auto Mode'))
+    fireEvent.mouseDown(screen.getByText('Auto Mode'))
     expect(onModeChange).toHaveBeenCalledWith('auto')
   })
 
@@ -62,7 +62,7 @@ describe('PermissionModeButton', () => {
       />
     )
     fireEvent.click(screen.getByTitle('Default Mode'))
-    fireEvent.click(screen.getByText('Auto Mode'))
+    fireEvent.mouseDown(screen.getByText('Auto Mode'))
     expect(onModeChange).not.toHaveBeenCalled()
   })
 })

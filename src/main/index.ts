@@ -32,7 +32,7 @@ import { SqliteCosmeticRepository } from './db/cosmetic-repository'
 import { SqliteItemRepository } from './db/item-repository'
 import { AchievementEngine } from './achievement-engine'
 import { generateBookName, stripMarkdown } from './book-name-generator'
-import { getAgentConfig } from './agents/system-prompts'
+import { getAllAgentConfigs } from './agents/system-prompts'
 import type { AtSource } from '../shared/types'
 import { COSMETIC_DEFINITIONS } from './cosmetic-definitions'
 import type { PlayerCosmetic } from '../shared/cosmetic-types'
@@ -525,30 +525,14 @@ app.whenReady().then(() => {
     return slashCommandRegistry.getCommands()
   })
 
-  const KNOWN_AGENT_IDS = [
-    'elder',
-    'guildMaster',
-    'scholar',
-    'scribe',
-    'merchant',
-    'commander',
-    'artisan',
-    'herald',
-    'wizard',
-    'bartender'
-  ]
-
   ipcMain.handle(
     'at:list-sources',
     async (_e, { query: _query, agentId: _agentId }: { query: string; agentId: string }) => {
       const sources: AtSource[] = []
 
-      // NPCs — use known agent IDs with getAgentConfig
-      for (const id of KNOWN_AGENT_IDS) {
-        const config = getAgentConfig(id)
-        if (config) {
-          sources.push({ type: 'npc', id, label: id })
-        }
+      // NPCs — from the canonical agent registry
+      for (const config of getAllAgentConfigs()) {
+        sources.push({ type: 'npc', id: config.id, label: config.id })
       }
 
       // Books — from items repo
@@ -572,9 +556,9 @@ app.whenReady().then(() => {
       const projectDir = getProjectDirectory()
       if (projectDir) {
         try {
-          const { readdirSync } = await import('fs')
-          const entries = readdirSync(projectDir, { withFileTypes: true }).slice(0, 50)
-          for (const entry of entries) {
+          const { readdir } = await import('fs/promises')
+          const entries = await readdir(projectDir, { withFileTypes: true })
+          for (const entry of entries.slice(0, 50)) {
             sources.push({
               type: 'file',
               id: `${projectDir}/${entry.name}`,

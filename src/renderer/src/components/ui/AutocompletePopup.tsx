@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react'
+import { useTranslation } from '../../i18n'
 import type { AutocompleteItem } from '../../../../shared/dialogue-control-types'
 
 interface AutocompletePopupProps {
@@ -6,13 +7,6 @@ interface AutocompletePopupProps {
   selectedIndex: number
   onSelect: (item: AutocompleteItem) => void
   visible: boolean
-}
-
-const CATEGORY_LABELS: Record<string, string> = {
-  slash: 'Slash Commands',
-  npc: 'NPCs',
-  book: 'Books',
-  file: 'Files'
 }
 
 const containerStyle: CSSProperties = {
@@ -59,6 +53,7 @@ export function AutocompletePopup({
   onSelect,
   visible
 }: AutocompletePopupProps) {
+  const { t } = useTranslation()
   if (!visible || items.length === 0) return null
 
   // Group items by type for categorized display
@@ -75,7 +70,7 @@ export function AutocompletePopup({
     <div style={containerStyle}>
       {Array.from(groups.entries()).map(([type, groupItems]) => (
         <div key={type}>
-          {groups.size > 1 && <div style={categoryLabelStyle}>{CATEGORY_LABELS[type] ?? type}</div>}
+          {groups.size > 1 && <div style={categoryLabelStyle}>{t(`autocomplete.${type}`)}</div>}
           {groupItems.map((item) => {
             const idx = flatIndex++
             const isSelected = idx === selectedIndex

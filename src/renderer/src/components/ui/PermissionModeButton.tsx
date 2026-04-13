@@ -94,11 +94,6 @@ export function PermissionModeButton({
                   onModeChange(mode)
                   setOpen(false)
                 }}
-                onClick={() => {
-                  if (isModeDisabled) return
-                  onModeChange(mode)
-                  setOpen(false)
-                }}
                 title={isModeDisabled ? t('permissionMode.requiresMax') : undefined}
                 style={{
                   padding: '6px 10px',

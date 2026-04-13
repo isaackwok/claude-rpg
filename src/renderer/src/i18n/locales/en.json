@@ -319,5 +319,11 @@
     "auto": "Auto Mode",
     "plan": "Plan Mode",
     "requiresMax": "Requires Max subscription"
+  },
+  "autocomplete": {
+    "slash": "Slash Commands",
+    "npc": "NPCs",
+    "book": "Books",
+    "file": "Files"
   }
 }

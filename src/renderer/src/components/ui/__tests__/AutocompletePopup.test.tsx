@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
 import { AutocompletePopup } from '../AutocompletePopup'
-import type { AutocompleteItem } from '../../../../shared/dialogue-control-types'
+import type { AutocompleteItem } from '../../../../../shared/dialogue-control-types'
 
 const items: AutocompleteItem[] = [
   { type: 'slash', id: 'brainstorm', label: '/brainstorm', description: 'Brainstorm ideas' },

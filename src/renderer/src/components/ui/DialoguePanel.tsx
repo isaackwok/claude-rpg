@@ -662,15 +662,17 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
     [dialogue]
   )
 
+  // Items for book reference lookups in messages and autocomplete attach
+  const { items } = useItems()
+  const itemsById = useMemo(() => new Map(items.map((i) => [i.id, i])), [items])
+
   const handleAutocompleteAttach = useCallback(
     (item: AutocompleteItem) => {
       if (item.type === 'book') {
-        window.api.getItems().then((allItems) => {
-          const book = allItems.find((i) => i.id === item.id)
-          if (book && book.type === 'book') {
-            setAttachments((prev) => [...prev, { type: 'book', id: book.id, book }])
-          }
-        })
+        const book = itemsById.get(item.id)
+        if (book && book.type === 'book') {
+          setAttachments((prev) => [...prev, { type: 'book', id: book.id, book }])
+        }
       } else if (item.type === 'file') {
         setAttachments((prev) => [
           ...prev,
@@ -694,12 +696,8 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
         })
       }
     },
-    [dialogue]
+    [itemsById]
   )
-
-  // Items for book reference lookups in messages
-  const { items } = useItems()
-  const itemsById = useMemo(() => new Map(items.map((i) => [i.id, i])), [items])
   const handleBookClick = useCallback(
     (bookId: string) => {
       const book = itemsById.get(bookId)

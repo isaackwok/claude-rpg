@@ -3,20 +3,24 @@ import { dialog } from 'electron'
 import type { SqliteSettingsRepository } from './db/settings-repository'
 
 let settingsRepo: SqliteSettingsRepository | null = null
+let cachedDir: string | null = null
 
 export function initProjectDirectory(repo: SqliteSettingsRepository): void {
   settingsRepo = repo
+  cachedDir = null
 }
 
 export function getProjectDirectory(): string {
   if (!settingsRepo) throw new Error('Project directory not initialized')
-  return settingsRepo.getProjectDirectory()
+  if (cachedDir === null) cachedDir = settingsRepo.getProjectDirectory()
+  return cachedDir
 }
 
 export function setProjectDirectory(dirPath: string): void {
   if (!settingsRepo) throw new Error('Project directory not initialized')
   const normalized = resolve(normalize(dirPath))
   settingsRepo.setProjectDirectory(normalized)
+  cachedDir = normalized
 }
 
 export function isPathInProject(filePath: string): boolean {

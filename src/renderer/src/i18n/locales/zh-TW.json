@@ -319,5 +319,11 @@
     "auto": "自動模式",
     "plan": "計畫模式",
     "requiresMax": "需要 Max 訂閱方案"
+  },
+  "autocomplete": {
+    "slash": "斜線指令",
+    "npc": "NPC",
+    "book": "書籍",
+    "file": "檔案"
   }
 }

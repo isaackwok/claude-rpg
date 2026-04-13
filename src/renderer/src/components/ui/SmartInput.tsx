@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, type CSSProperties } from 'react'
+import { useState, useMemo, useRef, useCallback, type CSSProperties } from 'react'
 import { AutocompletePopup } from './AutocompletePopup'
 import type {
   AutocompleteItem,
@@ -65,28 +65,19 @@ export function SmartInput({
 }: SmartInputProps) {
   const internalRef = useRef<HTMLTextAreaElement>(null)
   const textareaRef = externalRef ?? internalRef
-  const [autocomplete, setAutocomplete] = useState<{
+  const [selectedIndex, setSelectedIndex] = useState(0)
+
+  // Derive autocomplete candidates from value (single render pass, no extra setState)
+  const autocomplete = useMemo<{
     mode: 'slash' | 'at'
     items: AutocompleteItem[]
-    selectedIndex: number
     anchorPos: number
-  } | null>(null)
-
-  // Derive autocomplete state from value
-  useEffect(() => {
+  } | null>(() => {
     // Check for slash command: "/" at position 0
-    if (value.startsWith('/')) {
+    if (value.startsWith('/') && !value.includes(' ')) {
       const filter = value.slice(1).split(/\s/)[0]
-      if (!value.includes(' ')) {
-        const items = buildSlashItems(slashCommands, filter)
-        setAutocomplete((prev) => ({
-          mode: 'slash',
-          items,
-          selectedIndex: Math.min(prev?.selectedIndex ?? 0, Math.max(items.length - 1, 0)),
-          anchorPos: 0
-        }))
-        return
-      }
+      const items = buildSlashItems(slashCommands, filter)
+      if (items.length > 0) return { mode: 'slash', items, anchorPos: 0 }
     }
 
     // Check for @ mention: find last unresolved "@" before cursor
@@ -99,19 +90,16 @@ export function SmartInput({
         const filter = textBeforeCursor.slice(lastAtIdx + 1)
         if (!filter.includes(' ')) {
           const items = buildAtItems(atSources, filter)
-          setAutocomplete((prev) => ({
-            mode: 'at',
-            items,
-            selectedIndex: Math.min(prev?.selectedIndex ?? 0, Math.max(items.length - 1, 0)),
-            anchorPos: lastAtIdx
-          }))
-          return
+          if (items.length > 0) return { mode: 'at', items, anchorPos: lastAtIdx }
         }
       }
     }
 
-    setAutocomplete(null)
+    return null
   }, [value, slashCommands, atSources, textareaRef])
+
+  // Clamp selectedIndex when items change
+  const clampedIndex = autocomplete ? Math.min(selectedIndex, autocomplete.items.length - 1) : 0
 
   const handleSelect = useCallback(
     (item: AutocompleteItem) => {
@@ -125,7 +113,7 @@ export function SmartInput({
         onChange(before + after)
         onAttach(item)
       }
-      setAutocomplete(null)
+      setSelectedIndex(0)
       setTimeout(() => textareaRef.current?.focus(), 0)
     },
     [autocomplete, value, onChange, onAttach, textareaRef]
@@ -136,31 +124,24 @@ export function SmartInput({
       if (autocomplete && autocomplete.items.length > 0) {
         if (e.key === 'ArrowDown') {
           e.preventDefault()
-          setAutocomplete((prev) =>
-            prev ? { ...prev, selectedIndex: (prev.selectedIndex + 1) % prev.items.length } : null
-          )
+          setSelectedIndex((prev) => (prev + 1) % autocomplete.items.length)
           return
         }
         if (e.key === 'ArrowUp') {
           e.preventDefault()
-          setAutocomplete((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  selectedIndex: (prev.selectedIndex - 1 + prev.items.length) % prev.items.length
-                }
-              : null
+          setSelectedIndex(
+            (prev) => (prev - 1 + autocomplete.items.length) % autocomplete.items.length
           )
           return
         }
         if (e.key === 'Enter' || e.key === 'Tab') {
           e.preventDefault()
-          handleSelect(autocomplete.items[autocomplete.selectedIndex])
+          handleSelect(autocomplete.items[clampedIndex])
           return
         }
         if (e.key === 'Escape') {
           e.preventDefault()
-          setAutocomplete(null)
+          onChange('')
           return
         }
       }
@@ -204,9 +185,9 @@ export function SmartInput({
     <div style={{ position: 'relative', flex: 1 }}>
       <AutocompletePopup
         items={autocomplete?.items ?? []}
-        selectedIndex={autocomplete?.selectedIndex ?? 0}
+        selectedIndex={clampedIndex}
         onSelect={handleSelect}
-        visible={autocomplete !== null && autocomplete.items.length > 0}
+        visible={autocomplete !== null}
       />
       <div
         style={{
