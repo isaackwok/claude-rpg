@@ -27,6 +27,7 @@ export interface SettingsMap {
   model: string
   locale: Locale
   permission_mode: PermissionMode
+  project_directory: string // empty string = not set
 }
 
 /** Message role for Anthropic API conversations. */
