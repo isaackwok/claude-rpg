@@ -25,8 +25,8 @@ src/
 ├── main/                  # Electron main process
 │   ├── index.ts           # Window management, IPC handlers
 │   ├── api-key.ts         # API key storage (safeStorage)
-│   ├── chat/              # Pluggable AI backend (ApiKey + AgentSdk backends, ChatOrchestrator)
-│   ├── folder-manager.ts  # Approved folder management
+│   ├── chat/              # Pluggable AI backend (ApiKey + AgentSdk backends, ChatOrchestrator, SlashCommandRegistry)
+│   ├── project-directory.ts  # Single project directory management
 │   ├── progression-engine.ts  # XP, leveling, title computation + tier prefixes
 │   ├── quest-engine.ts    # Quest trigger evaluation, board suggestions
 │   ├── achievement-engine.ts  # Achievement checking + cosmetic rewards
@@ -40,12 +40,12 @@ src/
 │   │   ├── entities/      # Player, NPC
 │   │   ├── data/          # NPC registry
 │   │   └── EventBus.ts    # Typed Phaser ↔ React event bus
-│   ├── components/ui/     # DialoguePanel, HUD, SkillsPanel, BackpackPanel, QuestCard, etc.
+│   ├── components/ui/     # DialoguePanel, SmartInput, AutocompletePopup, PermissionModeButton, HUD, etc.
 │   ├── hooks/             # useProgression, useQuests (IPC + EventBus)
 │   ├── services/          # ConversationManager
 │   ├── i18n/              # zh-TW + en locale files
 │   └── App.tsx            # Root component
-├── shared/                # Cross-process types (AgentId, ToolName, IPC payloads)
+├── shared/                # Cross-process types (AgentId, ToolName, dialogue control types, IPC payloads)
 docs/superpowers/
 ├── specs/                 # Design specifications
 └── plans/                 # Implementation plans
@@ -72,7 +72,7 @@ npm install
 npm run dev       # Start Electron dev server with hot reload
 ```
 
-On first launch, the settings panel will open to configure your AI backend — either an Anthropic API key or a Claude subscription (via Agent SDK). API keys are stored securely via Electron safeStorage.
+On first launch, an onboarding modal prompts you to set your project directory (the folder NPCs can access), followed by the settings panel to configure your AI backend — either an Anthropic API key or a Claude subscription (via Agent SDK). API keys are stored securely via Electron safeStorage.
 
 ### Other Commands
 
@@ -101,18 +101,18 @@ Electron's 3-process model keeps the AI layer secure:
 - **Preload** — Bridges main ↔ renderer via typed IPC channels.
 - **Renderer** — Phaser game canvas + React UI overlays, communicating through a typed EventBus.
 
-NPCs can use tools (read/write files, search the web, run commands) with an approval system: users grant folder access via a "Notice Board" UI, and each tool invocation shows a confirmation dialog.
+NPCs can use tools (read/write files, search the web, run commands) with an approval system: users set a project directory on first launch, and tool invocations outside the project directory show a confirmation dialog (Allow Once / Deny).
 
 ## Implementation Phases
 
 - [x] **Phase 1: Shell & World** — Electron + Phaser tilemap + player movement + NPC sprites + React overlay scaffold
 - [x] **Phase 2: Agent Conversations** — Single-agent NPC dialogue via Anthropic SDK
-- [x] **Phase 2.5: NPC Tool Use** — File operations, web search, command execution with folder approval system
+- [x] **Phase 2.5: NPC Tool Use** — File operations, web search, command execution with project directory access control
 - [x] **Phase 3A: Progression Engine** — XP, leveling, dynamic titles, SQLite persistence, HUD expansion
 - [x] **Phase 3B: Quests & Backpack** — Organic quests (5 v1 quests), backpack panel with tab system, quest board suggestions, title tier prefixes, quest notifications
 - [x] **Phase 3C: Achievements & Cosmetics** — 12 achievements, cosmetics (overlays + decorations), equip system, player home
 - [x] **Phase 3D: Inventory & Books** — Collectible books, save NPC responses to backpack, cross-NPC context injection
-- [x] **Phase 4A: Settings Panel** — Auth type switching (API Key / Claude CLI), global model selector, language toggle
+- [x] **Phase 4A: Settings & Dialogue Controls** — Auth type switching, model selector, language toggle, per-agent permission modes, slash command & @ mention autocomplete, project directory with onboarding modal
 - [ ] **Phase 4B: Guild Hall** — Custom agent creation
 - [ ] **Phase 5: Party System** — Multi-agent orchestration via Agent SDK
 - [ ] **Phase 6: Onboarding & Polish** — Title screen, character creation, i18n pass

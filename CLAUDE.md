@@ -37,7 +37,7 @@ npm run format       # Prettier
 - **Chat module** (`src/main/chat/`) — Pluggable AI backend architecture. `ChatOrchestrator` handles side effects (XP, quests, achievements, persistence) and delegates AI communication to an `IChatBackend` implementation. Two backends: `ApiKeyChatBackend` (Anthropic SDK, manages tools via orchestrator) and `AgentSdkBackend` (Claude Agent SDK, manages tools internally via SDK sessions). `BackendManager` owns backend lifecycle, hot-swapping via settings, and passes `PermissionMode` to SDK backends. `ChatOrchestrator` also manages per-agent permission modes (session-scoped) and a `SlashCommandRegistry` for CLI-discovered slash commands.
 - **Preload** (`src/preload/`) — contextBridge exposing safe IPC channels
 - **Renderer** (`src/renderer/`) — Phaser game + React UI overlays
-- **Shared** (`src/shared/`) — Type definitions shared across all processes (AgentId, ToolName, IPC payloads)
+- **Shared** (`src/shared/`) — Type definitions shared across all processes (AgentId, ToolName, IPC payloads, dialogue control types for slash commands / @ mentions / permission modes)
 
 ### Renderer Architecture
 
@@ -78,16 +78,16 @@ The project is built in 6 phases, each producing a working deliverable:
    2.5. **NPC Tool Use** — File operations, web search, command execution with project directory access control
 3. **Progression** — XP, leveling, titles, quest board. Introduces SQLite (better-sqlite3) persistence via repository pattern.
 4. **Settings & Guild Hall**
-   4A. **Settings Panel** — Auth type switching (API Key / Claude CLI), global model selector, language toggle
+   4A. **Settings & Dialogue Controls** — Auth type switching, model selector, language toggle, per-agent permission modes, slash command & @ mention autocomplete, project directory (replacing approved folders), first-launch onboarding modal
    4B. **Guild Hall** — Custom agent creation
-5. **Party System** — Multi-agent orchestration via Agent SDK
-6. **Onboarding & Polish** — Title screen, API key wizard, character creation, i18n pass
+5. **Party System** — Multi-agent orchestration via Agent SDK (per-agent permission modes already wired)
+6. **Onboarding & Polish** — Title screen, character creation, i18n pass (project directory onboarding & API key setup already in Phase 4A)
 
-Completed: Phase 1 (Shell & World), Phase 2 (Agent Conversations), Phase 2.5 (NPC Tool Use), Phase 3A (Progression Engine), Phase 3B (Quests, Backpack & Title Tiers), Phase 3C (Achievements & Cosmetics), Phase 3D (Inventory & Books), Phase 4A (Settings Panel)
+Completed: Phase 1 (Shell & World), Phase 2 (Agent Conversations), Phase 2.5 (NPC Tool Use), Phase 3A (Progression Engine), Phase 3B (Quests, Backpack & Title Tiers), Phase 3C (Achievements & Cosmetics), Phase 3D (Inventory & Books), Phase 4A (Settings & Dialogue Controls)
 Next up: Phase 4B (Guild Hall)
 
 - Phase 3C delivered: 12 achievements (progression/exploration/tool_use), cosmetics (overlays + decorations), equip system, player home with decoration placement
 - Phase 3D delivered: inventory tab with collectible books, save NPC responses to backpack with AI-generated RPG names (Sonnet), cross-NPC context injection via "+" menu, BookPickerModal with multi-select, BookDetailModal with editable names
-- Phase 4A delivered: Settings panel with auth type switching (API Key / Claude CLI), global model selector, language toggle. BackendManager for pluggable backend lifecycle. Accessible via HUD gear icon + ESC key.
+- Phase 4A delivered: Settings panel with auth type switching (API Key / Claude CLI), global model selector, language toggle. BackendManager for pluggable backend lifecycle. Accessible via HUD gear icon + ESC key. Also: dialogue controls (PR #16) — per-agent permission mode toggle, `/` slash command autocomplete, `@` mention autocomplete (NPCs/books/files), SmartInput component. Project directory system replacing multi-folder "approved folders" — single project directory, first-launch ProjectDirectoryModal onboarding, simplified tool confirmation (Allow Once / Deny only).
   Full spec: `docs/superpowers/specs/2026-03-16-claude-rpg-design.md`
   Plans & specs: `docs/superpowers/plans/` and `docs/superpowers/specs/`
