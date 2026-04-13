@@ -33,7 +33,7 @@ npm run format       # Prettier
 
 ### Process Model (Electron 3-process)
 
-- **Main process** (`src/main/`) — Window management, API key storage (safeStorage), NPC tool execution, folder approval management, QuestEngine + ProgressionEngine services. The renderer never sees the raw API key.
+- **Main process** (`src/main/`) — Window management, API key storage (safeStorage), NPC tool execution, project directory management, QuestEngine + ProgressionEngine services. The renderer never sees the raw API key.
 - **Chat module** (`src/main/chat/`) — Pluggable AI backend architecture. `ChatOrchestrator` handles side effects (XP, quests, achievements, persistence) and delegates AI communication to an `IChatBackend` implementation. Two backends: `ApiKeyChatBackend` (Anthropic SDK, manages tools via orchestrator) and `AgentSdkBackend` (Claude Agent SDK, manages tools internally via SDK sessions). `BackendManager` owns backend lifecycle, hot-swapping via settings, and passes `PermissionMode` to SDK backends. `ChatOrchestrator` also manages per-agent permission modes (session-scoped) and a `SlashCommandRegistry` for CLI-discovered slash commands.
 - **Preload** (`src/preload/`) — contextBridge exposing safe IPC channels
 - **Renderer** (`src/renderer/`) — Phaser game + React UI overlays
@@ -75,7 +75,7 @@ The project is built in 6 phases, each producing a working deliverable:
 
 1. **Shell & World** — Electron + Phaser tilemap + player movement + NPC sprites + React overlay scaffold (no AI)
 2. **Agent Conversations** — Single-agent NPC dialogue via Anthropic SDK
-   2.5. **NPC Tool Use** — File operations, web search, command execution with folder approval system
+   2.5. **NPC Tool Use** — File operations, web search, command execution with project directory access control
 3. **Progression** — XP, leveling, titles, quest board. Introduces SQLite (better-sqlite3) persistence via repository pattern.
 4. **Settings & Guild Hall**
    4A. **Settings Panel** — Auth type switching (API Key / Claude CLI), global model selector, language toggle
