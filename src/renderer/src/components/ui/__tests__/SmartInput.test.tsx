@@ -11,7 +11,6 @@ describe('SmartInput', () => {
     onChange: vi.fn(),
     onSend: vi.fn(),
     onAttach: vi.fn(),
-    disabled: false,
     placeholder: 'Type...',
     slashCommands: [
       { name: 'brainstorm', description: 'Brainstorm ideas' },

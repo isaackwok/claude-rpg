@@ -88,7 +88,9 @@
     "addingToBackpack": "Saving...",
     "saveFailed": "Save failed",
     "referenceBooks": "Reference Books",
-    "referenceLabel": "Reference"
+    "referenceLabel": "Reference",
+    "expand": "Expand(F)",
+    "collapse": "Collapse(F)"
   },
   "locations": {
     "townSquare": "Town Square",

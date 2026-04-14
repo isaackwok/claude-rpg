@@ -11,7 +11,6 @@ interface SmartInputProps {
   onChange: (value: string) => void
   onSend: () => void
   onAttach: (item: AutocompleteItem) => void
-  disabled: boolean
   placeholder: string
   slashCommands: SlashCommand[]
   atSources: AtSource[]
@@ -56,7 +55,6 @@ export function SmartInput({
   onChange,
   onSend,
   onAttach,
-  disabled,
   placeholder,
   slashCommands,
   atSources,
@@ -209,7 +207,6 @@ export function SmartInput({
             el.style.height = Math.min(el.scrollHeight, maxTextareaHeight) + 'px'
           }}
           placeholder={placeholder}
-          disabled={disabled}
           rows={1}
           style={textareaStyle}
         />
