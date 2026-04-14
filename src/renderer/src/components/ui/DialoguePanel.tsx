@@ -510,7 +510,6 @@ function InputArea({
             onChange={(v) => setInput(v)}
             onSend={send}
             onAttach={onAutocompleteAttach}
-            disabled={isBusy}
             placeholder={t('dialogue.inputPlaceholder')}
             slashCommands={slashCommands}
             atSources={atSources}
@@ -580,17 +579,17 @@ function InputArea({
         <button
           onMouseDown={(e) => e.preventDefault()}
           onClick={send}
-          disabled={isBusy || (!input.trim() && attachments.length === 0)}
+          disabled={!input.trim() && attachments.length === 0}
           style={{
             height: inputHeight,
             boxSizing: 'border-box',
             padding: '0 16px',
             fontFamily: 'monospace',
             fontSize: 14,
-            background: isBusy ? 'rgba(100,100,100,0.3)' : 'rgba(200,180,140,0.3)',
+            background: 'rgba(200,180,140,0.3)',
             border: '1px solid rgba(200,180,140,0.6)',
             color: '#c4a46c',
-            cursor: isBusy ? 'wait' : 'pointer'
+            cursor: 'pointer'
           }}
         >
           {t('dialogue.send')}
@@ -652,6 +651,7 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const [unreadDividerIndex, setUnreadDividerIndex] = useState<number | null>(null)
   const [previewBook, setPreviewBook] = useState<BookItem | null>(null)
+  const sendQueueRef = useRef<string[]>([])
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const unreadMarkerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -780,6 +780,7 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
       setInput('')
       setExpanded(false)
       setAttachments([])
+      sendQueueRef.current = []
     }
   }, [dialogue])
 
@@ -837,7 +838,7 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
     conversation?.messages[conversation.messages.length - 1]?.content
   ])
 
-  // Send message
+  // Send message — dispatches immediately if idle, otherwise queues to send when the current turn ends
   const send = useCallback(() => {
     if (!dialogue || (!input.trim() && attachments.length === 0)) return
     if (!hasApiKey) {
@@ -883,15 +884,32 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
     const bookRefs = attachments
       .filter((att): att is Attachment & { type: 'book' } => att.type === 'book')
       .map((att) => ({ id: att.book.id, name: att.book.name }))
+    // Optimistically show the user message immediately — even while the previous turn is streaming
     conversationManager.appendMessage(dialogue.agentId, {
       role: 'user',
       content: displayText,
       timestamp: Date.now(),
       ...(bookRefs.length > 0 && { bookRefs })
     })
+    const currentState = conversationManager.getConversation(dialogue.agentId)?.status.state
+    if (currentState && currentState !== 'idle') {
+      // Busy — queue for dispatch after current turn completes
+      sendQueueRef.current.push(finalText)
+      return
+    }
     conversationManager.markWaiting(dialogue.agentId)
     window.api.sendMessage(dialogue.agentId, finalText, locale)
   }, [dialogue, input, hasApiKey, locale, onRequestApiKey, attachments, t])
+
+  // Drain the send queue when the conversation returns to idle
+  useEffect(() => {
+    if (!dialogue) return
+    if (conversation?.status.state !== 'idle') return
+    const next = sendQueueRef.current.shift()
+    if (!next) return
+    conversationManager.markWaiting(dialogue.agentId)
+    window.api.sendMessage(dialogue.agentId, next, locale)
+  }, [dialogue, conversation?.status.state, locale])
 
   if (!dialogue) return null
 
