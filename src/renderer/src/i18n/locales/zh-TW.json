@@ -88,7 +88,9 @@
     "addingToBackpack": "儲存中...",
     "saveFailed": "儲存失敗",
     "referenceBooks": "參考書籍",
-    "referenceLabel": "參考資料"
+    "referenceLabel": "參考資料",
+    "expand": "展開(F)",
+    "collapse": "收合(F)"
   },
   "locations": {
     "townSquare": "城鎮廣場",

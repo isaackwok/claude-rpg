@@ -148,6 +148,7 @@ export function SmartInput({
 
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault()
+        if (disabled) return
         onSend()
         if (textareaRef.current) textareaRef.current.style.height = `${inputHeight}px`
         return
@@ -161,7 +162,7 @@ export function SmartInput({
         onBackspaceEmpty?.()
       }
     },
-    [autocomplete, handleSelect, onSend, onBackspaceEmpty, textareaRef]
+    [autocomplete, disabled, handleSelect, onSend, onBackspaceEmpty, textareaRef]
   )
 
   const textareaStyle: CSSProperties = {
@@ -209,9 +210,13 @@ export function SmartInput({
             el.style.height = Math.min(el.scrollHeight, maxTextareaHeight) + 'px'
           }}
           placeholder={placeholder}
-          disabled={disabled}
+          readOnly={disabled}
           rows={1}
-          style={textareaStyle}
+          style={{
+            ...textareaStyle,
+            opacity: disabled ? 0.6 : 1,
+            cursor: disabled ? 'not-allowed' : 'text'
+          }}
         />
       </div>
     </div>

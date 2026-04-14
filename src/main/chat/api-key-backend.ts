@@ -90,9 +90,6 @@ export class ApiKeyChatBackend implements IChatBackend {
           break
         }
 
-        // Buffer text during streaming — yield after finalMessage resolves
-        let roundText = ''
-
         const stream = client.messages.stream(
           {
             model: opts.model,
@@ -105,16 +102,14 @@ export class ApiKeyChatBackend implements IChatBackend {
           { signal: controller.signal }
         )
 
-        stream.on('text', (text) => {
-          roundText += text
-        })
+        // Yield text deltas as they arrive for smooth token-by-token streaming
+        for await (const event of stream) {
+          if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+            yield { type: 'text', chunk: event.delta.text }
+          }
+        }
 
         const finalMessage = await stream.finalMessage()
-
-        // Yield accumulated text as a single chunk for this round
-        if (roundText) {
-          yield { type: 'text', chunk: roundText }
-        }
 
         if (finalMessage.stop_reason === 'tool_use') {
           history.push({ role: 'assistant', content: finalMessage.content })

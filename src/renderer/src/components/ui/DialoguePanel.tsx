@@ -77,6 +77,32 @@ const bookLinkStyle: CSSProperties = {
   textUnderlineOffset: 2
 }
 
+function ExpandButton({
+  expanded,
+  onClick
+}: {
+  expanded: boolean
+  onClick: () => void
+}): React.ReactElement {
+  const { t } = useTranslation()
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        background: 'none',
+        border: 'none',
+        color: 'rgba(200, 180, 140, 0.5)',
+        cursor: 'pointer',
+        fontFamily: 'monospace',
+        padding: '2px 6px',
+        fontSize: 12
+      }}
+    >
+      {expanded ? t('dialogue.collapse') : t('dialogue.expand')}
+    </button>
+  )
+}
+
 /** Split user message content into text and clickable book references.
  *  Uses regex to find 📖 patterns and cross-references against bookRefs.
  *  No user-supplied strings are interpreted as code — output is React elements. */
@@ -552,6 +578,7 @@ function InputArea({
           </button>
         </div>
         <button
+          onMouseDown={(e) => e.preventDefault()}
           onClick={send}
           disabled={isBusy || (!input.trim() && attachments.length === 0)}
           style={{
@@ -756,11 +783,23 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
     }
   }, [dialogue])
 
-  // Escape key
+  // Escape key + F toggle for expand/collapse
   useEffect(() => {
     if (!dialogue) return
     const handleKey = (e: KeyboardEvent): void => {
-      if (e.key === 'Escape') close()
+      if (e.key === 'Escape') {
+        close()
+        return
+      }
+      if (e.key === 'f' || e.key === 'F') {
+        const target = e.target as HTMLElement | null
+        const tag = target?.tagName
+        const isTyping =
+          tag === 'TEXTAREA' || tag === 'INPUT' || (target?.isContentEditable ?? false)
+        if (isTyping) return
+        e.preventDefault()
+        setExpanded((v) => !v)
+      }
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
@@ -899,26 +938,8 @@ export function DialoguePanel({ onRequestApiKey, apiKeyVersion }: DialoguePanelP
         }}
       >
         <span>{dialogue.npcName}</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <svg
-            onClick={() => setExpanded((v) => !v)}
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            style={{
-              cursor: 'pointer',
-              opacity: 0.6,
-              transition: 'transform 0.3s ease',
-              transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)'
-            }}
-          >
-            <polyline points="18 15 12 9 6 15" />
-          </svg>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <ExpandButton expanded={expanded} onClick={() => setExpanded((v) => !v)} />
           <CloseButton onClick={close} />
         </div>
       </div>
